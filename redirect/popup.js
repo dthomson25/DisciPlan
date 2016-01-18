@@ -4,6 +4,7 @@ redirectCurrentTab = function(Url){
     });
 }
 
+var deadline;
 function getTimeRemaining(endtime) {
   var t = Date.parse(endtime) - Date.parse(new Date());
   var seconds = Math.floor((t / 1000) % 60);
@@ -16,34 +17,24 @@ function getTimeRemaining(endtime) {
     'seconds': seconds
   };
 }
-
-function initializeClock(id, endtime) {
-  var clock = document.getElementById(id);
+function updateClock() {
+  var clock = document.getElementById('countdowndiv');
   var hoursSpan = clock.querySelector('.hours');
   var minutesSpan = clock.querySelector('.minutes');
   var secondsSpan = clock.querySelector('.seconds');
 
-  function updateClock() {
-    var t = getTimeRemaining(endtime);
+  var t = getTimeRemaining(deadline);
 
-    hoursSpan.innerHTML = ('0' + t.hours).slice(-2);
-    minutesSpan.innerHTML = ('0' + t.minutes).slice(-2);
-    secondsSpan.innerHTML = ('0' + t.seconds).slice(-2);
+  hoursSpan.innerHTML = ('0' + t.hours).slice(-2);
+  minutesSpan.innerHTML = ('0' + t.minutes).slice(-2);
+  secondsSpan.innerHTML = ('0' + t.seconds).slice(-2);
 
-    if (t.total <= 0) {
-      clearInterval(timeinterval);
-    }
+
+  if (t.total <= 0) {
+    clearInterval(timeinterval);
+    redirectCurrentTab("http://www.stanford.edu");
   }
-
-  updateClock();
-  var timeinterval = setInterval(updateClock, 1000);
 }
-
-var deadline = new Date(Date.parse(new Date()) + 60 * 60 * 1000);
-
-
-
-
 
 
 
@@ -64,25 +55,18 @@ document.addEventListener('DOMContentLoaded', function() {
     redirectCurrentTab("http://www.google.com")
   }, false);
 
+  
 
-  /////////
-
-
-  //////
-
+  chrome.runtime.sendMessage({time: "remaining"}, function(response) {
+    console.log(response.time);
+    if(response.time){
+      deadline = new Date(response.time);
+      timeinterval = setInterval(updateClock, 1000);
+    }
+    if(response.defaultSite){
+      console.log("Already redirected...")
+    }
+  });
 }, false);
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
