@@ -26,7 +26,25 @@ chrome.tabs.onUpdated.addListener(function(tabid, changeInfo, tab) {
     var dTmp = new Date();
     if (url !== undefined && changeInfo.status == "complete") {
         amountSpent = (dTmp.getTime() - startTime - delay)/1000;
-        console.log("Spent " + amountSpent.toString() + " seconds on " + currUrl);
+
+        ////////start ish here
+        var xhttp = new XMLHttpRequest();
+            xhttp.addEventListener('readystatechange', function (evt) {
+            if (xhttp.readyState === 4) {
+                if (xhttp.status === 200) {
+                    console.log("Spent " + amountSpent.toString() + " seconds on " + currUrl + ". This made it to the backend.");
+                } else {
+                    console.log("ERROR: status " + xhttp.status);
+                }
+            }
+        });
+        xhttp.open('POST', 'http://localhost:3000/users/record',true);
+        xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        var form = 'url=' + tab.url + '&startTime=' + startTime.toString() + '&endTime=' + dTmp.getTime().toString();
+        xhttp.send(form);
+
+        //////////////end ish here
+        
         currUrl = url;
         startTime = dTmp.getTime();
         delay = 0;
@@ -35,3 +53,5 @@ chrome.tabs.onUpdated.addListener(function(tabid, changeInfo, tab) {
         delay = dTmp.getTime() - startTime;
     }
 });
+
+
