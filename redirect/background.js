@@ -4,6 +4,17 @@
 // 	});
 // });
 
+
+function RestrictedList(category, sites, remainingTime, totalAllowedTime) {
+  this.category = category;
+  this.sites = sites;
+  this.remainingTime = remainingTime;
+  this.totalAllowedTime = totalAllowedTime
+}
+
+var socialRestrictions = RestrictedList("Social Media",["http://www.facebook.com",
+  "http://www.twitter.com"],new Date(0,0,0,0,15), new Date(0,0,0,0,15))
+
 var deadline;
 var defaultSite = false;
 
