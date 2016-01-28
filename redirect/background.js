@@ -4,6 +4,7 @@
 // 	});
 // });
 
+var currSite;
 
 function RestrictedList(category, sites, remainingTime, totalAllowedTime) {
   this.category = category;
@@ -12,13 +13,14 @@ function RestrictedList(category, sites, remainingTime, totalAllowedTime) {
   this.totalAllowedTime = totalAllowedTime
 }
 
-var socialRestrictions = RestrictedList("Social Media",["http://www.facebook.com",
-  "http://www.twitter.com"],new Date(0,0,0,0,15), new Date(0,0,0,0,15))
+var socialRestrictions = new RestrictedList("Social Media",["http://www.facebook.com",
+  "http://www.twitter.com"],[0,0,15],[0,0,30])
 
 var deadline;
 var defaultSite = false;
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+
   deadline = new Date(Date.parse(new Date()) + 60 * 1000);
   console.log(deadline);
   console.log(tab.url);
