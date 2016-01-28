@@ -1,3 +1,5 @@
+var prevDomain = "";
+var prevDate = new Date();
 
 function extractDomain(url) {
     var domain;
@@ -12,7 +14,8 @@ function extractDomain(url) {
 }
 
 chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
-    console.log("starting domain: " + extractDomain(tabs[0].url));
+    prevDomain = extractDomain(tabs[0].url);
+    console.log("starting domain: " + prevDomain);
 });
 
 chrome.browserAction.onClicked.addListener(function(tab) {
@@ -35,7 +38,10 @@ function sendXHR(url) {
     xhr.open('POST', 'http://localhost:3000/users/record',true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     var dTmp = new Date();
-    var form = 'url=' + extractDomain(url) + '&startTime=' + dTmp.toString();
+    var form = 'url=' + prevDomain + '&startTime=' + prevDate.toString() + '&endTime=' + dTmp.toString();
+    prevDomain = extractDomain(url);
+    prevDate = dTmp;
+
     xhr.send(form);
 }
 
