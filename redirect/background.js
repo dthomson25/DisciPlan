@@ -8,17 +8,22 @@ var currSite;
 var currRestriction;
 var currTimeoutId;
 var currTime = new Date();
-var defaultSite = false;
+var onRedirectSite = false;
+var redirectSiteURL = "http://www.stanford.edu/"
+
+redirectCurrentTab = function(Url){
+  chrome.tabs.query({currentWindow: true, active: true}, function (tab) {
+        chrome.tabs.update(tab.id, {url: Url});
+    });
+}
 
 
-
- // datepart: 'y', 'm', 'w', 'd', 'h', 'n', 's'
 Date.dateDiff = function(fromdate, todate) {  
   var diff = todate - fromdate;
+  //hour, day, second
   return [Math.floor(diff/3600000),Math.floor(diff/60000),Math.floor(diff/1000)];
 }
 
-var redirctURL = "http://www.stanford.edu/"
 
 //TODO
 var domainComparison = function() {};
@@ -60,10 +65,10 @@ var restrictedSitesArr = [socialRestrictions]
 var checkRestrictedSite = function(tabId, changeInfo, tab) {
   //TODO add more complex URL checking.
   if (currSite == tab.url) return "Same";
-  console.log(tab.url)
+  // console.log(tab.url)
   if(currRestriction != null) {
     window.clearTimeout(currTimeoutId)
-    console.log(Date.dateDiff(currTime, new Date()))
+    // console.log(Date.dateDiff(currTime, new Date()))
     socialRestrictions.usedTime(Date.dateDiff(currTime, new Date()))
   }
 
@@ -75,25 +80,31 @@ var checkRestrictedSite = function(tabId, changeInfo, tab) {
     }
   }
   if (currRestriction == null) return;
-
   //set timeout and store id
   currTime = new Date()
   console.log(currRestriction.remainingTime)
   currTimeoutId = window.setTimeout(function() {
-    console.log("BOOM! F@ck!")
-
+    console.log("redirecting")
+    redirectCurrentTab(redirectSiteURL);
   }, currRestriction.remainingTimeToTime());
 }
 
 chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
-});
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  if(tab.url == redirctURL) {
-  	defaultSite = true;
+  if(tab == undefined) tab = {url : ""};
+  if(tab.url == redirectSiteURL) {
+    onRedirectSite = true;
     return;
   }
-  checkRestrictedSite(tabId, changeInfo, tab)
-  defaultSite = false;
+  // checkRestrictedSite(tabId, changeInfo, tab)
+  onRedirectSite = false;
+});
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+  if(tab.url == redirectSiteURL) {
+  	onRedirectSite = true;
+    return;
+  }
+  // checkRestrictedSite(tabId, changeInfo, tab)
+  onRedirectSite = false;
 
 });
 
@@ -105,8 +116,8 @@ chrome.runtime.onMessage.addListener(
                 "from a content script:" + sender.tab.url :
                 "from the extension");
     if (request.time == "remaining")
-    	if(defaultSite){
-    		sendResponse({defaultSite: true})
+    	if(onRedirectSite){
+    		sendResponse({onRedirectSite: true})
     	}
     	else{
     		sendResponse({time: deadline.toJSON()});
