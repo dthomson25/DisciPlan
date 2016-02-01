@@ -38,7 +38,7 @@ function sendXHR(url) {
     xhr.open('POST', 'http://localhost:3000/users/record',true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     var dTmp = new Date();
-    var form = 'url=' + prevDomain + '&startTime=' + prevDate.toString() + '&endTime=' + dTmp.toString();
+    var form = 'url=' + prevDomain + '&startTime=' + prevDate.toString() + '&duration=' + (dTmp.getTime() - prevDate.getTime()).toString();
     prevDomain = extractDomain(url);
     prevDate = dTmp;
 
