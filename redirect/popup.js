@@ -56,17 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }, false);
 
   
-
-  chrome.runtime.sendMessage({time: "remaining"}, function(response) {
-    console.log(response.time);
-    if(response.time){
-      deadline = new Date(response.time);
-      timeinterval = setInterval(updateClock, 1000);
-    }
-    if(response.defaultSite){
-      console.log("Already redirected...")
-    }
-  });
 }, false);
 
 
