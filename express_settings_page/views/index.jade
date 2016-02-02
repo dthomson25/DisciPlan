@@ -1,5 +1,13 @@
+include ./mixins/url_item
+
 extends layout
 
 block content
 
 	h1= message
+
+	ul
+		each url in urls
+			li
+				+url_item(url)
+

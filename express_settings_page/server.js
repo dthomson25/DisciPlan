@@ -10,7 +10,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', function (req, res) {
 	console.log('Get to /');
-	res.render('index', {title: 'DisciPlan Settings', message: 'Your settings will be here I promise!'});
+
+	res.render('index', {title: 'DisciPlan Settings', 
+						 message: 'Your settings will be here I promise!',
+						 urls: [{ name: 'facebook.com' }, { name: 'twitter.com'}]
+						});
 });
 
 app.get('/user_settings', function(req, res) {
