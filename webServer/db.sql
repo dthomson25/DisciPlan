@@ -1,3 +1,6 @@
+DROP DATABASE IF EXISTS disciplan;
+CREATE DATABASE disciplan;
+USE disciplan;
 DROP TABLE IF EXISTS Users;
 DROP TABLE IF EXISTS TimeSpent;
 DROP TABLE IF EXISTS Categories;

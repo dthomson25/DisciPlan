@@ -5,6 +5,7 @@ var con = msq.createConnection({
     user: "root",
     port: "3306",
     password: "Goal5179",
+    database: "disciplan",
     socketPath: "/tmp/mysql.sock"
 });
 
@@ -14,6 +15,15 @@ con.connect(function(err) {
     }
     else {
         console.log("success");
+    }
+});
+
+con.query("select count(*) from Categories",function(err,rows){
+    if(err) {
+        console.log(err);
+    }
+    else{
+        console.log(rows);
     }
     process.exit(0);
 });
