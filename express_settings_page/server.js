@@ -11,8 +11,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', function (req, res) {
 	console.log('Get to /');
 
+	categories = [{ name: 'Social' }, { name: 'Sports' }, { name: 'Entertainment'}];
+	urls = [[{ name: 'facebook.com' }, { name: 'twitter.com'}],
+	        [{ name: 'espn.com' }, { name: 'sportscenter.com'}],
+	        [{ name: 'cnn.com' }, { name: 'usatoday.com'}]];
+
 	res.render('index', {title: 'DisciPlan Settings', 
-						 message: 'Your settings will be here I promise!',
+						 message: 'This is your settings page!',
+						 categories: categories, 
+						 url_lists: urls,
 						 urls: [{ name: 'facebook.com' }, { name: 'twitter.com'}]
 						});
 });

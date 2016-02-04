@@ -1,13 +1,19 @@
 include ./mixins/url_item
+include ./mixins/category_item
 
 extends layout
 
 block content
-
 	h1= message
+	each category, index in categories
+		h2 
+			+category_item(category)
+		ul
+			each url in url_lists[index]
+				li
+					+url_item(url)
 
-	ul
-		each url in urls
-			li
-				+url_item(url)
+
+
+
 
