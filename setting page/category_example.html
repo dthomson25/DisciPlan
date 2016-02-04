@@ -10,7 +10,8 @@
 
     <!-- Bootstrap core CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
-
+    <style type="text/css"> .control-label .text-info { display:inline-block; }
+</style>
   </head>
 
   <body>
@@ -26,7 +27,9 @@
           <a class="navbar-brand" href="#">Settings</a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
+
           <form class="navbar-form navbar-right">
+            <button class="btn btn-default addCategory" type="button">+</button>
             <button type="submit" class="btn btn-success save">Save</button>
           </form>
         </div><!--/.navbar-collapse -->
@@ -34,111 +37,82 @@
     </nav>
 
     <!-- Main jumbotron for a primary marketing message or call to action -->
-    <div class="container categories">
-      <div class="jumbotron">
-        <h2>Hello, world!</h2>
-        <h2>Hello, world!</h2>
-            <div class="input-group">
-              <span class="input-group-btn edit">
-                <button class="btn btn-default" type="button">Edit!</button>
-              </span>
-              <input type="text" class="form-control" value="facebook.com" disabled>
-              <span class="input-group-btn delete">
-                <button class="btn btn-default" type="button">Delete!</button>
-              </span>
-            </div><!-- /input-group -->
-            <button class="btn btn-default add" type="button">+</button>
+    <div class="container main">
+      <div class="jumbotron categories">
+        <label for="category" class="control-label editH2">
+          <h2 class="text-info">Social Media</h2>
+        </label>
+         <br>
+        <label for="remainingTime" class="control-label editH2">
+          <h2 class="text-info">0:10:00</h2>
+        </label>
+        <div class="input-group">
+          <span class="input-group-btn editUrl">
+            <button class="btn btn-default" type="button">Edit!</button>
+          </span>
+          <input type="text" class="form-control" value="facebook.com" disabled>
+          <span class="input-group-btn deleteUrl">
+            <button class="btn btn-default" type="button">Delete!</button>
+          </span>
+        </div><!-- /input-group -->
+        <button class="btn btn-default addUrl" type="button">+</button>
       </div>
     </div>
 
 
-<div class="container categories">
-      <div class="jumbotron">
-        <h2>Hello, world!</h2>
-        <h2>Hello, world!</h2>
-            <div class="input-group">
-              <span class="input-group-btn edit">
-                <button class="btn btn-default" type="button">Edit!</button>
-              </span>
-              <input type="text" class="form-control" value="facebook.com" disabled>
-              <span class="input-group-btn delete">
-                <button class="btn btn-default" type="button">Delete!</button>
-              </span>
-            </div><!-- /input-group -->
-            <button class="btn btn-default add" type="button">+</button>
-      </div>
-    </div>
+    </body>
 
 
-
-<div class="container categories">
-      <div class="jumbotron">
-        <h2>Hello, world!</h2>
-        <h2>Hello, world!</h2>
-            <div class="input-group">
-              <span class="input-group-btn edit">
-                <button class="btn btn-default" type="button">Edit!</button>
-              </span>
-              <input type="text" class="form-control" value="facebook.com" disabled>
-              <span class="input-group-btn delete">
-                <button class="btn btn-default" type="button">Delete!</button>
-              </span>
-            </div><!-- /input-group -->
-            <button class="btn btn-default add" type="button">+</button>
-      </div>
-    </div>
-
-
-
-<div class="container categories">
-      <div class="jumbotron">
-        <h2>Hello, world!</h2>
-        <h2>Hello, world!</h2>
-            <div class="input-group">
-              <span class="input-group-btn edit">
-                <button class="btn btn-default" type="button">Edit!</button>
-              </span>
-              <input type="text" class="form-control" value="facebook.com" disabled>
-              <span class="input-group-btn delete">
-                <button class="btn btn-default" type="button">Delete!</button>
-              </span>
-            </div><!-- /input-group -->
-            <button class="btn btn-default add" type="button">+</button>
-      </div>
-    </div>
-
-
-
-
-    <!-- Bootstrap core JavaScript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
 
     <script>
 
+      //TODO add check for empty string
+      $('.main').on("click", ".editH2",function() {
+         var text = $(this).find('.text-info').text();
+         var input = $('<input id="attribute" type="text" value="' + text + '" />')
+         $(this).find('.text-info').text('').append(input);
+         input.select();
+         input.blur(function() {
+           var text = $('#attribute').val();
+            $('#attribute').parent().text(text);
+           $('#attribute').remove();
+         });
+        });
+
       $(".save").click(function() {
-        $()        
+        event.preventDefault()
+        $(".categories .form-control").each(function(index) {
+            console.log(this.value)
+        });
       });
 
-      $(".container").on("click",".edit",function (argument) {
+      $(".main").on("click",".editUrl",function (argument) {
         $(this).next()[0].disabled = false
       });
 
-      //Add undo button for 10 seconds
-      $(".container").on("click",".delete",function(argument) {
+      //TODO Add undo button for 10 seconds
+      //TODO remove Category if there are no urls
+      $(".main").on("click",".deleteUrl",function(argument) {
         console.log($(this))
         $(this).parent().remove()
       });
 
+      var categoryTitleAndRemaingTime = "<label for=\"category\" class=\"control-label editH2\"><h2 class=\"text-info\">Social Media</h2></label><br><label for=\"remainingTime\" class=\"control-label editH2\"><h2 class=\"text-info\">0:10:00</h2></label>"
+      var category = "<div class=\"input-group\"><span class=\"input-group-btn editUrl\"><button class=\"btn btn-default\" type=\"button\">Edit!</button></span><input type=\"text\" class=\"form-control\" value=\"\"><span class=\"input-group-btn deleteUrl\"><button class=\"btn btn-default\" type=\"button\">Delete!</button></span></div><!-- /input-group -->"
+      var container = "<div class=\"jumbotron categories\">" +categoryTitleAndRemaingTime + category + "<button class=\"btn btn-default addUrl\" type=\"button\">+</button></div>" 
       //TODO don't add another box until a valid url is added.
-      $(".add").click(function (argument) {
+      $(".main").on("click", ".addUrl",function (argument) {
         var plusButton = $(this);
-        console.log(plusButton.prev().children("form-control").value = "10")
-        $(this).before("<div class=\"input-group\"><span class=\"input-group-btn edit\"><button class=\"btn btn-default\" type=\"button\">Edit!</button></span><input type=\"text\" class=\"form-control\" value=\"\"><span class=\"input-group-btn delete\"><button class=\"btn btn-default\" type=\"button\">Delete!</button></span></div><!-- /input-group -->")
+        console.log(plusButton.prev().children("form-control").value)
+        $(this).before(category)
       });
 
+      $(".addCategory").click( function (argument) {
+        $(".main").append(container)
+      });
+
+
     </script>
-    </body>
 </html>
