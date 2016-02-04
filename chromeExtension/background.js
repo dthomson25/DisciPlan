@@ -35,10 +35,11 @@ function sendXHR(url) {
             }
         }
     });
-    xhr.open('POST', 'http://localhost:3000/users/record',true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     var dTmp = new Date();
-    var form = 'url=' + prevDomain + '&startTime=' + prevDate.toString() + '&duration=' + (dTmp.getTime() - prevDate.getTime()).toString();
+    var form = 'domainName=' + prevDomain + '&startTime=' + prevDate.toString() + '&duration=' + (dTmp.getTime() - prevDate.getTime()).toString();
+    xhr.open('POST', 'http://localhost:3000/usage/record',true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
     prevDomain = extractDomain(url);
     prevDate = dTmp;
 
