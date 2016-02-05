@@ -22,8 +22,7 @@ app.get('/settings', function(req, res) {
 	        [{ name: 'espn.com' }, { name: 'sportscenter.com'}],
 	        [{ name: 'cnn.com' }, { name: 'usatoday.com'}]];
 
-	res.render('settings', {title: 'DisciPlan Settings', 
-						    message: 'This is your settings page!',
+	res.render('settings', {title: 'DisciPlan Settings',
 						    categories: categories, 
 						    url_lists: urls,
 						    urls: [{ name: 'facebook.com' }, { name: 'twitter.com'},],

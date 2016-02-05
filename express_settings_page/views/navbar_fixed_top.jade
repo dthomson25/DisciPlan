@@ -4,14 +4,14 @@ html(lang='en')
     meta(charset='utf-8')
     meta(http-equiv='X-UA-Compatible', content='IE=edge')
     meta(name='viewport', content='width=device-width, initial-scale=1')
-    title Fixed Top Navbar Example for Bootstrap
+    title DisciPlan
     // Bootstrap core CSS
     link(href='/css/bootstrap.min.css', rel='stylesheet')
     link(href='/css/style.css', rel='stylesheet')
 
 
   body
-    nav.navbar.navbar-default.navbar-fixed-top
+    nav.navbar.navbar-default.navbar-fixed-top.navbar-inverse
       .container
         // Brand and toggle get grouped for better mobile display
         .navbar-header
@@ -45,44 +45,12 @@ html(lang='en')
             else
                 li
                     a(href='/usage') Usage
-            li.dropdown
-              a.dropdown-toggle(href='#', data-toggle='dropdown', role='button', aria-haspopup='true', aria-expanded='false')
-                | Dropdown 
-                span.caret
-              ul.dropdown-menu
-                li
-                  a(href='#') Action
-                li
-                  a(href='#') Another action
-                li
-                  a(href='#') Something else here
-                li.divider(role='separator')
-                li
-                  a(href='#') Separated link
-                li.divider(role='separator')
-                li
-                  a(href='#') One more separated link
-          form.navbar-form.navbar-left(role='search')
-            .form-group
-              input.form-control(type='text', placeholder='Search')
-            button.btn.btn-default(type='submit') Submit
-          ul.nav.navbar-nav.navbar-right
-            li
-              a(href='#') Link
-            li.dropdown
-              a.dropdown-toggle(href='#', data-toggle='dropdown', role='button', aria-haspopup='true', aria-expanded='false')
-                | Dropdown 
-                span.caret
-              ul.dropdown-menu
-                li
-                  a(href='#') Action
-                li
-                  a(href='#') Another action
-                li
-                  a(href='#') Something else here
-                li.divider(role='separator')
-                li
-                  a(href='#') Separated link
+            
+          if current == '/settings'
+            form.navbar-form.navbar-right
+              buttton.btn.btn-success.save(type='submit') Save
+
+            
         // /.navbar-collapse
       // /.container-fluid
 
@@ -92,3 +60,4 @@ html(lang='en')
     script(src='/js/edit.js')
     script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js')
     script(src='/js/bootstrap.min.js')
+    script(src='/js/editing_settings.js')
