@@ -40,7 +40,7 @@ function updateClock() {
 
 document.addEventListener('DOMContentLoaded', function() {
   var checkPageButton = document.getElementById('checkPage');
-  var changePageButton = document.getElementById('changePage');
+  var settingsPageButton = document.getElementById('settings_btn');
   
   checkPageButton.addEventListener('click', function() {
 
@@ -51,8 +51,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }, false);
 
-  changePageButton.addEventListener('click', function() {    
-    redirectCurrentTab("http://www.google.com")
+
+  // Event listener to view settings page button. Redirects to localhost:3000/settings
+  settingsPageButton.addEventListener('click', function() {    
+    redirectCurrentTab("localhost:3000/settings");
+    window.close();
   }, false);
 
   
