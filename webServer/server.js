@@ -74,23 +74,28 @@ function sqlFormatDateTime(d) {
 }
 
 app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(req,res) {
-    console.log('request for /usage/record at ' + (new Date()).toString());
-    // console.log(req.body.domainName);
-    // console.log(req.body.startTime);
-    // console.log(req.body.duration);
     var startDateTime = new Date(req.body.startTime);
     var sqlDateTimeStr = sqlFormatDateTime(startDateTime);
     console.log(sqlDateTimeStr);
-
-    res.sendStatus(200);
+    console.log(req.body.domainName);
+    var domainName = req.body.domainName.replace("`","");
+    var command = "insert into TimeSpent values(??,??,??,??,??)";
+    var inserts = ['\'jross3\'', "\'" + domainName + "\'",'NULL', "\'" + sqlDateTimeStr + "\'", req.body.duration];
+    sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            res.sendStatus(204);
+        }
+    });
 });
 //YYYY-MM-DD HH:MM:SS
 
-con.query("select count(*) from Categories",function(err,rows){
-    if(err) {
-        console.log(err);
-    }
-    else{
-        console.log(rows);
-    }
-});
+
+
+
