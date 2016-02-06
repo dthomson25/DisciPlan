@@ -43,9 +43,8 @@
         <label for="category" class="control-label editH2">
           <h2 class="text-info">Social Media</h2>
         </label>
-         <br>
         <label for="remainingTime" class="control-label editH2">
-          <h2 class="text-info">0:10:00</h2>
+            <small class="text-info">0:10:00</small >
         </label>
         <div class="input-group">
           <span class="input-group-btn editUrl">
@@ -71,6 +70,7 @@
 
       //TODO add check for empty string
       $('.main').on("click", ".editH2",function() {
+        console.log($(this).text())
          var text = $(this).find('.text-info').text();
          var input = $('<input id="attribute" type="text" value="' + text + '" />')
          $(this).find('.text-info').text('').append(input);
@@ -96,7 +96,6 @@
       //TODO Add undo button for 10 seconds
       //TODO remove Category if there are no urls
       $(".main").on("click",".deleteUrl",function(argument) {
-        console.log($(this))
         $(this).parent().remove()
       });
 
