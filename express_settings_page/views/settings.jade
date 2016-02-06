@@ -5,21 +5,20 @@ include ./mixins/allowed_time_item
 extends navbar_fixed_top
 
 block content
-
-	each category, index in categories
-		.container.categories
-			.jumbotron
+	.container.main
+		each category, index in categories
+			.jumbotron.categories
 				h2= category.name + " "
 					small= category.time
 				each url in url_lists[index]
 					.input-group
-						span.input-group-btn.edit
+						span.input-group-btn.editUrl
 							button.btn.btn-default(type="button") Edit!
 						input.form-control(type="text", value= url.name, disabled='')
-						span.input-group-btn.delete
+						span.input-group-btn.deleteUrl
 							button.btn.btn-default(type='button') Delete!
 					// /input-group
-				button.btn.btn-default.add(type='button') +
+				button.btn.btn-default.addUrl(type='button') +
 
 
 
