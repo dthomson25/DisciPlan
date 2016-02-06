@@ -8,8 +8,10 @@ block content
 	.container.main
 		each category, index in categories
 			.jumbotron.categories
-				h2= category.name + " "
-					small= category.time
+				label.control-label.editH2(for="category")
+					h2.text-info= category.name + " "
+				label.control-label.editH2(for="remainingTime")
+					small.text-info= category.time
 				each url in url_lists[index]
 					.input-group
 						span.input-group-btn.editUrl
