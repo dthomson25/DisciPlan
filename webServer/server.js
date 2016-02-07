@@ -110,7 +110,7 @@ app.get('/usage/view', function(req,res) {
             }
             res.render('usage', {
             title: 'Browser Usage',
-            message: 'This worked!',
+            message: 'Your usage by site:',
             data: JSON.stringify(d)
             });
         }
