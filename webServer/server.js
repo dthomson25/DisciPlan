@@ -32,7 +32,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', function (req, res) {
 	console.log('Get to /');
-	res.send('Home page.');
+    res.render('navbar_fixed_top', {current: '/'});
 
 });
 
@@ -44,12 +44,13 @@ app.get('/user_settings', function(req, res) {
 	        [{ name: 'espn.com' }, { name: 'sportscenter.com'}],
 	        [{ name: 'cnn.com' }, { name: 'usatoday.com'}]];
 
-	res.render('index', {title: 'DisciPlan Settings', 
+	res.render('settings', {title: 'DisciPlan Settings', 
 						 message: 'This is your settings page!',
 						 categories: categories, 
 						 url_lists: urls,
-						 urls: [{ name: 'facebook.com' }, { name: 'twitter.com'}]
-						});
+						 urls: [{ name: 'facebook.com' }, { name: 'twitter.com'}],
+                         current: '/user_settings'
+                        });
 });
 
 app.listen(3000, function () {

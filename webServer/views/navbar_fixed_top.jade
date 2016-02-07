@@ -31,22 +31,22 @@ html(lang='en')
             else
                 li
                     a(href='/') Home
-            if current == '/settings'
+            if current == '/user_settings'
                 li.active
                     a(href='/') Settings
                         span.sr-only (current)
             else
                 li
-                    a(href='/settings') Settings
-            if current == '/usage'
+                    a(href='/user_settings') Settings
+            if current == '/usage/view'
                 li.active
                     a(href='/') Usage
                         span.sr-only (current)
             else
                 li
-                    a(href='/usage') Usage
+                    a(href='/usage/view') Usage
             
-          if current == '/settings'
+          if current == '/user_settings'
             form.navbar-form.navbar-right
               buttton.btn.btn-default.addCategory.save(type='button') +
               buttton.btn.btn-success.save(type='submit') Save
