@@ -94,7 +94,28 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
         }
     });
 });
-//YYYY-MM-DD HH:MM:SS
+
+app.get('/usage/view', function(req,res) {
+    con.query("select domainName, sum(timeSpent) as duration from TimeSpent group by domainName", function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.send(400);
+        }
+        else {
+            console.log(rows);
+            var d = [];
+            for(var i = 0; i < rows.length; i++) {
+                d.push({value : rows[i].duration, label: rows[i].domainName});
+                console.log(d[i]);
+            }
+            res.render('usage', {
+            title: 'Browser Usage',
+            message: 'This worked!',
+            data: JSON.stringify(d)
+            });
+        }
+    });
+});
 
 
 
