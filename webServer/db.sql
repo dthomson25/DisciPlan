@@ -7,28 +7,34 @@ DROP TABLE IF EXISTS Categories;
 DROP TABLE IF EXISTS Settings;
 
 CREATE TABLE Users (
-	userID INT(64),
-	email CHAR(64),
-	name CHAR(64),
-	password CHAR(64)
+	userID CHAR(64) NOT NULL PRIMARY KEY,
+	email CHAR(64) NOT NULL,
+	name CHAR(64) NOT NULL,
+	password CHAR(64) NOT NULL
 );
 
 CREATE TABLE TimeSpent (
-	userID INT(64),
-	domainName CHAR(64),
+	userID CHAR(64),
+	domainName CHAR(64) NOT NULL,
 	category CHAR(64),
-	startTime DATETIME,
-	timeSpent INT(64)
+	startTime DATETIME NOT NULL,
+	timeSpent INT(64) NOT NULL,
+	PRIMARY KEY (userID, startTime),
+	FOREIGN KEY (userID) REFERENCES Users (userID)
 );
 
 CREATE TABLE Categories (
-	userID INT(64),
+	userID CHAR(64),
 	domainName CHAR(64),
-	category CHAR(64)
+	category CHAR(64),
+	PRIMARY KEY (userId, domainName),
+	FOREIGN KEY (userID) REFERENCES Users(userID)
 );
 
 CREATE TABLE Settings (
-	userID INT(64),
-	category CHAR(64),
-	timeAllowed INT(64)
+	userID CHAR(64),
+	category CHAR(64) NOT NULL,
+	timeAllowed INT(64) NOT NULL,
+	PRIMARY KEY (userID,category),
+	FOREIGN KEY (userID) REFERENCES Users(userID)
 );

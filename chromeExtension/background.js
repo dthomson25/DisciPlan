@@ -27,7 +27,7 @@ function sendXHR(url) {
     var xhr = new XMLHttpRequest();
     xhr.addEventListener('readystatechange', function(evt) {
         if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
+            if (xhr.status === 204) {
                 console.log("yay");
             }
             else {
@@ -36,7 +36,7 @@ function sendXHR(url) {
         }
     });
     var dTmp = new Date();
-    var form = 'domainName=' + prevDomain + '&startTime=' + prevDate.toString() + '&duration=' + (dTmp.getTime() - prevDate.getTime()).toString();
+    var form = 'domainName=' + prevDomain + '&startTime=' + prevDate.toString() + '&duration=' + (Math.floor((dTmp.getTime() - prevDate.getTime())/1000)).toString();
     xhr.open('POST', 'http://localhost:3000/usage/record',true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 

@@ -52,25 +52,70 @@ app.get('/user_settings', function(req, res) {
 						});
 });
 
-
 app.listen(3000, function () {
 	console.log('Example app listening on port 3000!');
 });
 
+function pad(n, width) {
+  z = '0';
+  n = n + '';
+  return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+}
+
+function sqlFormatDateTime(d) {
+    var yyyy = d.getUTCFullYear().toString();
+    var mm = pad((d.getUTCMonth()+1),2);
+    var dd = pad(d.getUTCDate(),2);
+    var hh = pad(d.getUTCHours(),2);
+    var min = pad(d.getUTCMinutes(),2);
+    var ss = pad(d.getUTCSeconds(),2);
+    return yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + min + ':' + ss;
+}
 
 app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(req,res) {
-    console.log('request for /usage/record at ' + (new Date()).toString());
-    //console.log(req);
+    var startDateTime = new Date(req.body.startTime);
+    var sqlDateTimeStr = sqlFormatDateTime(startDateTime);
+    console.log(sqlDateTimeStr);
     console.log(req.body.domainName);
-    res.sendStatus(200);
+    var domainName = req.body.domainName.replace("`","");
+    var command = "insert into TimeSpent values(??,??,??,??,??)";
+    var inserts = ['\'jross3\'', "\'" + domainName + "\'",'NULL', "\'" + sqlDateTimeStr + "\'", req.body.duration];
+    sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            res.sendStatus(204);
+        }
+    });
 });
-//YYYY-MM-DD HH:MM:SS
 
-con.query("select count(*) from Categories",function(err,rows){
-    if(err) {
-        console.log(err);
-    }
-    else{
-        console.log(rows);
-    }
+app.get('/usage/view', function(req,res) {
+    con.query("select domainName, sum(timeSpent) as duration from TimeSpent group by domainName", function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.send(400);
+        }
+        else {
+            console.log(rows);
+            var d = [];
+            for(var i = 0; i < rows.length; i++) {
+                d.push({value : rows[i].duration, label: rows[i].domainName});
+                console.log(d[i]);
+            }
+            res.render('usage', {
+            title: 'Browser Usage',
+            message: 'Your usage by site:',
+            data: JSON.stringify(d)
+            });
+        }
+    });
 });
+
+
+
+
