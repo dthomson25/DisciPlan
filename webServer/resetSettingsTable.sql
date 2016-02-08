@@ -10,6 +10,6 @@ INSERT INTO Categories VALUES ("danthom","cnn.com","Entertainment");
 INSERT INTO Categories VALUES ("danthom","usatoday.com","Entertainment");
 
 
-INSERT INTO Settings VALUES ("danthom","Social","20");
-INSERT INTO Settings VALUES ("danthom","Sports","20");
-INSERT INTO Settings VALUES ("danthom","Entertainment","20");
+INSERT INTO Settings VALUES ("danthom","Social","20","20");
+INSERT INTO Settings VALUES ("danthom","Sports","20","20");
+INSERT INTO Settings VALUES ("danthom","Entertainment","20","20");
