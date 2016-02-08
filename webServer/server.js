@@ -36,22 +36,26 @@ app.get('/', function (req, res) {
 
 });
 
-app.get('/user_settings', function(req, res) {
-	console.log('Get to /user_settings');
+app.get('/user_settings/:userId', function(req, res) {
+	console.log('Get to /user_settings for user: ' + req.params.userId);
+    sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+        ,[req.params.userId]);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            res.render('settings', {title: 'DisciPlan Settings', 
+                 message: 'This is your settings page!',
+                 rows: rows, 
+                 current: '/user_settings'
+                });
+        }
+    });
 
-	categories = [{ name: 'Social', time: 20}, { name: 'Sports', time: 20 }, { name: 'Entertainment', time: 20}];
-	urls = [[{ name: 'facebook.com' }, { name: 'twitter.com'}],
-	        [{ name: 'espn.com' }, { name: 'sportscenter.com'}],
-	        [{ name: 'cnn.com' }, { name: 'usatoday.com'}]];
-
-	res.render('settings', {title: 'DisciPlan Settings', 
-						 message: 'This is your settings page!',
-						 categories: categories, 
-						 url_lists: urls,
-						 urls: [{ name: 'facebook.com' }, { name: 'twitter.com'}],
-                         current: '/user_settings'
-                        });
 });
+
 
 app.listen(3000, function () {
 	console.log('Example app listening on port 3000!');
@@ -95,7 +99,7 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
     });
 });
 
-app.get('/usage/view', function(req,res) {
+app.get('/usage/view/', function(req,res) {
     con.query("select domainName, sum(timeSpent) as duration from TimeSpent group by domainName", function(err,rows) {
         if(err) {
             console.log("error: " + err);
@@ -118,7 +122,7 @@ app.get('/usage/view', function(req,res) {
 });
 
 app.get('/get_settings/:userId', function(req, res) {
-    sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category;"
+    sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
         ,[req.params.userId]);
     console.log(req.params.userId)
     con.query(sql, function(err,rows) {
