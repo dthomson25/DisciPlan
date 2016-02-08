@@ -117,6 +117,21 @@ app.get('/usage/view', function(req,res) {
     });
 });
 
+app.get('/get_settings/:userId', function(req, res) {
+    sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category;"
+        ,[req.params.userId]);
+    console.log(req.params.userId)
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log(rows); 
+            res.send(rows);
+        }
+    });
+});
 
 
 
