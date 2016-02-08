@@ -1,0 +1,19 @@
+
+extends layout
+
+body
+	block content
+		h1= message
+		canvas(id="myChart")
+		script(src="/js/Chart.js")
+		script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js')
+		script.
+			$(document).ready(function() {
+				var canvas = document.getElementById("myChart");
+				console.log(canvas);
+				ctx = canvas.getContext("2d");
+				var d = !{data};
+				console.log(d);
+				chart = new Chart(ctx).Pie(d);
+			});
+    
