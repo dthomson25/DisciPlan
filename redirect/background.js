@@ -4,6 +4,31 @@
 // 	});
 // });
 
+
+// Http request to get settings of user
+
+var settings_JSON
+
+  var xhttp_settings = new XMLHttpRequest();
+  xhttp_settings.onreadystatechange = function() {
+    if (xhttp_settings.readyState == 4 && xhttp_settings.status == 200) {
+      //document.getElementById("txtHint").innerHTML = xhttp.responseText;
+      console.log(xhttp_settings.responseText);
+      //settings_xml = xhttp_settings.responseText;
+      settings_JSON = JSON.parse(xhttp_settings.responseText);
+      console.log(settings_JSON);
+    }
+  };
+  xhttp_settings.open("GET", "http://localhost:3000/get_settings/danthom", true);
+  xhttp_settings.send();
+
+// End of http request code
+
+
+
+
+
+
 var currSite;
 var currRestriction;
 var currTimeoutId;
