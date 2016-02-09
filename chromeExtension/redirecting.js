@@ -7,6 +7,7 @@ var settings_JSON = []
   xhttp_settings.onreadystatechange = function() {
     if (xhttp_settings.readyState == 4 && xhttp_settings.status == 200) {
       settings_JSON = JSON.parse(xhttp_settings.responseText);
+      console.log(settings_JSON);
     }
   };
   xhttp_settings.open("GET", "http://localhost:3000/get_settings/danthom", true);
@@ -72,13 +73,9 @@ function updateCategoryRT(elapsed_sec){
   }
 }
 
-// Update remaning time for last category, cancel timeout, then
-// check if current site is restricted and if it is start
-// a timeout to redirect page
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+function checkSettingsTabChange(tabId, changeInfo, tab) {
   if(settings_JSON == null)
-    return;
-
+    return;  
   if(currSiteRestricted){
     var currTime = new Date();
     var elapsed_sec = (Date.parse(currTime) - Date.parse(startTime))/1000;
@@ -88,14 +85,9 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
   startTime = new Date();
   checkIfRestricted(tab.url)
   startTimeout();
-});
+}
 
-
-
-// Update remaning time for last category, cancel timeout, then
-// check if current site is restricted and if it is start
-// a timeout to redirect page
-chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
+function checkSettingChangeTab(tabId, changeInfo, tab) {
   chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
     var url = tabs[0].url;
     if(currSiteRestricted){
@@ -107,25 +99,46 @@ chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
     checkIfRestricted(url);
     startTimeout();
   });
+}
+
+function popupRequest(request, sender, sendResponse) {
+  console.log(sender.tab ?
+                "from a content script:" + sender.tab.url :
+                "from the extension");
+  if(request.endTime == "endTime"){
+    console.log(currSiteRestricted)
+    if(currSiteRestricted){
+      console.log(endTime);
+      sendResponse({restricted: true,
+                     endTime: endTime.toString(),
+                     category: currCategory});
+    }
+    else{
+      sendResponse({restricted: false})
+    }
+  }
+}
+
+
+// Update remaning time for last category, cancel timeout, then
+// check if current site is restricted and if it is start
+// a timeout to redirect page
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+  checkSettingsTabChange(tabId, changeInfo, tab)
+});
+
+
+
+// Update remaning time for last category, cancel timeout, then
+// check if current site is restricted and if it is start
+// a timeout to redirect page
+chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
+  checkSettingChangeTab(tabId, changeInfo, tab)
 
 });
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    console.log(sender.tab ?
-                "from a content script:" + sender.tab.url :
-                "from the extension");
-    if(request.endTime == "endTime"){
-      console.log(currSiteRestricted)
-      if(currSiteRestricted){
-        console.log(endTime);
-        sendResponse({restricted: true,
-                       endTime: endTime.toString(),
-                       category: currCategory});
-      }
-      else{
-        sendResponse({restricted: false})
-      }
-    }
+    popupRequest(request, sender, sendResponse)
 });
 

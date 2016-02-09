@@ -37,7 +37,7 @@ html(lang='en')
                         span.sr-only (current)
             else
                 li
-                    a(href='/user_settings') Settings
+                    a(href='/user_settings/danthom') Settings
             if current == '/usage/view'
                 li.active
                     a(href='/') Usage
@@ -58,7 +58,6 @@ html(lang='en')
 
     block content
 
-    script(src='/js/edit.js')
     script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js')
     script(src='/js/bootstrap.min.js')
     script(src='/js/editing_settings.js')
