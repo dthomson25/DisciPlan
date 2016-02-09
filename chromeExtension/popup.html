@@ -1,37 +1,31 @@
 <!doctype html>
-<!--
- This page is shown when the extension button is clicked, because the
- "browser_action" field in manifest.json contains the "default_popup" key with
- value "popup.html".
- -->
 <html>
   <head>
-    <title>Getting Started Extension's Popup</title>
-    <style>
-      body {
-        font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;
-        font-size: 100%;
-      }
-      #status {
-        /* avoid an excessively wide status text */
-        white-space: pre;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        max-width: 400px;
-      }
-    </style>
-
-    <!--
-      - JavaScript and HTML must be in separate files: see our Content Security
-      - Policy documentation[1] for details and explanation.
-      -
-      - [1]: https://developer.chrome.com/extensions/contentSecurityPolicy
-     -->
+    <title>DisciPlan</title>
     <script src="popup.js"></script>
+    <link rel="stylesheet" type="text/css" href="popup.css">
+    <link rel="stylesheet" type="text/css" href="/public/css/bootstrap.min.css">
   </head>
   <body>
-    <div id="status"></div>
-    <img id="image-result" hidden>
+    <h1>DisciPlan</h1>
+    <button id="settings_btn">Change Settings</button>
+
+    <p> Current Page: <span id="currentPage"></span></p>
+    <div id="restrictedPageDiv">
+    	<p>Current Category: <span id="currentCategory"></span></p>
+	    <div>
+		  	<span class="hours">0</span>
+		  	<div class="smalltext">Hours</div>
+	    </div>
+		<div>
+			<span class="minutes">0</span>
+		  	<div class="smalltext">Minutes</div>
+		  	</div>
+		<div>
+		    <span class="seconds">0</span>
+		    <div class="smalltext">Seconds</div>
+		</div>
+    </div>
+    
   </body>
 </html>
-
