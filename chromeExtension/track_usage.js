@@ -1,6 +1,3 @@
-var prevDomain = "";
-var prevDate = new Date();
-
 function extractDomain(url) {
     var domain;
     if (url.indexOf("://") > -1) {
@@ -13,14 +10,15 @@ function extractDomain(url) {
     return domain;
 }
 
-// var getCurrentTab = function() {
-//     chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
-//         prevDomain = extractDomain(tabs[0].url);
-//         console.log("starting domain: " + prevDomain);
-//     });
-// }
+function getStartingDomain(tracker) {
+    chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
+        tracker.prevDomain = extractDomain(tabs[0].url);
+        console.log("starting domain: " + tracker.prevDomain);
+    });
+}
 
-function sendXHR(url) {
+function sendXHR(url, tracker) {
+    console.log(tracker);
     var xhr = new XMLHttpRequest();
     xhr.addEventListener('readystatechange', function(evt) {
         if (xhr.readyState === 4) {
@@ -33,29 +31,12 @@ function sendXHR(url) {
         }
     });
     var dTmp = new Date();
-    var form = 'domainName=' + prevDomain + '&startTime=' + prevDate.toString() + '&duration=' + (Math.floor((dTmp.getTime() - prevDate.getTime())/1000)).toString();
+    var form = 'domainName=' + tracker.prevDomain + '&startTime=' + tracker.prevDate.toString() + '&duration=' + (Math.floor((dTmp.getTime() - tracker.prevDate.getTime())/1000)).toString();
     xhr.open('POST', 'http://localhost:3000/usage/record',true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
-    prevDomain = extractDomain(url);
-    prevDate = dTmp;
+    tracker.prevDomain = extractDomain(url);
+    tracker.prevDate = dTmp;
 
     xhr.send(form);
 }
-
-function sendUsage() {
-    chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
-        sendXHR(tabs[0].url);
-    });
-}
-
-chrome.tabs.onActivated.addListener(function(activeInfo) {
-    sendUsage()
-});
-
-
-chrome.tabs.onUpdated.addListener(function(tabid, changeInfo, tab) {
-    if (tab.url !== undefined && changeInfo.status == "complete") {
-        sendXHR(tab.url);
-    }
-});

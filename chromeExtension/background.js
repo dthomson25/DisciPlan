@@ -1,7 +1,12 @@
+var tracker = {};
+tracker.prevDate = new Date();
+getStartingDomain(tracker);
+console.log(tracker);
+
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
   checkSettingsTabChange(tabId, changeInfo, tab)
     if (tab.url !== undefined && changeInfo.status == "complete") {
-        sendXHR(tab.url);
+        sendXHR(tab.url, tracker);
     }
 });
 
@@ -11,7 +16,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
     checkSettingChangeTab(tabId, changeInfo, tab)
     chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
-        sendXHR(tabs[0].url);
+        sendXHR(tabs[0].url, tracker);
     });
 });
 

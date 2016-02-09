@@ -84,7 +84,7 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
     console.log(req.body.domainName);
     var domainName = req.body.domainName.replace("`","");
     var command = "insert into TimeSpent values(??,??,??,??,??)";
-    var inserts = ['\'jross3\'', "\'" + domainName + "\'",'NULL', "\'" + sqlDateTimeStr + "\'", req.body.duration];
+    var inserts = ['\'danthom\'', "\'" + domainName + "\'",'NULL', "\'" + sqlDateTimeStr + "\'", req.body.duration];
     sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
     con.query(sql, function(err) {
@@ -100,7 +100,7 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
 });
 
 app.get('/usage/view/', function(req,res) {
-    con.query("select domainName, sum(timeSpent) as duration from TimeSpent group by domainName", function(err,rows) {
+    con.query("select domainName, sum(timeSpent) as duration from TimeSpent where userID = \'danthom\' group by domainName", function(err,rows) {
         if(err) {
             console.log("error: " + err);
             res.send(400);
