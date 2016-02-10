@@ -38,7 +38,7 @@ app.get('/', function (req, res) {
 
 app.get('/user_settings/:userId', function(req, res) {
 	console.log('Get to /user_settings for user: ' + req.params.userId);
-    sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+    var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
         ,[req.params.userId]);
     con.query(sql, function(err,rows) {
         if(err) {
@@ -83,9 +83,9 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
     console.log(sqlDateTimeStr);
     console.log(req.body.domainName);
     var domainName = req.body.domainName.replace("`","");
-    var command = "insert into TimeSpent values(??,??,??,??,??)";
-    var inserts = ['\'danthom\'', "\'" + domainName + "\'",'NULL', "\'" + sqlDateTimeStr + "\'", req.body.duration];
-    sql = msq.format(command,inserts);
+    var command = "insert into TimeSpent values(??,??,??,??);";
+    var inserts = ['\'danthom\'', "\'" + domainName + "\'", "\'" + sqlDateTimeStr + "\'", req.body.duration];
+    var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
     con.query(sql, function(err) {
         if(err){
@@ -97,6 +97,8 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
             res.sendStatus(204);
         }
     });
+
+
 });
 
 app.get('/usage/view/', function(req,res) {

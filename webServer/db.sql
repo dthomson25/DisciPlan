@@ -16,7 +16,6 @@ CREATE TABLE Users (
 CREATE TABLE TimeSpent (
 	userID CHAR(64),
 	domainName CHAR(64) NOT NULL,
-	category CHAR(64),
 	startTime DATETIME NOT NULL,
 	timeSpent INT(64) NOT NULL,
 	PRIMARY KEY (userID, startTime),
