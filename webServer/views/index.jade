@@ -1,0 +1,23 @@
+include ./mixins/url_item
+include ./mixins/category_item
+include ./mixins/allowed_time_item
+
+extends layout
+
+block content
+	h1= message
+	button(onclick='button()') Edit Settings
+	each category, index in categories
+		h2 
+			+category_item(category)
+		h2
+			+allowed_time_item(category)
+		ul
+			each url in url_lists[index]
+				li
+					+url_item(url)
+
+
+
+
+

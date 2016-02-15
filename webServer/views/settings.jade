@@ -1,0 +1,40 @@
+include ./mixins/url_item
+include ./mixins/category_item
+include ./mixins/allowed_time_item
+
+extends navbar_fixed_top
+
+block content
+	- var n = 0
+	- var currCategory = rows[0]["category"];
+	.container.main
+		while n < rows.length
+			.jumbotron.categories
+				label.control-label.editH2(for="category")
+					h2.text-info= rows[n]["category"]
+				label.control-label.editH2(for="remainingTime")
+					small.text-info= rows[n]["timeAllowed"]
+				while n < rows.length && currCategory === rows[n]["category"]
+					.input-group
+						span.input-group-btn.editUrl
+							button.btn.btn-default(type="button") Edit!
+						input.form-control(type="text", value= rows[n]["domainName"], disabled='')
+						span.input-group-btn.deleteUrl
+							button.btn.btn-default(type='button') Delete!
+					- n++
+				button.btn.btn-default.addUrl(type='button') +
+			if n < rows.length
+				-currCategory = rows[n]["category"]				
+
+
+
+				
+					
+
+
+
+
+
+
+
+

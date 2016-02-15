@@ -1,15 +1,24 @@
-// chrome.browserAction.onClicked.addListener(function(tab) {
-// 	chrome.tabs.query({currentWindow: true, active: true}, function (tab) {
-// 	      chrome.tabs.update(tab.id, {url: "http://www.google.com"});
-// 	});
-// });
 
-var currSite;
-var currRestriction;
-var currTimeoutId;
-var currTime = new Date();
-var onRedirectSite = false;
-var redirectSiteURL = "http://www.stanford.edu/"
+// Http request to get settings of user
+
+var settings_JSON = []
+
+  var xhttp_settings = new XMLHttpRequest();
+  xhttp_settings.onreadystatechange = function() {
+    if (xhttp_settings.readyState == 4 && xhttp_settings.status == 200) {
+      settings_JSON = JSON.parse(xhttp_settings.responseText);
+    }
+  };
+  xhttp_settings.open("GET", "http://localhost:3000/get_settings/danthom", true);
+  xhttp_settings.send();
+
+// End of http request code
+
+var startTime
+var endTime
+var currSiteRestricted = false
+var currCategory
+var timeoutId
 
 redirectCurrentTab = function(Url){
   chrome.tabs.query({currentWindow: true, active: true}, function (tab) {
@@ -17,114 +26,106 @@ redirectCurrentTab = function(Url){
     });
 }
 
-
-Date.dateDiff = function(fromdate, todate) {  
-  var diff = todate - fromdate;
-  //hour, day, second
-  return [Math.floor(diff/3600000),Math.floor(diff/60000),Math.floor(diff/1000)];
+function redirectToHome() {
+  redirectCurrentTab("localhost:3000")
 }
 
+function checkIfRestricted(url) {
+  for(i = 0; i < settings_JSON.length; i++){
+    row = settings_JSON[i];
+    restrictedHost = row.domainName;
 
-//TODO
-var domainComparison = function() {};
+    var l = document.createElement('a');
+    l.href = url;
+    // Hostname of new tab url
+    var urlHostName = l.hostname;
 
-function RestrictedList(category, sites, remainingTime, totalAllowedTime) {
-  this.category = category;
-  this.sites = sites;
-  this.remainingTime = remainingTime;
-  this.totalAllowedTime = totalAllowedTime
-  this.checkSite = function(siteToCheck) {
-    for (var j = 0; j < sites.length; j++) {
-      if (siteToCheck.indexOf(sites[j]) != -1) {
-        return true;
-      }
+    if(restrictedHost == urlHostName){
+      currSiteRestricted = true;
+      var remainTime = row.timeRemaining;
+      endTime = new Date();
+      endTime.setSeconds(endTime.getSeconds() + remainTime);
+      currCategory = row.category;
+      return;
     }
-    return false
-  };
+  }
+  currSiteRestricted = false;
+}
 
-  //TODO Fix example 0,1,2 - 0,0,5
-  this.usedTime = function(usedTimeArr) {
-    for (var i = 0; i < remainingTime.length; i++) {
-      this.remainingTime[i] = this.remainingTime[i] - usedTimeArr[i]
-    }
-    console.log(this.remainingTime)
-  };
-
-  this.remainingTimeToTime = function() {
-    return (60 * 60 * this.remainingTime[0] + 60 * this.remainingTime[1] + this.remainingTime[2])*1000
+function startTimeout() {
+  if(timeoutId) // Only want one timeout waiting
+      window.clearTimeout(timeoutId);
+  if(currSiteRestricted){
+    var diff_ms = (Date.parse(endTime) - Date.parse(startTime));
+    console.log(diff_ms);
+    
+    timeoutId = window.setTimeout(redirectToHome, diff_ms);
   }
 }
 
-//TODO add code to clean urls
-var socialRestrictions = new RestrictedList("Social Media",["facebook.com",
-  "twitter.com"],[0,0,15],[0,0,30])
-
-var restrictedSitesArr = [socialRestrictions]
-
-
-var checkRestrictedSite = function(tabId, changeInfo, tab) {
-  //TODO add more complex URL checking.
-  if (currSite == tab.url) return "Same";
-  // console.log(tab.url)
-  if(currRestriction != null) {
-    window.clearTimeout(currTimeoutId)
-    // console.log(Date.dateDiff(currTime, new Date()))
-    socialRestrictions.usedTime(Date.dateDiff(currTime, new Date()))
-  }
-
-  currSite = tab.url;
-  currRestriction = null;
-  for (var i = 0; i < restrictedSitesArr.length; i++) {
-    if(restrictedSitesArr[i].checkSite(currSite)) {
-      currRestriction = restrictedSitesArr[i];
+function updateCategoryRT(elapsed_sec){
+  for(i = 0; i < settings_JSON.length; i++){
+    row = settings_JSON[i];
+    if(row.category == currCategory){
+      row.timeRemaining = row.timeRemaining - elapsed_sec;
     }
   }
-  if (currRestriction == null) return;
-  //set timeout and store id
-  currTime = new Date()
-  console.log(currRestriction.remainingTime)
-  currTimeoutId = window.setTimeout(function() {
-    console.log("redirecting")
-    redirectCurrentTab(redirectSiteURL);
-  }, currRestriction.remainingTimeToTime());
 }
 
-chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
-  if(tab == undefined) tab = {url : ""};
-  if(tab.url == redirectSiteURL) {
-    onRedirectSite = true;
-    return;
-  }
-  // checkRestrictedSite(tabId, changeInfo, tab)
-  onRedirectSite = false;
-});
+// Update remaning time for last category, cancel timeout, then
+// check if current site is restricted and if it is start
+// a timeout to redirect page
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  if(tab.url == redirectSiteURL) {
-  	onRedirectSite = true;
+  if(settings_JSON == null)
     return;
-  }
-  // checkRestrictedSite(tabId, changeInfo, tab)
-  onRedirectSite = false;
 
+  if(currSiteRestricted){
+    var currTime = new Date();
+    var elapsed_sec = (Date.parse(currTime) - Date.parse(startTime))/1000;
+    updateCategoryRT(elapsed_sec);
+  }
+
+  startTime = new Date();
+  checkIfRestricted(tab.url)
+  startTimeout();
 });
 
+
+
+// Update remaning time for last category, cancel timeout, then
+// check if current site is restricted and if it is start
+// a timeout to redirect page
+chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
+  chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
+    var url = tabs[0].url;
+    if(currSiteRestricted){
+      var currTime = new Date();
+      var elapsed_sec = (Date.parse(currTime) - Date.parse(startTime))/1000;
+      updateCategoryRT(elapsed_sec);
+    }
+    startTime = new Date();
+    checkIfRestricted(url);
+    startTimeout();
+  });
+
+});
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-  	console.log("deadline: " + deadline);
     console.log(sender.tab ?
                 "from a content script:" + sender.tab.url :
                 "from the extension");
-    if (request.time == "remaining")
-    	if(onRedirectSite){
-    		sendResponse({onRedirectSite: true})
-    	}
-    	else{
-    		sendResponse({time: deadline.toJSON()});
-    	}
+    if(request.endTime == "endTime"){
+      console.log(currSiteRestricted)
+      if(currSiteRestricted){
+        console.log(endTime);
+        sendResponse({restricted: true,
+                       endTime: endTime.toString(),
+                       category: currCategory});
+      }
+      else{
+        sendResponse({restricted: false})
+      }
+    }
 });
-
-
-
-
 

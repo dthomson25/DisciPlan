@@ -4,69 +4,74 @@ redirectCurrentTab = function(Url){
     });
 }
 
-var deadline;
-function getTimeRemaining(endtime) {
-  var t = Date.parse(endtime) - Date.parse(new Date());
-  var seconds = Math.floor((t / 1000) % 60);
-  var minutes = Math.floor((t / 1000 / 60) % 60);
-  var hours = Math.floor((t / (1000 * 60 * 60)) % 24);
-  return {
-    'total': t,
-    'hours': hours,
-    'minutes': minutes,
-    'seconds': seconds
-  };
-}
-function updateClock() {
-  var clock = document.getElementById('countdowndiv');
+
+var endTime;
+var category;
+var hours, minutes, seconds;
+
+function set_time(){
+  var currTime = new Date().getTime();
+  var seconds_remaining = (endTime - currTime)/1000;
+  hours = parseInt(seconds_remaining / 3600);
+  seconds_remaining = seconds_remaining % 3600;
+ 
+  minutes = parseInt(seconds_remaining / 60);
+  seconds = parseInt(seconds_remaining % 60);
+  console.log(hours, minutes, seconds);
+  var clock = document.getElementById('restrictedPageDiv');
+  clock.setAttribute('style', 'display: initial');
   var hoursSpan = clock.querySelector('.hours');
   var minutesSpan = clock.querySelector('.minutes');
   var secondsSpan = clock.querySelector('.seconds');
+  hoursSpan.innerHTML = hours;
+  minutesSpan.innerHTML = minutes;
+  secondsSpan.innerHTML = seconds;
+  if(hours == 0 && minutes == 0 && seconds == 0)
+    window.close();
+}
 
-  var t = getTimeRemaining(deadline);
 
-  hoursSpan.innerHTML = ('0' + t.hours).slice(-2);
-  minutesSpan.innerHTML = ('0' + t.minutes).slice(-2);
-  secondsSpan.innerHTML = ('0' + t.seconds).slice(-2);
-
-
-  if (t.total <= 0) {
-    clearInterval(timeinterval);
-    redirectCurrentTab("http://www.stanford.edu");
-  }
+function start_timer(){
+  chrome.runtime.sendMessage({endTime: "endTime"}, function(response) {
+    if(response.restricted == true) {
+      endTime = Date.parse(response.endTime);
+      setInterval(set_time, 1000);
+      category = response.category;
+      var categoryDiv = document.getElementById('currentCategory');
+      categoryDiv.innerHTML = category;
+    }
+    // If it is not on the list hide the count down div
+    else{
+      var clock = document.getElementById('restrictedPageDiv');
+      clock.setAttribute('style', 'display: none');
+    }
+  });
 }
 
 
 
 document.addEventListener('DOMContentLoaded', function() {
-  var checkPageButton = document.getElementById('checkPage');
-  var changePageButton = document.getElementById('changePage');
-  
-  checkPageButton.addEventListener('click', function() {
 
-    chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
+  start_timer();
+
+  var pageDiv = document.getElementById('currentPage');
+  chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
     var url = tabs[0].url;
-    document.getElementById('url').innerHTML = url;
-
-    });
-  }, false);
-
-  changePageButton.addEventListener('click', function() {    
-    redirectCurrentTab("http://www.google.com")
-  }, false);
-
-  
-
-  chrome.runtime.sendMessage({time: "remaining"}, function(response) {
-    console.log(response.time);
-    if(response.time){
-      deadline = new Date(response.time);
-      timeinterval = setInterval(updateClock, 1000);
-    }
-    if(response.defaultSite){
-      console.log("Already redirected...")
-    }
+    var l = document.createElement('a');
+    l.href = url;
+    // Hostname of new tab url
+    pageDiv.innerHTML = l.hostname;
   });
+
+
+  var settingsPageButton = document.getElementById('settings_btn');
+  
+  // Event listener to view settings page button. Redirects to localhost:3000/settings
+  settingsPageButton.addEventListener('click', function() {    
+    redirectCurrentTab("localhost:3000/settings");
+    window.close();
+  }, false);
+
 }, false);
 
 
