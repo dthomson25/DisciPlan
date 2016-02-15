@@ -24,6 +24,8 @@ var path = require('path');
 var app = express();
 var bodyParser = require('body-parser');
 
+app.use(bodyParser.json());
+
 app.set('view engine', 'jade');
 app.set('views', './views');
 
@@ -135,6 +137,30 @@ app.get('/get_settings/:userId', function(req, res) {
             res.send(rows);
         }
     });
+});
+
+
+app.post('/update_TR', function(req, res) {
+    var user = req.body.user;
+    var category = req.body.category;
+    var TR = req.body.TR;
+
+    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?";
+    var inserts = [TR, user, category];
+    sql = msq.format(command,inserts);
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            res.sendStatus(204);
+        }
+    });
+
+    // TODO: What do we send back?
+
 });
 
 

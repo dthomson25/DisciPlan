@@ -27,7 +27,28 @@ redirectCurrentTab = function(Url){
     });
 }
 
+// When the remaining time for a category goes to 0, send a POST request
+// to update the database with that information. 
+function updateDatabase(){
+  var update = JSON.stringify({user:"danthom", category: currCategory, TR: 0});
+  console.log(update);
+
+
+  var http_update_TR = new XMLHttpRequest();
+  // Do we get a response?
+  // http_update_TR.onreadystatechange = function() {
+
+  // };
+  http_update_TR.open("POST", 'http://localhost:3000/update_TR');
+  http_update_TR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  http_update_TR.send(update);
+}
+
+
+// When time remaining goes to 0, update the database and redirect the page
+// to our home page. 
 function redirectToHome() {
+  updateDatabase();
   redirectCurrentTab("localhost:3000")
 }
 
