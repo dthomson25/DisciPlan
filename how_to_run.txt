@@ -1,0 +1,6 @@
+from /DisciPlan
+
+>> cd express_settings_page
+>> node server.js
+
+Go to browser localhost:3000
