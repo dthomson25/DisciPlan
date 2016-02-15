@@ -145,7 +145,7 @@ app.post('/update_TR', function(req, res) {
     var category = req.body.category;
     var TR = req.body.TR;
 
-    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?";
+    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
     var inserts = [TR, user, category];
     sql = msq.format(command,inserts);
     con.query(sql, function(err) {
@@ -163,5 +163,43 @@ app.post('/update_TR', function(req, res) {
 
 });
 
+function recursiveQuery(rows, currRow, user, res) {
+    if(currRow >= rows.length){
+        return;
+    }
+    category = rows[currRow].category;
+    timeAllowed = rows[currRow].timeAllowed;
+    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+    var inserts = [timeAllowed, user, category];
+    sql = msq.format(command,inserts);
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            recursiveQuery(rows, currRow + 1, user);
+        }
+    });
+}
 
+app.post('/reset_allTR', function(req, res) {
+    var user = req.body.user;
 
+    sql = msq.format("select * from Settings where userId = ? ;"
+        ,[user]);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log(rows);
+            console.log(rows[1].timeAllowed);
+            console.log(rows.length);
+            recursiveQuery(rows, 0, user, res);
+            console.log("dfadsfdsfasdfasdfsadfsad");
+            res.sendStatus(200);
+        }
+    });
+});

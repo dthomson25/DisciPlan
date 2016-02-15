@@ -3,17 +3,73 @@
 
 var settings_JSON = []
 
+function get_settings() {
   var xhttp_settings = new XMLHttpRequest();
   xhttp_settings.onreadystatechange = function() {
     if (xhttp_settings.readyState == 4 && xhttp_settings.status == 200) {
+      console.log("Settings updated");
       settings_JSON = JSON.parse(xhttp_settings.responseText);
       console.log(settings_JSON);
     }
   };
   xhttp_settings.open("GET", "http://localhost:3000/get_settings/danthom", true);
   xhttp_settings.send();
+}
+
+get_settings();
+
 
 // End of http request code
+
+
+
+
+// Set up interval that gets called to reset time remaining
+// at the time specified by the users settings.
+
+var resetIntervalId
+var resetTimeoutId
+
+function resetAllTR() {
+  var info = JSON.stringify({user:"danthom"});
+  console.log("Resetting time remaining. Current time: " + new Date());
+  var http_reset_allTR = new XMLHttpRequest();
+  http_reset_allTR.onreadystatechange = function() {
+    if (http_reset_allTR.readyState == 4 && http_reset_allTR.status == 200) {
+      get_settings();
+    }
+  };
+  http_reset_allTR.open("POST", 'http://localhost:3000/reset_allTR');
+  http_reset_allTR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  http_reset_allTR.send(info);
+}
+
+function startInterval() {
+  var interval = 24*60*60*1000;
+  resetIntervalId = setInterval(resetAllTR, interval);
+  resetAllTR();
+
+}
+
+// TODO when we call get_settings update reset time and redo this whole part
+var resetTime = 5;
+var currDate = new Date();
+var resetDate = new Date();
+resetDate.setHours(resetTime,0,0,0);
+var diff = resetDate - currDate;
+if(diff < 0){
+  resetDate.setHours(resetDate.getHours() + 24);
+  diff = resetDate - currDate;
+}
+
+
+diff = 1; // remove this after testing
+resetTimeoutId = setTimeout(startInterval, diff);
+
+
+
+// End of interval code
+
 
 var startTime
 var endTime
@@ -29,11 +85,8 @@ redirectCurrentTab = function(Url){
 
 // When the remaining time for a category goes to 0, send a POST request
 // to update the database with that information. 
-function updateDatabase(){
+function updateDatabaseCategoryRT(){
   var update = JSON.stringify({user:"danthom", category: currCategory, TR: 0});
-  console.log(update);
-
-
   var http_update_TR = new XMLHttpRequest();
   // Do we get a response?
   // http_update_TR.onreadystatechange = function() {
@@ -48,7 +101,7 @@ function updateDatabase(){
 // When time remaining goes to 0, update the database and redirect the page
 // to our home page. 
 function redirectToHome() {
-  updateDatabase();
+  updateDatabaseCategoryRT();
   redirectCurrentTab("localhost:3000")
 }
 
@@ -129,7 +182,6 @@ function popupRequest(request, sender, sendResponse) {
   if(request.endTime == "endTime"){
     console.log(currSiteRestricted)
     if(currSiteRestricted){
-      console.log(endTime);
       sendResponse({restricted: true,
                      endTime: endTime.toString(),
                      category: currCategory});
