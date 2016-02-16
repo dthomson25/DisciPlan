@@ -4,16 +4,72 @@ extends navbar_fixed_top.jade
 body
 	block content
 		h1= message
-		canvas(id="myChart")
+		div(id="graphContainer")
+			canvas(id="myChart")
+
+		h2 Sort Usage by:
+		select(id="sortType")
+			option(value="category") Category
+			option(value="domainName") Domain Name
+		h2 Type of chart?
+		select(id="chartType")
+			option(value="pie") Pie Chart
+			option(value="bar") Bar Graph
+		p View Usage since:
+		input(type="text", id="datepicker")
+		input(type="submit", value="View Chart!", onclick="createChart()")
+
 		script(src="/js/Chart.js")
 		script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js')
+		script(src="//code.jquery.com/ui/1.11.4/jquery-ui.js")
 		script.
+			var createChart = null;
 			$(document).ready(function() {
+
+				var $j = jQuery.noConflict();
+				$("#datepicker").datepicker({
+					changeMonth: true,
+					changeYear: true});
+				$("#datepicker").datepicker({dateFormat: 'yyyy-mm-dd'});
+				$("#datepicker").datepicker("show");
+
 				var canvas = document.getElementById("myChart");
 				console.log(canvas);
-				ctx = canvas.getContext("2d");
+				var ctx = canvas.getContext("2d");
 				var d = !{data};
-				console.log(d);
-				chart = new Chart(ctx).Pie(d);
+				var chart = new Chart(ctx).Pie(d);
+
+				createChart = function() {
+					var sortType = document.getElementById("sortType");
+					sortType = sortType.options[sortType.selectedIndex].value;
+					var date = new Date($("#datepicker").val());
+					var xhr = new XMLHttpRequest();
+					xhr.addEventListener('readystatechange', function(evt) {
+				        if (xhr.readyState === 4) {
+				            if (xhr.status === 200) {
+								$("#myChart").remove();
+								$("#graphContainer").append('<canvas id="myChart"><canvas>');
+								canvas = document.getElementById("myChart");
+								ctx = canvas.getContext("2d");
+								d = JSON.parse(xhr.responseText);
+								console.log(d);
+								chart = new Chart(ctx).Pie(d);
+				            }
+				            else {
+				                console.log("ERROR: status " + xhr.status);
+				            }
+				        }
+					});
+					var form = "sortType=" + sortType + "&startTime=" + date.toString();
+					console.log(form);
+					xhr.open('POST','http://localhost:3000/usage/update',true);
+					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+					xhr.send(form);
+				}
 			});
+
+
+		link(rel='stylesheet', href='/css/usage.css')
+
     
