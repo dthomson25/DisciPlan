@@ -10,6 +10,8 @@ function get_settings() {
       console.log("Settings updated");
       settings_JSON = JSON.parse(xhttp_settings.responseText);
       console.log(settings_JSON);
+      // Every time we get new settings we want to check if the reset time is the same
+      startResetTimeout(); 
     }
   };
   xhttp_settings.open("GET", "http://localhost:3000/get_settings/danthom", true);
@@ -29,6 +31,7 @@ get_settings();
 
 var resetIntervalId
 var resetTimeoutId
+var resetTime = 0
 
 function resetAllTR() {
   var info = JSON.stringify({user:"danthom"});
@@ -45,26 +48,35 @@ function resetAllTR() {
 }
 
 function startInterval() {
+  if(resetIntervalId)
+    window.clearInterval(resetIntervalId);
   var interval = 24*60*60*1000;
   resetIntervalId = setInterval(resetAllTR, interval);
   resetAllTR();
 
 }
 
-// TODO when we call get_settings update reset time and redo this whole part
-var resetTime = 5;
-var currDate = new Date();
-var resetDate = new Date();
-resetDate.setHours(resetTime,0,0,0);
-var diff = resetDate - currDate;
-if(diff < 0){
-  resetDate.setHours(resetDate.getHours() + 24);
-  diff = resetDate - currDate;
+function startResetTimeout() {
+  console.log("Starting reset interval.");
+  if(resetTimeoutId)
+    window.clearTimeout(resetTimeoutId);
+  var oldResetTime = resetTime;
+  resetTime = 5; // TODO get from settings when it is there
+  // TODO if new reset time is different redo intervals
+  if(resetTime == oldResetTime)
+    return;
+
+  var currDate = new Date();
+  var resetDate = new Date();
+  resetDate.setHours(resetTime,0,0,0);
+  var diff = resetDate - currDate;
+  if(diff < 0){
+    resetDate.setHours(resetDate.getHours() + 24);
+    diff = resetDate - currDate;
+  }
+  diff = 1; // remove this after testing
+  resetTimeoutId = setTimeout(startInterval, diff);
 }
-
-
-diff = 1; // remove this after testing
-resetTimeoutId = setTimeout(startInterval, diff);
 
 
 
@@ -131,9 +143,7 @@ function startTimeout() {
   if(timeoutId) // Only want one timeout waiting
       window.clearTimeout(timeoutId);
   if(currSiteRestricted){
-    var diff_ms = (Date.parse(endTime) - Date.parse(startTime));
-    console.log(diff_ms);
-    
+    var diff_ms = (Date.parse(endTime) - Date.parse(startTime));    
     timeoutId = window.setTimeout(redirectToHome, diff_ms);
   }
 }
@@ -176,11 +186,10 @@ function checkSettingChangeTab(tabId, changeInfo, tab) {
 }
 
 function popupRequest(request, sender, sendResponse) {
-  console.log(sender.tab ?
-                "from a content script:" + sender.tab.url :
-                "from the extension");
+  // console.log(sender.tab ?
+  //               "from a content script:" + sender.tab.url :
+  //               "from the extension");
   if(request.endTime == "endTime"){
-    console.log(currSiteRestricted)
     if(currSiteRestricted){
       sendResponse({restricted: true,
                      endTime: endTime.toString(),

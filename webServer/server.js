@@ -124,6 +124,7 @@ app.get('/usage/view/', function(req,res) {
 });
 
 app.get('/get_settings/:userId', function(req, res) {
+    console.log("Request for settings...");
     sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
         ,[req.params.userId]);
     console.log(req.params.userId)
@@ -163,25 +164,7 @@ app.post('/update_TR', function(req, res) {
 
 });
 
-function recursiveQuery(rows, currRow, user, res) {
-    if(currRow >= rows.length){
-        return;
-    }
-    category = rows[currRow].category;
-    timeAllowed = rows[currRow].timeAllowed;
-    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
-    var inserts = [timeAllowed, user, category];
-    sql = msq.format(command,inserts);
-    con.query(sql, function(err) {
-        if(err){
-            console.log("error: " + err);
-        }
-        else {
-            console.log("command:\n" + sql + "\nsucceeded!");
-            recursiveQuery(rows, currRow + 1, user);
-        }
-    });
-}
+
 
 app.post('/reset_allTR', function(req, res) {
     var user = req.body.user;
@@ -194,12 +177,29 @@ app.post('/reset_allTR', function(req, res) {
             res.sendStatus(400);
         }
         else {
-            console.log(rows);
-            console.log(rows[1].timeAllowed);
-            console.log(rows.length);
-            recursiveQuery(rows, 0, user, res);
-            console.log("dfadsfdsfasdfasdfsadfsad");
-            res.sendStatus(200);
+            recursiveQuery = function(rows, currRow, user) {
+                if(currRow >= rows.length){
+                    res.sendStatus(200);
+                    return;
+                }
+                category = rows[currRow].category;
+                timeAllowed = rows[currRow].timeAllowed;
+                var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+                var inserts = [timeAllowed, user, category];
+                sql = msq.format(command,inserts);
+                con.query(sql, function(err) {
+                    if(err){
+                        console.log("error: " + err);
+                        res.sendStatus(400);
+                        return;
+                    }
+                    else {
+                        console.log("command:\n" + sql + "\nsucceeded!");
+                        recursiveQuery(rows, currRow + 1, user);
+                    }
+                });
+            };
+            recursiveQuery(rows, 0, user);
         }
     });
 });
