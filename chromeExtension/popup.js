@@ -26,28 +26,60 @@ function set_time(){
   hoursSpan.innerHTML = hours;
   minutesSpan.innerHTML = minutes;
   secondsSpan.innerHTML = seconds;
-  if(hours == 0 && minutes == 0 && seconds == 0)
+  if(hours == 0 && minutes == 0 && seconds <= 0)
     window.close();
 }
 
 
+
+function addCategoriesToDropdown(categories) {
+  var addPageDiv = document.getElementById('addCurrentPageDiv');
+  addPageDiv.setAttribute('style', 'display: initial');
+  var dropdown = document.getElementById('category_dropdown');
+  for(i = 0; i < categories.length; i++){
+    var li = document.createElement("LI");
+    var a = document.createElement("A");
+    a.setAttribute("id", categories[i]);
+    a.innerHTML = categories[i];
+    console.log("Added event listener: " + i);
+    a.addEventListener('click', function(){
+      var category = this.id;
+      var currPage = document.getElementById('currentPage').innerText;
+      var update = JSON.stringify({user:"danthom", page:currPage, category:category});
+      chrome.runtime.sendMessage({req: "update", update:update}, function(response) { start_timer(); });
+
+    });
+
+    li.appendChild(a);
+    dropdown.appendChild(li);
+
+  }
+}
+
+
 function start_timer(){
-  chrome.runtime.sendMessage({endTime: "endTime"}, function(response) {
+  console.log("start_timer");
+  chrome.runtime.sendMessage({req: "endTime"}, function(response) {
     if(response.restricted == true) {
+      // Hide the add page div
+      var addPageDiv = document.getElementById('addCurrentPageDiv');
+      addPageDiv.setAttribute('style', 'display: none');
+      // Start the interval to update the countdown div
       endTime = Date.parse(response.endTime);
       setInterval(set_time, 1000);
       category = response.category;
       var categoryDiv = document.getElementById('currentCategory');
       categoryDiv.innerHTML = category;
     }
-    // If it is not on the list hide the count down div
+    // If it is not on the list hide the count down div and add the add page dropdown
     else{
       var clock = document.getElementById('restrictedPageDiv');
       clock.setAttribute('style', 'display: none');
+      categories = response.categories;
+      addCategoriesToDropdown(categories);
     }
   });
 }
-
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -72,6 +104,8 @@ document.addEventListener('DOMContentLoaded', function() {
     redirectCurrentTab("localhost:3000/user_settings/danthom");
     window.close();
   }, false);
+
+
 
 }, false);
 

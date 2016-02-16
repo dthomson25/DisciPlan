@@ -203,3 +203,38 @@ app.post('/reset_allTR', function(req, res) {
         }
     });
 });
+
+app.post('/add_page', function(req, res) {
+    var user = req.body.user;
+    var page = req.body.page;
+    console.log(page);
+    var category = req.body.category;
+
+    var command = "insert into Categories values(??,??,??)";
+    var inserts = ["\'" + user +"\'","\'" +  page + "\'","\'" + category + "\'"];
+    sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[user]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    res.sendStatus(400);
+                }
+                else {
+                    res.send(rows);
+                }
+            });
+        }
+    });
+
+
+});

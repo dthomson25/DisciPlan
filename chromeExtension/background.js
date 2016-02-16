@@ -4,7 +4,7 @@ getStartingDomain(tracker);
 console.log(tracker);
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  checkSettingsTabChange(tabId, changeInfo, tab)
+  checkSettingsNewTab(tabId, changeInfo, tab)
     if (tab.url !== undefined && changeInfo.status == "complete") {
         sendXHR(tab.url, tracker);
     }
@@ -20,7 +20,7 @@ chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
     });
 });
 
-chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse) {
-    popupRequest(request, sender, sendResponse)
-});
+// chrome.runtime.onMessage.addListener(
+//   function(request, sender, sendResponse) {
+//     popupRequest(request, sender, sendResponse)
+// });

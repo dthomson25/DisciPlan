@@ -117,15 +117,19 @@ function redirectToHome() {
   redirectCurrentTab("localhost:3000")
 }
 
-function checkIfRestricted(url) {
-  for(i = 0; i < settings_JSON.length; i++){
-    row = settings_JSON[i];
-    restrictedHost = row.domainName;
-
+function checkIfRestricted(url, alreadyHostName) {
+  var urlHostName = url;
+  if(!alreadyHostName){
     var l = document.createElement('a');
     l.href = url;
     // Hostname of new tab url
-    var urlHostName = l.hostname;
+    urlHostName = l.hostname;
+  }
+
+  console.log("IN CHECK:" + urlHostName + " url:" + url);
+  for(i = 0; i < settings_JSON.length; i++){
+    row = settings_JSON[i];
+    restrictedHost = row.domainName;
 
     if(restrictedHost == urlHostName){
       currSiteRestricted = true;
@@ -157,7 +161,7 @@ function updateCategoryRT(elapsed_sec){
   }
 }
 
-function checkSettingsTabChange(tabId, changeInfo, tab) {
+function checkSettingsNewTab(tabId, changeInfo, tab) {
   if(settings_JSON == null)
     return;  
   if(currSiteRestricted){
@@ -167,7 +171,7 @@ function checkSettingsTabChange(tabId, changeInfo, tab) {
   }
 
   startTime = new Date();
-  checkIfRestricted(tab.url)
+  checkIfRestricted(tab.url, false)
   startTimeout();
 }
 
@@ -180,47 +184,85 @@ function checkSettingChangeTab(tabId, changeInfo, tab) {
       updateCategoryRT(elapsed_sec);
     }
     startTime = new Date();
-    checkIfRestricted(url);
+    checkIfRestricted(url, false);
     startTimeout();
   });
 }
+
+function get_categories() {
+  var categories = [];
+  for(i = 0; i < settings_JSON.length; i++){
+    row = settings_JSON[i];
+    category = row.category;
+    if(categories.indexOf(category) == -1){
+      categories.push(category);
+    }
+  }
+  return categories;
+}
+
 
 function popupRequest(request, sender, sendResponse) {
   // console.log(sender.tab ?
   //               "from a content script:" + sender.tab.url :
   //               "from the extension");
-  if(request.endTime == "endTime"){
+  if(request.req == "update"){
+    update = request.update;
+    var http_add_page = new XMLHttpRequest();
+    sendRes = function() { sendResponse(); };
+    http_add_page.onreadystatechange = function() {
+      // The response has the new updated settings
+      if (http_add_page.readyState == 4 && http_add_page.status == 200) {
+        console.log("WHAT THE EHCKE JFDKLHFGLKDSJLKFJDLSK");
+        settings_JSON = JSON.parse(http_add_page.responseText);
+        startTime = new Date();
+        page = JSON.parse(update).page;
+        checkIfRestricted(page, true);
+        startTimeout();
+        console.log("send response")
+        sendRes(); // Send the response once the settings have been updated
+      }
+    };
+    http_add_page.open("POST", 'http://localhost:3000/add_page');
+    http_add_page.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    http_add_page.send(update);
+  }
+  if(request.req == "endTime"){
     if(currSiteRestricted){
       sendResponse({restricted: true,
                      endTime: endTime.toString(),
                      category: currCategory});
     }
     else{
-      sendResponse({restricted: false})
+      categories = get_categories();
+      sendResponse({restricted: false,
+                    categories: categories});
     }
   }
+    
 }
 
 
 // Update remaning time for last category, cancel timeout, then
 // check if current site is restricted and if it is start
 // a timeout to redirect page
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  checkSettingsTabChange(tabId, changeInfo, tab)
-});
+// chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+//   checkSettingsNewTab(tabId, changeInfo, tab)
+// });
 
 
 
 // Update remaning time for last category, cancel timeout, then
 // check if current site is restricted and if it is start
 // a timeout to redirect page
-chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
-  checkSettingChangeTab(tabId, changeInfo, tab)
+// chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
+//   checkSettingChangeTab(tabId, changeInfo, tab)
 
-});
+// });
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    popupRequest(request, sender, sendResponse)
+    popupRequest(request, sender, sendResponse);
+    return true;
 });
 
