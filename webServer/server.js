@@ -23,6 +23,8 @@ var express = require('express');
 var path = require('path');
 var app = express();
 var bodyParser = require('body-parser');
+var async = require('async'); 
+
 
 app.set('view engine', 'jade');
 app.set('views', './views');
@@ -99,6 +101,7 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
     });
 });
 
+//Graph page
 app.get('/usage/view/', function(req,res) {
     con.query("select domainName, sum(timeSpent) as duration from TimeSpent where userID = \'danthom\' group by domainName", function(err,rows) {
         if(err) {
@@ -136,6 +139,87 @@ app.get('/get_settings/:userId', function(req, res) {
         }
     });
 });
+
+function deleteUrls(urlsToDeletes) {
+    for(var i = 0; i < urlsToDeletes.length; i++) {
+        var command = "DELETE from Categories where category = ? and domainName = ? and userId = ?";
+        var inserts = [urlsToDeletes[0],urlsToDeletes[1],'danthom']
+        sql = msq.format(command,inserts);
+        con.query(sql, function(err) {
+            if(err){
+                console.log("error: " + err);
+                res.sendStatus(400);
+            }
+            else {
+                console.log("command:\n" + sql + "\nsucceeded!");
+                res.sendStatus(204);
+            }
+        });
+    }
+}
+
+app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log(req.params)
+    console.log(req.body)
+    var userId = req.params["userId"]
+    var urlToChanges = JSON.parse(req.body["url_change"]) 
+    var urlsToDeletes = JSON.parse(req.body["delete_url"])
+    var urlToAdds = JSON.parse(req.body["add_url"])
+    console.log(urlToAdds)
+    async.series([
+        function(callback) {
+            async.forEach(urlsToDeletes, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                var command = "DELETE FROM Categories WHERE domainName = ? and userId = ? and category = ?"
+                var inserts = [url[1],req.params.userId,url[0]]
+                sql = msq.format(command,inserts);
+                console.log(sql)
+                con.query(sql,callback())
+                }, function(err) {
+                    if (err){
+                        console.log("FUCK!")
+                        return (err);
+                    } 
+                    console.log("WIN1!!")
+                    callback()
+            },callback)
+        },
+        function(callback) {
+            async.forEach(urlToAdds, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                command = "INSERT into Categories values(??,??,??)"
+                insert = ["\"" +req.params.userId+ "\"", "\"" +url[1]+ "\""," \"" +url[0] + "\""]
+                sql = msq.format(command,insert);
+                sql = sql.replace(/`/g,"");
+                console.log(sql)
+                con.query(sql,callback())
+                }, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+
+            })
+        },
+        function(callback) {
+            async.forEach(urlToChanges, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                var command = "UPDATE Categories SET domainName = ? WHERE domainName = ? and userId = ? and category = ?"
+                var inserts = [url[2],url[1],req.params.userId,url[0]]
+                sql = msq.format(command,inserts);
+                console.log(sql)
+                con.query(sql,callback())
+                }, function(err) {
+                    if (err){
+                        return err;
+                    } 
+            })
+        }
+    ], function(err) {
+        if (err) return err;
+        res.sendStatus(204)
+    })
+    
+});
+
+
 
 
 

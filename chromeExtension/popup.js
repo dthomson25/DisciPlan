@@ -4,7 +4,6 @@ redirectCurrentTab = function(Url){
     });
 }
 
-
 var endTime;
 var category;
 var hours, minutes, seconds;
