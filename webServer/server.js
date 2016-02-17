@@ -26,6 +26,8 @@ var bodyParser = require('body-parser');
 var async = require('async'); 
 
 
+app.use(bodyParser.json());
+
 app.set('view engine', 'jade');
 app.set('views', './views');
 
@@ -125,6 +127,7 @@ app.get('/usage/view/', function(req,res) {
 });
 
 app.get('/get_settings/:userId', function(req, res) {
+    console.log("Request for settings...");
     sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
         ,[req.params.userId]);
     console.log(req.params.userId)
@@ -222,4 +225,100 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
 
 
 
+app.post('/update_TR', function(req, res) {
+    var user = req.body.user;
+    var category = req.body.category;
+    var TR = req.body.TR;
 
+    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+    var inserts = [TR, user, category];
+    sql = msq.format(command,inserts);
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            res.sendStatus(204);
+        }
+    });
+
+    // TODO: What do we send back?
+
+});
+
+
+
+app.post('/reset_allTR', function(req, res) {
+    var user = req.body.user;
+
+    sql = msq.format("select * from Settings where userId = ? ;"
+        ,[user]);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            recursiveQuery = function(rows, currRow, user) {
+                if(currRow >= rows.length){
+                    res.sendStatus(200);
+                    return;
+                }
+                category = rows[currRow].category;
+                timeAllowed = rows[currRow].timeAllowed;
+                var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+                var inserts = [timeAllowed, user, category];
+                sql = msq.format(command,inserts);
+                con.query(sql, function(err) {
+                    if(err){
+                        console.log("error: " + err);
+                        res.sendStatus(400);
+                        return;
+                    }
+                    else {
+                        console.log("command:\n" + sql + "\nsucceeded!");
+                        recursiveQuery(rows, currRow + 1, user);
+                    }
+                });
+            };
+            recursiveQuery(rows, 0, user);
+        }
+    });
+});
+
+app.post('/add_page', function(req, res) {
+    var user = req.body.user;
+    var page = req.body.page;
+    console.log(page);
+    var category = req.body.category;
+
+    var command = "insert into Categories values(??,??,??)";
+    var inserts = ["\'" + user +"\'","\'" +  page + "\'","\'" + category + "\'"];
+    sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[user]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    res.sendStatus(400);
+                }
+                else {
+                    res.send(rows);
+                }
+            });
+        }
+    });
+
+
+});
