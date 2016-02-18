@@ -23,6 +23,10 @@ var express = require('express');
 var path = require('path');
 var app = express();
 var bodyParser = require('body-parser');
+var async = require('async'); 
+
+
+app.use(bodyParser.json());
 
 app.set('view engine', 'jade');
 app.set('views', './views');
@@ -101,6 +105,7 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
 
 });
 
+//Graph page
 app.get('/usage/view/', function(req,res) {
     con.query("select domainName, sum(timeSpent) as duration from TimeSpent where userID = \'danthom\' group by domainName", function(err,rows) {
         if(err) {
@@ -195,6 +200,7 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
 });
 
 app.get('/get_settings/:userId', function(req, res) {
+    console.log("Request for settings...");
     sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
         ,[req.params.userId]);
     console.log(req.params.userId)
@@ -210,5 +216,230 @@ app.get('/get_settings/:userId', function(req, res) {
     });
 });
 
+function deleteUrls(urlsToDeletes) {
+    for(var i = 0; i < urlsToDeletes.length; i++) {
+        var command = "DELETE from Categories where category = ? and domainName = ? and userId = ?";
+        var inserts = [urlsToDeletes[0],urlsToDeletes[1],'danthom']
+        sql = msq.format(command,inserts);
+        con.query(sql, function(err) {
+            if(err){
+                console.log("error: " + err);
+                res.sendStatus(400);
+            }
+            else {
+                console.log("command:\n" + sql + "\nsucceeded!");
+                res.sendStatus(204);
+            }
+        });
+    }
+}
+
+app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log(req.params)
+    console.log(req.body)
+    var userId = req.params["userId"]
+    var urlToChanges = JSON.parse(req.body["url_change"]) 
+    var urlsToDeletes = JSON.parse(req.body["delete_url"])
+    var urlToAdds = JSON.parse(req.body["add_url"])
+    var timeAllowed = JSON.parse(req.body["time_allowed"])
+    var categoryName = JSON.parse(req.body["category_name"])
+
+    var category = ""
+    console.log(timeAllowed)
+    async.series([
+        function(callback) {
+            if (categoryName.length == 0) {
+                callback()
+                return
+            }
+            category = categoryName[1]
+            var command = "UPDATE Settings SET category = ? WHERE userId = ? and category = ?"
+            var inserts = [categoryName[1],req.params.userId,categoryName[0]]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    console.log("error possible")
+                    if (err){
+                        return err;
+                    } 
+                    console.log("no error")
+                    callback()
+            })
+        },
+        function(callback) {
+            async.forEach(urlsToDeletes, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                category = url[0]
+                var command = "DELETE FROM Categories WHERE domainName = ? and userId = ? and category = ?"
+                var inserts = [url[1],req.params.userId,url[0]]
+                sql = msq.format(command,inserts);
+                con.query(sql,callback())
+                }, function(err) {
+                    if (err){
+                        return (err);
+                    } 
+                    callback()
+            },callback)
+        },
+        function(callback) {
+            async.forEach(urlToAdds, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                category = url[0]
+                command = "INSERT into Categories values(??,??,??)"
+                insert = ["\"" +req.params.userId+ "\"", "\"" +url[1]+ "\""," \"" +url[0] + "\""]
+                sql = msq.format(command,insert);
+                sql = sql.replace(/`/g,"");
+                con.query(sql,callback())
+                }, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+
+            })
+        },
+        function(callback) {
+            async.forEach(urlToChanges, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                category = url[0]
+                var command = "UPDATE Categories SET domainName = ? WHERE domainName = ? and userId = ? and category = ?"
+                var inserts = [url[2],url[1],req.params.userId,url[0]]
+                sql = msq.format(command,inserts);
+                con.query(sql,callback())
+                }, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+
+            })
+        },
+        function(callback) {
+            if (timeAllowed.length == 0) {
+                callback()
+                return
+            }
+            category = timeAllowed[0]
+            var command = "UPDATE Settings SET timeAllowed = ? WHERE userId = ? and category = ?"
+            var inserts = [timeAllowed[1],req.params.userId,timeAllowed[0]]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    console.log("error possible")
+                    if (err){
+                        return err;
+                    } 
+                    console.log("no error")
+                    callback()
+            })
+        }
+        
+    ], function(err) {
+        if (err) return err;
+        if (category != "") {
+            res.send(category)
+            return
+        }
+        res.sendStatus(204)
+        return
+    })
+    
+});
 
 
+
+
+app.post('/update_TR', function(req, res) {
+    var user = req.body.user;
+    var category = req.body.category;
+    var TR = req.body.TR;
+
+    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+    var inserts = [TR, user, category];
+    sql = msq.format(command,inserts);
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            res.sendStatus(204);
+        }
+    });
+
+    // TODO: What do we send back?
+
+});
+
+
+
+app.post('/reset_allTR', function(req, res) {
+    var user = req.body.user;
+
+    sql = msq.format("select * from Settings where userId = ? ;"
+        ,[user]);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            recursiveQuery = function(rows, currRow, user) {
+                if(currRow >= rows.length){
+                    res.sendStatus(200);
+                    return;
+                }
+                category = rows[currRow].category;
+                timeAllowed = rows[currRow].timeAllowed;
+                var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+                var inserts = [timeAllowed, user, category];
+                sql = msq.format(command,inserts);
+                con.query(sql, function(err) {
+                    if(err){
+                        console.log("error: " + err);
+                        res.sendStatus(400);
+                        return;
+                    }
+                    else {
+                        console.log("command:\n" + sql + "\nsucceeded!");
+                        recursiveQuery(rows, currRow + 1, user);
+                    }
+                });
+            };
+            recursiveQuery(rows, 0, user);
+        }
+    });
+});
+
+app.post('/add_page', function(req, res) {
+    var user = req.body.user;
+    var page = req.body.page;
+    console.log(page);
+    var category = req.body.category;
+
+    var command = "insert into Categories values(??,??,??)";
+    var inserts = ["\'" + user +"\'","\'" +  page + "\'","\'" + category + "\'"];
+    sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[user]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    res.sendStatus(400);
+                }
+                else {
+                    res.send(rows);
+                }
+            });
+        }
+    });
+
+
+});
