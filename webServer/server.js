@@ -123,36 +123,75 @@ app.get('/usage/view/', function(req,res) {
     });
 });
 
+function formatPieChartData(rows,sortType) {
+    var d = [];
+    if(sortType == "category") {
+        for(var i = 0; i < rows.length; i++) {
+            d.push({value : rows[i].duration, label: rows[i].category});
+        }
+    }
+    else {
+        for(var i = 0; i < rows.length; i++) {
+            d.push({value : rows[i].duration, label: rows[i].domainName});
+        }
+    }
+    return d;
+}
+
+function formatBarChartData(rows,sortType) {
+    lbls = [];
+    values = [];
+    if(sortType == "category") {
+        for(var i = 0; i < rows.length; i++) {
+            lbls.push(rows[i].category);
+            values.push(rows[i].duration);
+        }
+    }
+    else {
+        console.log("here");
+        for(var i = 0; i < rows.length; i++) {
+            lbls.push(rows[i].domainName);
+            values.push(rows[i].duration);
+        }
+    }
+    var d = {labels : lbls, datasets : [{data: values}]};
+    return d;
+}
+
 app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req,res) {
     var sortType = req.body.sortType;
     var date = new Date(req.body.startTime);
+    var chartType = req.body.chartType;
+    var command = "";
+    var inserts = [];
     if(sortType == "category") {
-        var command = "select * from (select category, sum(TimeSpent) as duration from Categories as C, TimeSpent as T where C.userId = T.userId and C.userId = ?? and C.domainName = T.domainName and T.startTime > ?? group by category union select \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T1 where T1.userId = ?? and not exists(select * from Categories as C1 where T1.userId = C1.userId and T1.domainName = C1.domainName) group by category) as A";
-        var inserts = ['\'danthom\'','\'' + sqlFormatDateTime(date) + '\'', '\'danthom\''];
-        var sql = msq.format(command, inserts);
-        sql = sql.replace(/`/g,"");
-        con.query(sql, function(err,rows){
-            if(err) {
-                console.log("error: " + err);
-                res.sendStatus(400);
-            }
-            else {
-                console.log(rows);
-                var d = [];
-                for(var i = 0; i < rows.length; i++) {
-                    d.push({value : rows[i].duration, label: rows[i].category});
-                    console.log(d[i]);
-                }
-                res.setHeader('Content-Type', 'application/json');
-                res.send(JSON.stringify(d));
-            }
-        });
+        command = "select * from (select category, sum(TimeSpent) as duration from Categories as C, TimeSpent as T where C.userId = T.userId and C.userId = ?? and C.domainName = T.domainName and T.startTime > ?? group by category union select \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T1 where T1.userId = ?? and not exists(select * from Categories as C1 where T1.userId = C1.userId and T1.domainName = C1.domainName) group by category) as A";
+        inserts = ['\'danthom\'','\'' + sqlFormatDateTime(date) + '\'', '\'danthom\''];
     }
     else {
-
+        command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName";
+        inserts = ['\'danthom\''];
     }
-
-
+    var sql = msq.format(command, inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql, function(err,rows){
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            var d = null;
+            if (chartType == "pie") {
+                d = formatPieChartData(rows,sortType);
+            }
+            else {
+                d = formatBarChartData(rows,sortType);
+            }
+            console.log(d);
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify(d));
+        }
+    });
 });
 
 app.get('/get_settings/:userId', function(req, res) {

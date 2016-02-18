@@ -34,16 +34,19 @@ body
 				$("#datepicker").datepicker("show");
 
 				var canvas = document.getElementById("myChart");
-				console.log(canvas);
 				var ctx = canvas.getContext("2d");
 				var d = !{data};
 				var chart = new Chart(ctx).Pie(d);
 
 				createChart = function() {
+
 					var sortType = document.getElementById("sortType");
 					sortType = sortType.options[sortType.selectedIndex].value;
+					var chartType = document.getElementById("chartType");
+					chartType = chartType.options[chartType.selectedIndex].value;
 					var date = new Date($("#datepicker").val());
 					var xhr = new XMLHttpRequest();
+
 					xhr.addEventListener('readystatechange', function(evt) {
 				        if (xhr.readyState === 4) {
 				            if (xhr.status === 200) {
@@ -52,15 +55,22 @@ body
 								canvas = document.getElementById("myChart");
 								ctx = canvas.getContext("2d");
 								d = JSON.parse(xhr.responseText);
+								console.log("----------");
 								console.log(d);
-								chart = new Chart(ctx).Pie(d);
+								if(chartType == "pie") {
+									chart = new Chart(ctx).Pie(d);
+								}
+								else {
+									chart = new Chart(ctx).Bar(d);
+								}
 				            }
 				            else {
 				                console.log("ERROR: status " + xhr.status);
 				            }
 				        }
 					});
-					var form = "sortType=" + sortType + "&startTime=" + date.toString();
+					console.log(sortType);
+					var form = "sortType=" + sortType + "&startTime=" + date.toString() + "&chartType=" + chartType;
 					console.log(form);
 					xhr.open('POST','http://localhost:3000/usage/update',true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
