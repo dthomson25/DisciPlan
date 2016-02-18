@@ -168,31 +168,52 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
     var urlToChanges = JSON.parse(req.body["url_change"]) 
     var urlsToDeletes = JSON.parse(req.body["delete_url"])
     var urlToAdds = JSON.parse(req.body["add_url"])
-    console.log(urlToAdds)
+    var timeAllowed = JSON.parse(req.body["time_allowed"])
+    var categoryName = JSON.parse(req.body["category_name"])
+
+    var category = ""
+    console.log(timeAllowed)
     async.series([
         function(callback) {
+            if (categoryName.length == 0) {
+                callback()
+                return
+            }
+            category = categoryName[1]
+            var command = "UPDATE Settings SET category = ? WHERE userId = ? and category = ?"
+            var inserts = [categoryName[1],req.params.userId,categoryName[0]]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    console.log("error possible")
+                    if (err){
+                        return err;
+                    } 
+                    console.log("no error")
+                    callback()
+            })
+        },
+        function(callback) {
             async.forEach(urlsToDeletes, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                category = url[0]
                 var command = "DELETE FROM Categories WHERE domainName = ? and userId = ? and category = ?"
                 var inserts = [url[1],req.params.userId,url[0]]
                 sql = msq.format(command,inserts);
-                console.log(sql)
                 con.query(sql,callback())
                 }, function(err) {
                     if (err){
-                        console.log("FUCK!")
                         return (err);
                     } 
-                    console.log("WIN1!!")
                     callback()
             },callback)
         },
         function(callback) {
             async.forEach(urlToAdds, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                category = url[0]
                 command = "INSERT into Categories values(??,??,??)"
                 insert = ["\"" +req.params.userId+ "\"", "\"" +url[1]+ "\""," \"" +url[0] + "\""]
                 sql = msq.format(command,insert);
                 sql = sql.replace(/`/g,"");
-                console.log(sql)
                 con.query(sql,callback())
                 }, function(err) {
                     if (err){
@@ -204,20 +225,47 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
         },
         function(callback) {
             async.forEach(urlToChanges, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                category = url[0]
                 var command = "UPDATE Categories SET domainName = ? WHERE domainName = ? and userId = ? and category = ?"
                 var inserts = [url[2],url[1],req.params.userId,url[0]]
                 sql = msq.format(command,inserts);
-                console.log(sql)
                 con.query(sql,callback())
                 }, function(err) {
                     if (err){
                         return err;
                     } 
+                    callback()
+
+            })
+        },
+        function(callback) {
+            if (timeAllowed.length == 0) {
+                callback()
+                return
+            }
+            category = timeAllowed[0]
+            var command = "UPDATE Settings SET timeAllowed = ? WHERE userId = ? and category = ?"
+            var inserts = [timeAllowed[1],req.params.userId,timeAllowed[0]]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    console.log("error possible")
+                    if (err){
+                        return err;
+                    } 
+                    console.log("no error")
+                    callback()
             })
         }
+        
     ], function(err) {
         if (err) return err;
+        if (category != "") {
+            res.send(category)
+            return
+        }
         res.sendStatus(204)
+        return
     })
     
 });
