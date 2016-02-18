@@ -169,8 +169,8 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
         inserts = ['\'danthom\'','\'' + sqlFormatDateTime(date) + '\'', '\'danthom\''];
     }
     else {
-        command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName";
-        inserts = ['\'danthom\''];
+        command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? and startTime > ?? group by domainName";
+        inserts = ['\'danthom\'', '\'' + sqlFormatDateTime(date) + '\''];
     }
     var sql = msq.format(command, inserts);
     sql = sql.replace(/`/g,"");
