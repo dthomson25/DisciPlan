@@ -161,23 +161,11 @@ function updateCategoryRT(elapsed_sec){
   }
 }
 
-function checkSettingsNewTab(tabId, changeInfo, tab) {
-  if(settings_JSON == null)
-    return;  
-  if(currSiteRestricted){
-    var currTime = new Date();
-    var elapsed_sec = (Date.parse(currTime) - Date.parse(startTime))/1000;
-    updateCategoryRT(elapsed_sec);
-  }
-
-  startTime = new Date();
-  checkIfRestricted(tab.url, false)
-  startTimeout();
-}
-
-function checkSettingChangeTab(tabId, changeInfo, tab) {
+function checkSettingChangeTab() {
   chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
     var url = tabs[0].url;
+    if(settings_JSON == null)
+      return; 
     if(currSiteRestricted){
       var currTime = new Date();
       var elapsed_sec = (Date.parse(currTime) - Date.parse(startTime))/1000;
@@ -260,9 +248,18 @@ function popupRequest(request, sender, sendResponse) {
 
 // });
 
+
+
+chrome.windows.onFocusChanged.addListener(function(windowId) {
+  console.log("window changed");
+  checkSettingChangeTab();
+});
+
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
     popupRequest(request, sender, sendResponse);
     return true;
 });
+
+
 
