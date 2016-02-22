@@ -1,7 +1,3 @@
-include ./mixins/url_item
-include ./mixins/category_item
-include ./mixins/allowed_time_item
-
 extends navbar_fixed_top
 
 block content
@@ -10,13 +6,27 @@ block content
 	.container.main
 		while n < rows.length
 			.jumbotron.categories
+				button.btn.btn-danger.delete-category(style="float:right;") x
 				label.control-label.editH2(for="category")
 					h2.text-info= rows[n]["category"]
 					input.form-control(type="hidden", value= rows[n]["category"])
+				br
+				label.control-label(for="remainingTime") Allowed Time:
+					div.input-group.timeAllowed
+						input.form-control.time(type="number",placeholder=(Math.floor(parseInt(rows[n]["timeAllowed"])/3600)).toString(), min="0", aria-describedby="sizing-addon2")
+						span.input-group-addon  hours
+						input.form-control.time(type="number",placeholder=(Math.floor(parseInt(rows[n]["timeAllowed"])/60)%60).toString(), min="0", aria-describedby="sizing-addon2")
+						span.input-group-addon  minutes
+				div.form-group
+					label(for="sel1") Type:
+						select.form-control.type(id="sel1")
+							each type in setting_types
+								if type != rows[n]["type"]
+									option= type
+								else
+									option(selected="selected")=type 
+						input(type="hidden", value= rows[n]["type"])
 
-				label.control-label.editH2(for="remainingTime")
-					small.text-info= rows[n]["timeAllowed"]
-					input.form-control(type="hidden", value= rows[n]["timeAllowed"])
 				while n < rows.length && currCategory === rows[n]["category"]
 					.input-group()
 						span.input-group-btn.edit-url-btn
@@ -28,18 +38,7 @@ block content
 					- n++
 				button.btn.btn-default.add-url(type='button') +
 
+				
+
 			if n < rows.length
 				-currCategory = rows[n]["category"]
-
-
-
-				
-					
-
-
-
-
-
-
-
-
