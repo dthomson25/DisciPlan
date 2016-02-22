@@ -25,7 +25,7 @@ var app = express();
 var bodyParser = require('body-parser');
 var async = require('async'); 
 
-var differentTypes = ["Redirect","Notifications","Reset"]
+var differentTypes = ["Redirect","Notifications","Nuclear"]
 
 
 app.use(bodyParser.json());

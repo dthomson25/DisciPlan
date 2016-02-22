@@ -37,7 +37,7 @@ CREATE TABLE Settings (
 	type CHAR(64) NOT NULL,
 	timeAllowed INT(64) NOT NULL,
 	timeRemaining INT(64) NOT NULL,
-	resetTime INT(64) NOT NULL,
+	resetInterval INT(64) NOT NULL,
 	PRIMARY KEY (userID,category),
 	FOREIGN KEY (userID) REFERENCES Users(userID)
 );

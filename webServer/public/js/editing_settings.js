@@ -56,7 +56,6 @@ function appendSaveButton(categoryDiv) {
   }
 }
 
-
 function findChangedUrls(category) {
   var categoryName = category.find("h2").text()
   var editedUrls = category.find(".edited-url")
@@ -100,6 +99,18 @@ function findChangedCategory(category) {
 
 function findChangedTime(category) {
   var categoryName = category.find("h2").text()
+  var time = 0
+  var allowedTime = category.find(".timeAllowed input")
+  console.log(allowedTime[0].placeholder)
+  console.log(allowedTime[0].value)
+  console.log(allowedTime[1].placeholder)
+  console.log(allowedTime[1].value)
+  time += allowedTime[0].value * 3600
+  time += allowedTime[1].value * 60
+  console.log(time)
+  if (allowedTime[0].value != allowedTime[0].placeholder 
+    && allowedTime[1].value != allowedTime[1].placeholder)
+    return [categoryName,parseInt(time)]
   var allowedTime = category.find("small").text()
   var prevTime = category.find("small").next().val()
   if (allowedTime != prevTime) return [categoryName,parseInt(allowedTime)]
@@ -144,9 +155,18 @@ $(".main").on("click",".save",function() {
   urlsToAdd = findNewUrls(category)
   changedCategory = findChangedCategory(category)
   changedTime= findChangedTime(category)
+  console.log(changedTime)
 
   sendSaveRequest([urlsToChange,urlsToDelete,urlsToAdd,changedCategory,changedTime])
   
+})
+
+$(".main").on("change",".timeAllowed",function() {
+  appendSaveButton($(this).closest(".categories"))
+})
+
+$(".main").on("change",".type",function() {
+  appendSaveButton($(this).closest(".categories"))
 })
 
 $(".main").on("click",".edit-url-btn",function (argument) {
