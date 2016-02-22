@@ -3,21 +3,42 @@ extends navbar_fixed_top.jade
 
 body
 	block content
-		h1= message
-		div(id="graphContainer")
-			canvas(id="myChart")
 
-		h2 Sort Usage by:
-		select(id="sortType")
-			option(value="category") Category
-			option(value="domainName") Domain Name
-		h2 Type of chart?
-		select(id="chartType")
-			option(value="pie") Pie Chart
-			option(value="bar") Bar Graph
-		p View Usage since:
-		input(type="text", id="datepicker")
-		input(type="submit", value="View Chart!", onclick="createChart()")
+
+
+		h1= message
+		div(class="row")
+			div(class="col-md-6")
+				div(id="graphContainer")
+					canvas(id="myChart")
+			div(class="col-md-6")
+				div(id="graphContainer2")
+					canvas(id="myChart2")
+		div(style="text-align : center;") scroll over the charts to view more info!
+
+		div(class="row")
+			div(class="col-md-3")
+				h2 Sort Usage by:
+			div(class="col-md-3")
+				h2
+					select(id="sortType")
+						option(value="category") Category
+						option(value="domainName") Domain Name
+		div(class="row")
+			div(class="col-md-3")
+				h2 Type of chart?
+			div(class="col-md-3")
+				h2
+					select(id="chartType")
+						option(value="doughnut") Doughnut Chart
+						option(value="bar") Bar Graph
+		div(class="row")
+			div(class="col-md-3")
+				h2 View Usage since:
+			div(class="col-md-3")
+				h2
+					input(type="text", id="datepicker",class="small")
+					input(id="submitBtn",type="submit", value="View Chart!", onclick="createChart()")
 
 		script(src="/js/Chart.js")
 		script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js')
@@ -31,12 +52,13 @@ body
 					changeMonth: true,
 					changeYear: true});
 				$("#datepicker").datepicker({dateFormat: 'yyyy-mm-dd'});
-				$("#datepicker").datepicker("show");
 
 				var canvas = document.getElementById("myChart");
 				var ctx = canvas.getContext("2d");
-				var d = !{data};
-				var chart = new Chart(ctx).Pie(d);
+				ctx.canvas.width = 300;
+				ctx.canvas.height = 300;
+				var d = !{data1};
+				var chart = new Chart(ctx).Doughnut(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
 
 				createChart = function() {
 
@@ -45,6 +67,9 @@ body
 					var chartType = document.getElementById("chartType");
 					chartType = chartType.options[chartType.selectedIndex].value;
 					var date = new Date($("#datepicker").val());
+					if(date.toString() == 'Invalid Date'){
+						date = new Date("1971-01-01");
+					}
 					var xhr = new XMLHttpRequest();
 
 					xhr.addEventListener('readystatechange', function(evt) {
@@ -54,14 +79,14 @@ body
 								$("#graphContainer").append('<canvas id="myChart"><canvas>');
 								canvas = document.getElementById("myChart");
 								ctx = canvas.getContext("2d");
+								ctx.canvas.width = 300;
+								ctx.canvas.height = 300;
 								d = JSON.parse(xhr.responseText);
-								console.log("----------");
-								console.log(d);
-								if(chartType == "pie") {
-									chart = new Chart(ctx).Pie(d);
+								if(chartType == "doughnut") {
+									chart = new Chart(ctx).Doughnut(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
 								}
 								else {
-									chart = new Chart(ctx).Bar(d);
+									chart = new Chart(ctx).Bar(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
 								}
 				            }
 				            else {
@@ -69,9 +94,7 @@ body
 				            }
 				        }
 					});
-					console.log(sortType);
 					var form = "sortType=" + sortType + "&startTime=" + date.toString() + "&chartType=" + chartType;
-					console.log(form);
 					xhr.open('POST','http://localhost:3000/usage/update',true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 

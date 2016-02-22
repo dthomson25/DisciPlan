@@ -105,30 +105,144 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
 
 });
 
-//Graph page
-app.get('/usage/view/', function(req,res) {
-    con.query("select domainName, sum(timeSpent) as duration from TimeSpent where userID = \'danthom\' group by domainName", function(err,rows) {
+app.get('/usage_premium/view/:userId', function(req, res) {
+    var command = "select domainName from PremiumUserDomains where userID = ??;";
+    var inserts = ['\'' + req.params.userId + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql, function(err,rows){
         if(err) {
             console.log("error: " + err);
             res.sendStatus(400);
         }
         else {
-            console.log(rows);
-            var d = [];
-            for(var i = 0; i < rows.length; i++) {
-                d.push({value : rows[i].duration, label: rows[i].domainName});
-                console.log(d[i]);
+            if (rows.length == 0) {
+                res.sendStatus(400);
             }
-            res.render('usage', {
-            title: 'Browser Usage',
-            message: 'Your usage by site:',
-            data: JSON.stringify(d)
-            });
+            else {
+                command = "select T.userID, sum(timeSpent) as duration from TimeSpent as T where T.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) group by T.userID;";
+                var inserts = ['\'' + req.params.userId + '\''];
+                sql = msq.format(command,inserts);
+                sql = sql.replace(/`/g,"");
+                console.log(sql);
+                con.query(sql,function(err,rows) {
+                    if(err){
+                        console.log("error: " + err);
+                        res.sendStatus(400);
+                    }
+                    else {
+                        var d = formatBarChartData(rows,'userID');
+                        res.render('usage_premium', {
+                            title: "Domain Visitors",
+                            message: "Here's who's looking at your site:",
+                            data: JSON.stringify(d)
+                        });
+                    }
+                });
+            }
         }
     });
 });
 
-function formatPieChartData(rows,sortType) {
+function shortDateStr(date) {
+    var s = (date.getUTCMonth()+1).toString();
+    s += "/" + date.getUTCDate().toString();
+    s += "/" + date.getUTCFullYear().toString();
+    return s;
+}
+
+function versusTimeQuery(userId,numDays) {
+    var currDate = new Date();
+    currDate.setUTCSeconds(0);
+    currDate.setUTCMinutes(0);
+    currDate.setUTCHours(0);
+    var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+    currDate = prevDate;
+    prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+
+    inserts = [];
+    var totalCommand = "select * from (";
+    for(var i = 0; i < numDays; i++) {
+        if(i > 0) {
+            totalCommand += " union ";
+        }
+        totalCommand += "select \'" + shortDateStr(currDate) + "\' as date, sum(timeSpent) as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime > ?? group by domainName";
+        inserts.push('\'' + userId + '\'');
+        inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+        inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+        currDate = prevDate;
+        prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+    }
+    totalCommand += ") as Result order by domainName;";
+    var sql = msq.format(totalCommand,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            return null;
+        }
+        else {
+            return rows;
+        }
+    });
+}
+
+function formatLineChartData(rows) {
+    var d = [];
+    var values = [];
+    currDomainName = "";
+    for (var i = 0; i < rows.length; i++) {
+        if(currDomainName != rows[i].domainName) {
+            currDomainName = rows[i].domainName;
+        }
+    }
+    return null;
+}
+
+function getVersusTimeChartData(userId,numDays) {
+    var rows = versusTimeQuery(userID numDays);
+    if (rows == null) {
+        return null;
+    }
+    else {
+        d = formatLineChartData(rows);
+    }
+}
+
+
+//Graph page
+app.get('/usage/view/:userID', function(req,res) {
+    var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
+    var inserts = ['\'' + req.params.userID + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql, function(err,rows) {    
+            if(err) {
+                console.log("error 1: " + err);
+                res.sendStatus(400);
+            }
+            else {
+                console.log(rows);
+                var d1 = [];
+                for(var i = 0; i < rows.length; i++) {
+                    d1.push({value : rows[i].duration, label: rows[i].domainName});
+                }
+                d2 = getVersusTimeChartData(req.params.userID,10);
+                if (d2 == null) {
+                    res.send(400);
+                }
+                res.render('usage', {
+                title: 'Browser Usage',
+                message: 'Hello, ' + req.params.userID + '!',
+                data1: JSON.stringify(d1),
+                data2: JSON.stringify(d2)
+                });
+            }
+    });
+});
+
+function formatDoughnutChartData(rows,sortType) {
     var d = [];
     if(sortType == "category") {
         for(var i = 0; i < rows.length; i++) {
@@ -152,14 +266,19 @@ function formatBarChartData(rows,sortType) {
             values.push(rows[i].duration);
         }
     }
-    else {
-        console.log("here");
+    else if (sortType == "domainName"){
         for(var i = 0; i < rows.length; i++) {
             lbls.push(rows[i].domainName);
             values.push(rows[i].duration);
         }
     }
-    var d = {labels : lbls, datasets : [{data: values}]};
+    else {
+        for(var i = 0; i < rows.length; i++) {
+            lbls.push(rows[i].userID);
+            values.push(rows[i].duration);
+        } 
+    }
+    var d = {labels : lbls, datasets : [{data: values, fillColor: "rgba(230,255,0,1)"}]};
     return d;
 }
 
@@ -186,8 +305,8 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
         }
         else {
             var d = null;
-            if (chartType == "pie") {
-                d = formatPieChartData(rows,sortType);
+            if (chartType == "doughnut") {
+                d = formatDoughnutChartData(rows,sortType);
             }
             else {
                 d = formatBarChartData(rows,sortType);
@@ -256,7 +375,8 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             var command = "UPDATE Settings SET category = ? WHERE userId = ? and category = ?"
             var inserts = [categoryName[1],req.params.userId,categoryName[0]]
             sql = msq.format(command,inserts);
-            console.log(sql)
+            console.log("query 1: ");
+            console.log(sql);
             con.query(sql, function(err) {
                     console.log("error possible")
                     if (err){
@@ -272,6 +392,8 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
                 var command = "DELETE FROM Categories WHERE domainName = ? and userId = ? and category = ?"
                 var inserts = [url[1],req.params.userId,url[0]]
                 sql = msq.format(command,inserts);
+                console.log("query 2: ");
+                console.log(sql);
                 con.query(sql,callback())
                 }, function(err) {
                     if (err){
@@ -287,6 +409,8 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
                 insert = ["\"" +req.params.userId+ "\"", "\"" +url[1]+ "\""," \"" +url[0] + "\""]
                 sql = msq.format(command,insert);
                 sql = sql.replace(/`/g,"");
+                console.log("query 3: ");
+                console.log(sql);
                 con.query(sql,callback())
                 }, function(err) {
                     if (err){
@@ -302,6 +426,8 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
                 var command = "UPDATE Categories SET domainName = ? WHERE domainName = ? and userId = ? and category = ?"
                 var inserts = [url[2],url[1],req.params.userId,url[0]]
                 sql = msq.format(command,inserts);
+                console.log("query 4: ");
+                console.log(sql);
                 con.query(sql,callback())
                 }, function(err) {
                     if (err){
@@ -320,7 +446,8 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             var command = "UPDATE Settings SET timeAllowed = ? WHERE userId = ? and category = ?"
             var inserts = [timeAllowed[1],req.params.userId,timeAllowed[0]]
             sql = msq.format(command,inserts);
-            console.log(sql)
+            console.log("query 5: ");
+            console.log(sql);
             con.query(sql, function(err) {
                     console.log("error possible")
                     if (err){
@@ -440,6 +567,6 @@ app.post('/add_page', function(req, res) {
             });
         }
     });
-
-
 });
+
+
