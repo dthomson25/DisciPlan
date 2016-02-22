@@ -45,6 +45,7 @@ function savedEditedCategory(editedCategory) {
   })
   editedCategory.find(".save").remove()
   editedCategory.removeClass("edited-category")
+  editedCategory.notify("Edits Saved","success")
 }
 
 function appendSaveButton(categoryDiv) {
@@ -120,7 +121,9 @@ function sendSaveRequest(listOfDbChanges) {
 
           }
           else {
-              console.log("ERROR: status " + xhr.status);
+              console.log("ERROR: status " + xhr.responseText);
+              $("body").notify("Edits Saved","success")
+
           }
       }
   })
@@ -130,7 +133,7 @@ function sendSaveRequest(listOfDbChanges) {
   add_url = "&add_url=" + JSON.stringify(listOfDbChanges[2])
   category_name = "&category_name=" + JSON.stringify(listOfDbChanges[3])
   time_allowed = "&time_allowed=" + JSON.stringify(listOfDbChanges[4])
-  xhr.send( url_changes + delete_url + add_url + category_name + time_allowed);
+  xhr.send( url_changes + delete_url + add_url + category_name + time_allowed)
 }
 
 //Change remaining time when time allowed is changed.
@@ -144,7 +147,7 @@ $(".main").on("click",".save",function() {
 
   sendSaveRequest([urlsToChange,urlsToDelete,urlsToAdd,changedCategory,changedTime])
   
-});
+})
 
 $(".main").on("click",".edit-url-btn",function (argument) {
   if ($(this).next()[0].disabled) {
@@ -153,7 +156,7 @@ $(".main").on("click",".edit-url-btn",function (argument) {
     $(this).next()[0].disabled = false
   }
   appendSaveButton($(this).closest(".categories"))
-});
+})
 
 //TODO Add undo button for 10 seconds
 //TODO Add remove Category button
@@ -161,7 +164,7 @@ $(".main").on("click",".delete-url",function(argument) {
   appendSaveButton($(this).closest(".categories"))
   $(this).parent().next().addClass("deleted-url")
   $(this).parent().remove()
-});
+})
 
 
 //TODO don't add another box until a valid url is added.
