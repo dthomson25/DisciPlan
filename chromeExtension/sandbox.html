@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  	<head>
+	 	<script src="handlebars-v4.0.5.js"></script>
+  	</head>
+  	<body>
+	 	<script type="text/x-handlebars-template" id="time-remaining-template">
+			<div class="time-remaining-entry">
+		  		<h1>{{category}}</h1>
+			</div>
+	 	</script>
+	 	
+	 	<script>
+			var timeRemainingTemplate  = document.getElementById('time-remaining-template').innerHTML;
+
+			var templates = { 
+      		renderTimeRemaing : Handlebars.compile(timeRemainingTemplate)
+   		};
+
+   		window.addEventListener('message', function(event){
+   			var command = event.data.command;
+   			var category = event.data.category || 'error';
+   			switch(command){
+   				case 'render':
+   					event.source.postMessage({
+   						category: category,
+   						html: templates.renderTimeRemaing({category: category});
+   					}, event.origin);
+   				break;
+   			}
+   		});
+
+	 	</script>
+
+  	</body>
+</html>

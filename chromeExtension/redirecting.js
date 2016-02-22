@@ -7,9 +7,7 @@ function get_settings() {
   var xhttp_settings = new XMLHttpRequest();
   xhttp_settings.onreadystatechange = function() {
     if (xhttp_settings.readyState == 4 && xhttp_settings.status == 200) {
-      console.log("Settings updated");
       settings_JSON = JSON.parse(xhttp_settings.responseText);
-      console.log(settings_JSON);
       // Every time we get new settings we want to check if the reset time is the same
       startResetTimeout(); 
     }
@@ -50,7 +48,7 @@ function resetAllTR() {
 function startInterval() {
   if(resetIntervalId)
     window.clearInterval(resetIntervalId);
-  var interval = 24*60*60*1000;
+  var interval = 24*60*60*1000; // TODO get this from settings
   resetIntervalId = setInterval(resetAllTR, interval);
   resetAllTR();
 
@@ -89,9 +87,12 @@ var currSiteRestricted = false
 var currCategory
 var timeoutId
 
+
+var badRedirect = false
+
 redirectCurrentTab = function(Url){
-  chrome.tabs.query({currentWindow: true, active: true}, function (tab) {
-        chrome.tabs.update(tab.id, {url: Url});
+  chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
+        chrome.tabs.update(tabs[0].id, {url: Url});
     });
 }
 
@@ -110,11 +111,38 @@ function updateDatabaseCategoryRT(){
 }
 
 
+var lastPage = null
 // When time remaining goes to 0, update the database and redirect the page
 // to our home page. 
 function redirectToHome() {
   updateDatabaseCategoryRT();
-  redirectCurrentTab("localhost:3000")
+
+  chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
+    if(lastPage){
+      if(lastPage == tabs[0].url) {
+        badRedirect = true;
+        lastPage = null;
+        return;
+      }
+    }
+    lastPage = tabs[0].url
+    chrome.tabs.update(tabs[0].id, {url: "localhost:3000"}, function() {
+      badRedirect = false;
+
+    });
+  });
+
+}
+
+function notifyTimeUp() {
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
+    chrome.tabs.sendMessage(tabs[0].id, {action: "notify", category: currCategory}, function(response) {});  
+  });
+}
+
+function handleTimeUp() {
+  notifyTimeUp();
+  //redirectToHome()
 }
 
 function checkIfRestricted(url, alreadyHostName) {
@@ -126,7 +154,6 @@ function checkIfRestricted(url, alreadyHostName) {
     urlHostName = l.hostname;
   }
 
-  console.log("IN CHECK:" + urlHostName + " url:" + url);
   for(i = 0; i < settings_JSON.length; i++){
     row = settings_JSON[i];
     restrictedHost = row.domainName;
@@ -147,8 +174,10 @@ function startTimeout() {
   if(timeoutId) // Only want one timeout waiting
       window.clearTimeout(timeoutId);
   if(currSiteRestricted){
-    var diff_ms = (Date.parse(endTime) - Date.parse(startTime));    
-    timeoutId = window.setTimeout(redirectToHome, diff_ms);
+    var diff_ms = (Date.parse(endTime) - Date.parse(startTime));   
+    if(diff_ms < 0)
+      diff_ms = 0; 
+    timeoutId = window.setTimeout(handleTimeUp, diff_ms);
   }
 }
 
@@ -162,7 +191,12 @@ function updateCategoryRT(elapsed_sec){
 }
 
 function checkSettingChangeTab() {
+
+  if(badRedirect)
+    return;
+
   chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
+    if(tabs.length <= 0) return;
     var url = tabs[0].url;
     if(settings_JSON == null)
       return; 
@@ -194,6 +228,8 @@ function popupRequest(request, sender, sendResponse) {
   // console.log(sender.tab ?
   //               "from a content script:" + sender.tab.url :
   //               "from the extension");
+
+  // If message from popup telling us to add a domain to a category
   if(request.req == "update"){
     update = request.update;
     var http_add_page = new XMLHttpRequest();
@@ -201,13 +237,11 @@ function popupRequest(request, sender, sendResponse) {
     http_add_page.onreadystatechange = function() {
       // The response has the new updated settings
       if (http_add_page.readyState == 4 && http_add_page.status == 200) {
-        console.log("WHAT THE EHCKE JFDKLHFGLKDSJLKFJDLSK");
         settings_JSON = JSON.parse(http_add_page.responseText);
         startTime = new Date();
         page = JSON.parse(update).page;
         checkIfRestricted(page, true);
         startTimeout();
-        console.log("send response")
         sendRes(); // Send the response once the settings have been updated
       }
     };
@@ -215,6 +249,7 @@ function popupRequest(request, sender, sendResponse) {
     http_add_page.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     http_add_page.send(update);
   }
+  // If message from popup asking for endtime
   if(request.req == "endTime"){
     if(currSiteRestricted){
       sendResponse({restricted: true,
@@ -226,6 +261,11 @@ function popupRequest(request, sender, sendResponse) {
       sendResponse({restricted: false,
                     categories: categories});
     }
+  }
+  // If message from newtab asking for information
+  if(request.req == "newtab"){
+    console.log("newtab message!");
+    sendResponse({settings: settings_JSON})
   }
     
 }
@@ -251,7 +291,7 @@ function popupRequest(request, sender, sendResponse) {
 
 
 chrome.windows.onFocusChanged.addListener(function(windowId) {
-  console.log("window changed");
+  // console.log("window changed");
   checkSettingChangeTab();
 });
 

@@ -319,6 +319,12 @@ app.post('/add_page', function(req, res) {
             });
         }
     });
+});
 
+app.get('/newtab_page/:userId', function(req, res){
+    var userId = req.params["userId"];
+    console.log("Newtab for " + userId);
+    
 
+    
 });
