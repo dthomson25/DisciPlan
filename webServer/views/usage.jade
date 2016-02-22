@@ -55,10 +55,18 @@ body
 
 				var canvas = document.getElementById("myChart");
 				var ctx = canvas.getContext("2d");
-				ctx.canvas.width = 300;
-				ctx.canvas.height = 300;
+				ctx.canvas.width = 400;
+				ctx.canvas.height = 400;
 				var d = !{data1};
 				var chart = new Chart(ctx).Doughnut(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
+
+				var canvas2 = document.getElementById("myChart2");
+				var ctx2 = canvas2.getContext("2d");
+				ctx2.canvas.width = 400;
+				ctx2.canvas.height = 400;
+				var d2 = !{data2};
+				console.log(d2);
+				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds"});
 
 				createChart = function() {
 

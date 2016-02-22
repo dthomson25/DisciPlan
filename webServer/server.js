@@ -151,7 +151,8 @@ function shortDateStr(date) {
     return s;
 }
 
-function versusTimeQuery(userId,numDays) {
+function versusTimeQuery(userId, numDays,dataSet1,res) {
+    var dates = [];
     var currDate = new Date();
     currDate.setUTCSeconds(0);
     currDate.setUTCMinutes(0);
@@ -159,7 +160,9 @@ function versusTimeQuery(userId,numDays) {
     var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
     currDate = prevDate;
     prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+    dates.push(shortDateStr(currDate));
 
+    var result = [];
     inserts = [];
     var totalCommand = "select * from (";
     for(var i = 0; i < numDays; i++) {
@@ -172,6 +175,7 @@ function versusTimeQuery(userId,numDays) {
         inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
         currDate = prevDate;
         prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+        dates.unshift(shortDateStr(currDate));
     }
     totalCommand += ") as Result order by domainName;";
     var sql = msq.format(totalCommand,inserts);
@@ -180,36 +184,61 @@ function versusTimeQuery(userId,numDays) {
     con.query(sql, function(err,rows) {
         if(err) {
             console.log("error: " + err);
-            return null;
+            res.send(400);
         }
         else {
-            return rows;
+            formatLineChartData(rows,dates,userId,dataSet1,res);
         }
     });
 }
 
-function formatLineChartData(rows) {
-    var d = [];
-    var values = [];
-    currDomainName = "";
+function formatLineChartData(rows,dates,userId,dataSet1,res) {
+    var currDomainName = "";
+    domainNames = {};
+    domainSet = new Set();
+    domainsArr = [];
     for (var i = 0; i < rows.length; i++) {
-        if(currDomainName != rows[i].domainName) {
-            currDomainName = rows[i].domainName;
+        if (!domainSet.has(rows[i].domainName)) {
+            domainSet.add(rows[i].domainName); 
+            domainsArr.push(rows[i].domainName);
         }
     }
-    return null;
-}
-
-function getVersusTimeChartData(userId,numDays) {
-    var rows = versusTimeQuery(userID numDays);
-    if (rows == null) {
-        return null;
+    for (var i = 0; i < domainsArr.length; i++) {
+        domainNames[domainsArr[i]] = {};
     }
-    else {
-        d = formatLineChartData(rows);
-    }
-}
 
+    for (var i = 0; i < rows.length; i++) {
+        domainNames[rows[i].domainName][rows[i].date] = rows[i].duration;
+    }
+
+    var d = {};
+    d.labels = dates;
+    var dsets = [];
+
+
+    for (var i = 0; i < domainsArr.length; i++) {
+        //var currDomain = {};
+        //currDomain.label = domainsArr[i];
+        var dataPoints = [];
+        for (var j = 0; j < dates.length; j++) {
+            if (dates[j] in domainNames[domainsArr[i]]) {
+                dataPoints.push(domainNames[domainsArr[i]][dates[j]]);
+            }
+            else {
+                dataPoints.push(0);
+            }
+        }
+        dsets.push({label : domainsArr[i], data : dataPoints, strokeColor : "rgba(230,255,0,1)"});
+    }
+    d.datasets = dsets;
+
+    res.render('usage', {
+    title: 'Browser Usage',
+    message: 'Hello, ' + userId + '!',
+    data1: JSON.stringify(dataSet1),
+    data2: JSON.stringify(d)
+    });
+}
 
 //Graph page
 app.get('/usage/view/:userID', function(req,res) {
@@ -228,16 +257,18 @@ app.get('/usage/view/:userID', function(req,res) {
                 for(var i = 0; i < rows.length; i++) {
                     d1.push({value : rows[i].duration, label: rows[i].domainName});
                 }
-                d2 = getVersusTimeChartData(req.params.userID,10);
-                if (d2 == null) {
-                    res.send(400);
-                }
-                res.render('usage', {
-                title: 'Browser Usage',
-                message: 'Hello, ' + req.params.userID + '!',
-                data1: JSON.stringify(d1),
-                data2: JSON.stringify(d2)
-                });
+                versusTimeQuery(req.params.userID,10,d1,res);
+                // if (d2 == null) {
+                //     res.sendStatus(400);
+                // }
+                // else {
+                    // res.render('usage', {
+                    // title: 'Browser Usage',
+                    // message: 'Hello, ' + req.params.userID + '!',
+                    // data1: JSON.stringify(d1),
+                    // data2: JSON.stringify(d2)
+                    // });
+                // }
             }
     });
 });
