@@ -1,10 +1,26 @@
 var newUrls = {}
 var newCategories
 
+var titleHTML = "<label for=\"category\" class=\"control-label editH2\">\
+  <h2 class=\"text-info\">New Category</h2>\
+  <input type=\"hidden\" value=\"New Category\" class=\"form-control\">\
+  </label>"
+var timeAllowedHTML = "<label for=\"remainingTime\" class=\"control-label\">Allowed Time:</label>\
+  <div class=\"input-group timeAllowed\">\
+  <input type=\"number\" placeholder=\"0\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time\">\
+  <span class=\"input-group-addon\"> hours</span>\
+  <input type=\"number\" placeholder=\"15\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time\">\
+  <span class=\"input-group-addon\"> minutes</span></div>"  
+var typeHTML = "<div class=\"form-group\">\
+  <label for=\"sel1\">Type:\
+  <select id=\"sel1\" class=\"form-control type\">\
+  <option selected=\"selected\">Redirect</option><option>Notifications</option><option>Nuclear</option></select>\
+  <input type=\"hidden\" value=\"Redirect\"></label></div>"
+var categoryHTML = "<div class=\"input-group\"><span class=\"input-group-btn\"><button class=\"btn btn-default\" type=\"button\">Edit!</button></span><input type=\"text\" class=\"form-control new-url\" value=\"\"><span class=\"input-group-btn delete-url\"><button class=\"btn btn-default\" type=\"button\">Delete!</button></span></div><!-- /input-group -->"
+var plusButtonHTML = "<button class=\'btn btn-default add-url\', type='button'>+</button>"
 
-var categoryTitleAndRemaingTime = "<label for=\"category\" class=\"control-label editH2\"><h2 class=\"text-info\">Social Media</h2></label><br><label for=\"remainingTime\" class=\"control-label editH2\"><h2 class=\"text-info\">0:10:00</h2></label>"
-var category = "<div class=\"input-group\"><span class=\"input-group-btn\"><button class=\"btn btn-default\" type=\"button\">Edit!</button></span><input type=\"text\" class=\"form-control new-url\" value=\"\"><span class=\"input-group-btn delete-url\"><button class=\"btn btn-default\" type=\"button\">Delete!</button></span></div><!-- /input-group -->"
-var container = "<div class=\"jumbotron categories\">" +categoryTitleAndRemaingTime + category + "<button class=\"btn btn-default addUrl\" type=\"button\">+</button></div>" 
+var containerHTML = "<div class=\"jumbotron categories new-category\">" + titleHTML + 
+  "<br>" + timeAllowedHTML + typeHTML + categoryHTML + plusButtonHTML + "</div>"
 
 
 $('.main').on("click", ".editH2",function() {
@@ -97,26 +113,40 @@ function findChangedCategory(category) {
   return []
 }
 
-function findChangedTime(category) {
-  var categoryName = category.find("h2").text()
+function calculateTime(category) {
   var time = 0
   var allowedTime = category.find(".timeAllowed input")
-  console.log(allowedTime[0].placeholder)
-  console.log(allowedTime[0].value)
-  console.log(allowedTime[1].placeholder)
-  console.log(allowedTime[1].value)
-  time += allowedTime[0].value * 3600
-  time += allowedTime[1].value * 60
-  console.log(time)
-  if (allowedTime[0].value != allowedTime[0].placeholder 
-    && allowedTime[1].value != allowedTime[1].placeholder)
-    return [categoryName,parseInt(time)]
-  var allowedTime = category.find("small").text()
-  var prevTime = category.find("small").next().val()
-  if (allowedTime != prevTime) return [categoryName,parseInt(allowedTime)]
+  if (allowedTime[0].value == "") {
+    time += parseInt(allowedTime[0].placeholder) * 3600
+  } else {
+    time += parseInt(allowedTime[0].value) * 3600
+  }
+  if (allowedTime[1].value == "") {
+    time += parseInt(allowedTime[1].placeholder) * 60
+  }  else {
+    time += parseInt(allowedTime[1].value) * 60 
+  }
+  return time
+}
+
+function findChangedTime(category) {
+  var categoryName = category.find("h2").text()
+  var time = calculateTime(category)
+  var allowedTime = category.find(".timeAllowed input")
+  var previousTime = parseInt(allowedTime[0].placeholder) * 3600 + parseInt(allowedTime[1].placeholder) * 60
+  if (previousTime != time) {
+    return [categoryName,time]
+  }
   return []
 }
 
+function findChangedType(category) {
+  var categoryName = category.find("h2").text()
+  var type = category.find(".type")
+  if (type.val() != type.next().val())
+    return [categoryName, type.val()]
+  return []
+}
 
 function sendSaveRequest(listOfDbChanges) {
   console.log(listOfDbChanges)
@@ -144,20 +174,60 @@ function sendSaveRequest(listOfDbChanges) {
   add_url = "&add_url=" + JSON.stringify(listOfDbChanges[2])
   category_name = "&category_name=" + JSON.stringify(listOfDbChanges[3])
   time_allowed = "&time_allowed=" + JSON.stringify(listOfDbChanges[4])
-  xhr.send( url_changes + delete_url + add_url + category_name + time_allowed)
+  type = "&type=" + JSON.stringify(listOfDbChanges[5])
+  xhr.send( url_changes + delete_url + add_url + category_name + time_allowed + type)
 }
+
+function sendCreateCategoryRequest(newCategory) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'http://localhost:3000/user_settings/danthom/create_category',true);
+  xhr.addEventListener('readystatechange', function(evt) {
+      if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            
+          }
+          else {
+
+          }
+      }
+  })
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+  category_name = "category_name=" + JSON.stringify(newCategory[0])
+  time_allowed = "&time_allowed=" + JSON.stringify(newCategory[1])
+  type = "&type=" + JSON.stringify(newCategory[2])
+  domainNames = "&domain_names=" + JSON.stringify(newCategory[3])
+  xhr.send( category_name + time_allowed + type + domainNames)
+}
+
 
 //Change remaining time when time allowed is changed.
 $(".main").on("click",".save",function() {
   var category = $(this).closest(".categories")
+  console.log(category)
+  console.log(category.hasClass("new-category"))
+  if (category.hasClass("new-category")) {
+    newCategory = []
+    newCategory.push(category.find("h2").text())
+    newCategory.push(calculateTime(category))
+    newCategory.push(category.find(".type").val())
+    urls = []
+    category.find(".new-url").each(function() {
+      urls.push($(this).val())
+    })
+    newCategory.push(urls)
+    console.log(newCategory)
+    sendCreateCategoryRequest(newCategory)
+    return;
+  }
+  return
   urlsToChange = findChangedUrls(category)
   urlsToDelete = findDeletedUrls(category)
   urlsToAdd = findNewUrls(category)
   changedCategory = findChangedCategory(category)
   changedTime= findChangedTime(category)
-  console.log(changedTime)
+  changedType = findChangedType(category)
 
-  sendSaveRequest([urlsToChange,urlsToDelete,urlsToAdd,changedCategory,changedTime])
+  sendSaveRequest([urlsToChange,urlsToDelete,urlsToAdd,changedCategory,changedTime,changedType])
   
 })
 
@@ -190,10 +260,36 @@ $(".main").on("click",".delete-url",function(argument) {
 //TODO don't add another box until a valid url is added.
 $(".main").on("click", ".add-url",function (argument) {
   var plusButton = $(this);
-  $(this).before(category)
+  $(this).before(categoryHTML)
   appendSaveButton($(this).closest(".categories")) 
 });
 
 $(".addCategory").click( function (argument) {
-  $(".main").append(container)
+  $(".main").append(containerHTML)
 });
+
+$(".main").on("click", ".delete-category",function(argument) {
+  if(confirm("Are you sure you want to delete this category.")) {
+    var category = $(this).closest(".categories")
+    var categoryName = category.find("h2").text()
+    var xhr = new XMLHttpRequest();
+    console.log("test")
+    xhr.open('POST', 'http://localhost:3000/user_settings/danthom/delete_category',true);
+    xhr.addEventListener('readystatechange', function(evt) {
+      if (xhr.readyState === 4) {
+          if (xhr.status === 204) {
+            category
+            category.remove()
+          }
+          else {
+
+          }
+      }
+    })
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+    category_name = "category_name=" + JSON.stringify(categoryName)
+    console.log("test")
+    xhr.send( category_name)
+  }
+
+})

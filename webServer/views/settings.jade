@@ -6,7 +6,7 @@ block content
 	.container.main
 		while n < rows.length
 			.jumbotron.categories
-
+				button.btn.btn-danger.delete-category(style="float:right;") x
 				label.control-label.editH2(for="category")
 					h2.text-info= rows[n]["category"]
 					input.form-control(type="hidden", value= rows[n]["category"])
@@ -25,7 +25,7 @@ block content
 									option= type
 								else
 									option(selected="selected")=type 
-				input(type="hidden", rows[n]["type"])
+						input(type="hidden", value= rows[n]["type"])
 
 				while n < rows.length && currCategory === rows[n]["category"]
 					.input-group()

@@ -172,10 +172,10 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
     var urlsToDeletes = JSON.parse(req.body["delete_url"])
     var urlToAdds = JSON.parse(req.body["add_url"])
     var timeAllowed = JSON.parse(req.body["time_allowed"])
+    var type = JSON.parse(req.body["type"])
     var categoryName = JSON.parse(req.body["category_name"])
 
     var category = ""
-    console.log(timeAllowed)
     async.series([
         function(callback) {
             if (categoryName.length == 0) {
@@ -185,6 +185,24 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             category = categoryName[1]
             var command = "UPDATE Settings SET category = ? WHERE userId = ? and category = ?"
             var inserts = [categoryName[1],req.params.userId,categoryName[0]]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    callback()
+            })
+        },
+        function(callback) {
+            if (type.length == 0) {
+                callback()
+                return
+            }
+            category = type[1]
+            var command = "UPDATE Settings SET type = ? WHERE userId = ? and category = ?"
+            var inserts = [type[1],req.params.userId,type[0]]
             sql = msq.format(command,inserts);
             console.log(sql)
             con.query(sql, function(err) {
@@ -296,6 +314,127 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
         return
     })
 });
+
+app.post('/user_settings/:userId/create_category', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log(req.params)
+    console.log(req.body)
+    var userId = req.params["userId"]
+    var categoryName = JSON.parse(req.body["category_name"])
+    var timeAllowed = JSON.parse(req.body["time_allowed"])
+    var type = JSON.parse(req.body["type"])
+    var domainName = JSON.parse(req.body["domain_names"])
+    async.series([
+        function(callback) {
+            var command = "INSERT INTO Settings (userID,category,type,timeAllowed,timeRemaining,resetInterval) VALUES(?,?,?,?,?,?)"
+            var inserts = [userId, categoryName, type,
+            timeAllowed.toString(),timeAllowed.toString(),timeAllowed.toString()]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    console.log("New Setting!")
+                    callback()
+
+            })
+        },
+        function(callback) {
+            console.log("second callback")
+            async.forEach(domainName, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                var command = "INSERT INTO Categories (userID,domainName,category) VALUES(?,?,?)"
+                var inserts = [userId,url,categoryName]
+                sql = msq.format(command,inserts);
+                console.log(sql)
+                con.query(sql,function(err) {
+                    if (err){
+                        console.log(err)
+                        callback(err)
+                        return
+                    } 
+                    console.log("New Category")
+                    callback()
+
+                })
+                }, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+                })
+        }
+    ], function(err) {
+        if (err)  {
+            console.log(err)
+
+            var message = "Unknown Error"
+            if (err.code == "ER_DUP_ENTRY")
+                message = "Duplicate entry"
+            res.status(400).send(message);
+            return
+        }
+        console.log("All good!")
+
+        res.sendStatus(204)
+        return
+    })
+})
+
+app.post('/user_settings/:userId/delete_category', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log(req.params)
+    console.log(req.body)
+    var userId = req.params["userId"]
+    var categoryName = JSON.parse(req.body["category_name"]) 
+    async.series([
+        function(callback) {
+            var command = "DELETE FROM Settings where userID = ? and category = ?"
+            var inserts = [userId, categoryName]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    console.log("Deleted Setting!")
+                    callback()
+
+            })
+        },
+        function(callback) {
+            console.log("second callback")
+            var command = "DELETE FROM Categories where userId = ? and category= ?"
+            var inserts = [userId,categoryName]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql,function(err) {
+                if (err){
+                    console.log(err)
+                    callback(err)
+                    return
+                } 
+                console.log("Deleted Category")
+                callback()
+
+            })
+        }
+    ], function(err) {
+        if (err)  {
+            console.log(err)
+
+            var message = "Unknown Error"
+            if (err.code == "ER_DUP_ENTRY")
+                message = "Duplicate entry"
+            res.status(400).send(message);
+            return
+        }
+        console.log("All good!")
+
+        res.sendStatus(204)
+        return
+    })
+})
 
 app.post('/update_TR', function(req, res) {
     var user = req.body.user;
