@@ -62,7 +62,7 @@ window.onload = function() {
 		}
 	});
 
-	var login_button = document.getElementById("login_form")
+	var login_button = document.getElementById("login_button")
 	login_button.onclick = function() { login() };
 }
 
