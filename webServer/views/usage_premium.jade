@@ -1,0 +1,34 @@
+extends navbar_fixed_top.jade
+
+body
+	block content
+
+
+
+		h1= message
+		div(id="graphContainer")
+			canvas(id="myChart")
+		div(style="text-align : center;") scroll over the chart to view more info!
+
+		script(src="/js/Chart.js")
+		script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js')
+		script(src="//code.jquery.com/ui/1.11.4/jquery-ui.js")
+		script.
+			var createChart = null;
+			$(document).ready(function() {
+
+				var $j = jQuery.noConflict();
+				$("#datepicker").datepicker({
+					changeMonth: true,
+					changeYear: true});
+				$("#datepicker").datepicker({dateFormat: 'yyyy-mm-dd'});
+
+				var canvas = document.getElementById("myChart");
+				var ctx = canvas.getContext("2d");
+				ctx.canvas.width = 300;
+				ctx.canvas.height = 300;
+				var d = !{data};
+				var chart = new Chart(ctx).Bar(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
+			});
+
+		link(rel='stylesheet', href='/css/usage.css')

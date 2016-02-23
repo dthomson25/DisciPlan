@@ -23,6 +23,12 @@ var express = require('express');
 var path = require('path');
 var app = express();
 var bodyParser = require('body-parser');
+var async = require('async'); 
+
+var differentTypes = ["Redirect","Notifications","Nuclear"]
+
+
+app.use(bodyParser.json());
 
 app.set('view engine', 'jade');
 app.set('views', './views');
@@ -49,7 +55,8 @@ app.get('/user_settings/:userId', function(req, res) {
             res.render('settings', {title: 'DisciPlan Settings', 
                  message: 'This is your settings page!',
                  rows: rows, 
-                 current: '/user_settings'
+                 current: '/user_settings',
+                 setting_types: differentTypes
                 });
         }
     });
@@ -101,29 +108,175 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
 
 });
 
-app.get('/usage/view/', function(req,res) {
-    con.query("select domainName, sum(timeSpent) as duration from TimeSpent where userID = \'danthom\' group by domainName", function(err,rows) {
+app.get('/usage_premium/view/:userId', function(req, res) {
+    var command = "select domainName from PremiumUserDomains where userID = ??;";
+    var inserts = ['\'' + req.params.userId + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql, function(err,rows){
         if(err) {
             console.log("error: " + err);
             res.sendStatus(400);
         }
         else {
-            console.log(rows);
-            var d = [];
-            for(var i = 0; i < rows.length; i++) {
-                d.push({value : rows[i].duration, label: rows[i].domainName});
-                console.log(d[i]);
+            if (rows.length == 0) {
+                res.sendStatus(400);
             }
-            res.render('usage', {
-            title: 'Browser Usage',
-            message: 'Your usage by site:',
-            data: JSON.stringify(d)
-            });
+            else {
+                command = "select T.userID, sum(timeSpent) as duration from TimeSpent as T where T.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) group by T.userID;";
+                var inserts = ['\'' + req.params.userId + '\''];
+                sql = msq.format(command,inserts);
+                sql = sql.replace(/`/g,"");
+                console.log(sql);
+                con.query(sql,function(err,rows) {
+                    if(err){
+                        console.log("error: " + err);
+                        res.sendStatus(400);
+                    }
+                    else {
+                        var d = formatBarChartData(rows,'userID');
+                        res.render('usage_premium', {
+                            title: "Domain Visitors",
+                            message: "Here's who's looking at your site:",
+                            data: JSON.stringify(d)
+                        });
+                    }
+                });
+            }
         }
     });
 });
 
-function formatPieChartData(rows,sortType) {
+function shortDateStr(date) {
+    var s = (date.getUTCMonth()+1).toString();
+    s += "/" + date.getUTCDate().toString();
+    s += "/" + date.getUTCFullYear().toString();
+    return s;
+}
+
+function versusTimeQuery(userId, numDays,dataSet1,res) {
+    var dates = [];
+    var currDate = new Date();
+    currDate.setUTCSeconds(0);
+    currDate.setUTCMinutes(0);
+    currDate.setUTCHours(0);
+    var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+    currDate = prevDate;
+    prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+    dates.push(shortDateStr(currDate));
+
+    var result = [];
+    inserts = [];
+    var totalCommand = "select * from (";
+    for(var i = 0; i < numDays; i++) {
+        if(i > 0) {
+            totalCommand += " union ";
+        }
+        totalCommand += "select \'" + shortDateStr(currDate) + "\' as date, sum(timeSpent) as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime > ?? group by domainName";
+        inserts.push('\'' + userId + '\'');
+        inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+        inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+        currDate = prevDate;
+        prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+        dates.unshift(shortDateStr(currDate));
+    }
+    totalCommand += ") as Result order by domainName;";
+    var sql = msq.format(totalCommand,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.send(400);
+        }
+        else {
+            formatLineChartData(rows,dates,userId,dataSet1,res);
+        }
+    });
+}
+
+function formatLineChartData(rows,dates,userId,dataSet1,res) {
+    var currDomainName = "";
+    domainNames = {};
+    domainSet = new Set();
+    domainsArr = [];
+    for (var i = 0; i < rows.length; i++) {
+        if (!domainSet.has(rows[i].domainName)) {
+            domainSet.add(rows[i].domainName); 
+            domainsArr.push(rows[i].domainName);
+        }
+    }
+    for (var i = 0; i < domainsArr.length; i++) {
+        domainNames[domainsArr[i]] = {};
+    }
+
+    for (var i = 0; i < rows.length; i++) {
+        domainNames[rows[i].domainName][rows[i].date] = rows[i].duration;
+    }
+
+    var d = {};
+    d.labels = dates;
+    var dsets = [];
+
+
+    for (var i = 0; i < domainsArr.length; i++) {
+        //var currDomain = {};
+        //currDomain.label = domainsArr[i];
+        var dataPoints = [];
+        for (var j = 0; j < dates.length; j++) {
+            if (dates[j] in domainNames[domainsArr[i]]) {
+                dataPoints.push(domainNames[domainsArr[i]][dates[j]]);
+            }
+            else {
+                dataPoints.push(0);
+            }
+        }
+        dsets.push({label : domainsArr[i], data : dataPoints, strokeColor : "rgba(230,255,0,1)"});
+    }
+    d.datasets = dsets;
+
+    res.render('usage', {
+    title: 'Browser Usage',
+    message: 'Hello, ' + userId + '!',
+    data1: JSON.stringify(dataSet1),
+    data2: JSON.stringify(d)
+    });
+}
+
+//Graph page
+app.get('/usage/view/:userID', function(req,res) {
+    var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
+    var inserts = ['\'' + req.params.userID + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql, function(err,rows) {    
+            if(err) {
+                console.log("error 1: " + err);
+                res.sendStatus(400);
+            }
+            else {
+                console.log(rows);
+                var d1 = [];
+                for(var i = 0; i < rows.length; i++) {
+                    d1.push({value : rows[i].duration, label: rows[i].domainName});
+                }
+                versusTimeQuery(req.params.userID,10,d1,res);
+                // if (d2 == null) {
+                //     res.sendStatus(400);
+                // }
+                // else {
+                    // res.render('usage', {
+                    // title: 'Browser Usage',
+                    // message: 'Hello, ' + req.params.userID + '!',
+                    // data1: JSON.stringify(d1),
+                    // data2: JSON.stringify(d2)
+                    // });
+                // }
+            }
+    });
+});
+
+function formatDoughnutChartData(rows,sortType) {
     var d = [];
     if(sortType == "category") {
         for(var i = 0; i < rows.length; i++) {
@@ -147,14 +300,19 @@ function formatBarChartData(rows,sortType) {
             values.push(rows[i].duration);
         }
     }
-    else {
-        console.log("here");
+    else if (sortType == "domainName"){
         for(var i = 0; i < rows.length; i++) {
             lbls.push(rows[i].domainName);
             values.push(rows[i].duration);
         }
     }
-    var d = {labels : lbls, datasets : [{data: values}]};
+    else {
+        for(var i = 0; i < rows.length; i++) {
+            lbls.push(rows[i].userID);
+            values.push(rows[i].duration);
+        } 
+    }
+    var d = {labels : lbls, datasets : [{data: values, fillColor: "rgba(230,255,0,1)"}]};
     return d;
 }
 
@@ -169,8 +327,8 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
         inserts = ['\'danthom\'','\'' + sqlFormatDateTime(date) + '\'', '\'danthom\''];
     }
     else {
-        command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName";
-        inserts = ['\'danthom\''];
+        command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? and startTime > ?? group by domainName";
+        inserts = ['\'danthom\'', '\'' + sqlFormatDateTime(date) + '\''];
     }
     var sql = msq.format(command, inserts);
     sql = sql.replace(/`/g,"");
@@ -181,8 +339,8 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
         }
         else {
             var d = null;
-            if (chartType == "pie") {
-                d = formatPieChartData(rows,sortType);
+            if (chartType == "doughnut") {
+                d = formatDoughnutChartData(rows,sortType);
             }
             else {
                 d = formatBarChartData(rows,sortType);
@@ -195,6 +353,7 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
 });
 
 app.get('/get_settings/:userId', function(req, res) {
+    console.log("Request for settings...");
     sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
         ,[req.params.userId]);
     console.log(req.params.userId)
@@ -210,5 +369,388 @@ app.get('/get_settings/:userId', function(req, res) {
     });
 });
 
+function deleteUrls(urlsToDeletes) {
+    for(var i = 0; i < urlsToDeletes.length; i++) {
+        var command = "DELETE from Categories where category = ? and domainName = ? and userId = ?";
+        var inserts = [urlsToDeletes[0],urlsToDeletes[1],'danthom']
+        sql = msq.format(command,inserts);
+        con.query(sql, function(err) {
+            if(err){
+                console.log("error: " + err);
+                res.sendStatus(400);
+            }
+            else {
+                console.log("command:\n" + sql + "\nsucceeded!");
+                res.sendStatus(204);
+            }
+        });
+    }
+}
 
+app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log(req.params)
+    console.log(req.body)
+    var userId = req.params["userId"]
+    var urlToChanges = JSON.parse(req.body["url_change"]) 
+    var urlsToDeletes = JSON.parse(req.body["delete_url"])
+    var urlToAdds = JSON.parse(req.body["add_url"])
+    var timeAllowed = JSON.parse(req.body["time_allowed"])
+    var type = JSON.parse(req.body["type"])
+    var categoryName = JSON.parse(req.body["category_name"])
+
+    var category = ""
+    async.series([
+        function(callback) {
+            if (categoryName.length == 0) {
+                callback()
+                return
+            }
+            category = categoryName[1]
+            var command = "UPDATE Settings SET category = ? WHERE userId = ? and category = ?"
+            var inserts = [categoryName[1],req.params.userId,categoryName[0]]
+            sql = msq.format(command,inserts);
+            console.log("query 1: ");
+            console.log(sql);
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    callback()
+            })
+        },
+        function(callback) {
+            if (type.length == 0) {
+                callback()
+                return
+            }
+            category = type[1]
+            var command = "UPDATE Settings SET type = ? WHERE userId = ? and category = ?"
+            var inserts = [type[1],req.params.userId,type[0]]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    callback()
+            })
+        },
+        function(callback) {
+            async.forEach(urlsToDeletes, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                category = url[0]
+                var command = "DELETE FROM Categories WHERE domainName = ? and userId = ? and category = ?"
+                var inserts = [url[1],req.params.userId,url[0]]
+                sql = msq.format(command,inserts);
+                con.query(sql, function(err) {
+                    console.log("error possible")
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+                })
+                }, function(err) {
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+            },callback)
+        },
+        function(callback) {
+            async.forEach(urlToAdds, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                category = url[0]
+                command = "INSERT into Categories values(??,??,??)"
+                insert = ["\"" +req.params.userId+ "\"", "\"" +url[1]+ "\""," \"" +url[0] + "\""]
+                sql = msq.format(command,insert);
+                sql = sql.replace(/`/g,"");
+                con.query(sql,function(err) {
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+                })
+                }, function(err) {
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+
+            })
+        },
+        function(callback) {
+            async.forEach(urlToChanges, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                category = url[0]
+                var command = "UPDATE Categories SET domainName = ? WHERE domainName = ? and userId = ? and category = ?"
+                var inserts = [url[2],url[1],req.params.userId,url[0]]
+                sql = msq.format(command,inserts);
+                con.query(sql,function(err) {
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+                })
+                }, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+
+            })
+        },
+        function(callback) {
+            if (timeAllowed.length == 0) {
+                callback()
+                return
+            }
+            category = timeAllowed[0]
+            var command = "UPDATE Settings SET timeAllowed = ? WHERE userId = ? and category = ?"
+            var inserts = [timeAllowed[1],req.params.userId,timeAllowed[0]]
+            sql = msq.format(command,inserts);
+            console.log("query 5: ");
+            console.log(sql);
+            con.query(sql, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+            })
+        }
+        
+    ], function(err) {
+        console.log(err)
+        if (err)  {
+            var message = "Unknown Error"
+            if (err.code == "ER_DUP_ENTRY")
+                message = "Duplicate entry"
+            res.status(400).send(message);
+            return
+        }
+        if (category != "") {
+            res.send(category)
+            return
+        }
+        res.sendStatus(204)
+        return
+    })
+});
+
+app.post('/user_settings/:userId/create_category', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log(req.params)
+    console.log(req.body)
+    var userId = req.params["userId"]
+    var categoryName = JSON.parse(req.body["category_name"])
+    var timeAllowed = JSON.parse(req.body["time_allowed"])
+    var type = JSON.parse(req.body["type"])
+    var domainName = JSON.parse(req.body["domain_names"])
+    async.series([
+        function(callback) {
+            var command = "INSERT INTO Settings (userID,category,type,timeAllowed,timeRemaining,resetInterval) VALUES(?,?,?,?,?,?)"
+            var inserts = [userId, categoryName, type,
+            timeAllowed.toString(),timeAllowed.toString(),timeAllowed.toString()]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    console.log("New Setting!")
+                    callback()
+
+            })
+        },
+        function(callback) {
+            console.log("second callback")
+            async.forEach(domainName, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                var command = "INSERT INTO Categories (userID,domainName,category) VALUES(?,?,?)"
+                var inserts = [userId,url,categoryName]
+                sql = msq.format(command,inserts);
+                console.log(sql)
+                con.query(sql,function(err) {
+                    if (err){
+                        console.log(err)
+                        callback(err)
+                        return
+                    } 
+                    console.log("New Category")
+                    callback()
+
+                })
+                }, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+                })
+        }
+    ], function(err) {
+        if (err)  {
+            console.log(err)
+
+            var message = "Unknown Error"
+            if (err.code == "ER_DUP_ENTRY")
+                message = "Duplicate entry"
+            res.status(400).send(message);
+            return
+        }
+        console.log("All good!")
+
+        res.sendStatus(204)
+        return
+    })
+})
+
+app.post('/user_settings/:userId/delete_category', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log(req.params)
+    console.log(req.body)
+    var userId = req.params["userId"]
+    var categoryName = JSON.parse(req.body["category_name"]) 
+    async.series([
+        function(callback) {
+            var command = "DELETE FROM Settings where userID = ? and category = ?"
+            var inserts = [userId, categoryName]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    console.log("Deleted Setting!")
+                    callback()
+
+            })
+        },
+        function(callback) {
+            console.log("second callback")
+            var command = "DELETE FROM Categories where userId = ? and category= ?"
+            var inserts = [userId,categoryName]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql,function(err) {
+                if (err){
+                    console.log(err)
+                    callback(err)
+                    return
+                } 
+                console.log("Deleted Category")
+                callback()
+
+            })
+        }
+    ], function(err) {
+        if (err)  {
+            console.log(err)
+
+            var message = "Unknown Error"
+            if (err.code == "ER_DUP_ENTRY")
+                message = "Duplicate entry"
+            res.status(400).send(message);
+            return
+        }
+        console.log("All good!")
+
+        res.sendStatus(204)
+        return
+    })
+})
+
+app.post('/update_TR', function(req, res) {
+    var user = req.body.user;
+    var category = req.body.category;
+    var TR = req.body.TR;
+
+    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+    var inserts = [TR, user, category];
+    sql = msq.format(command,inserts);
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            res.sendStatus(204);
+        }
+    });
+
+    // TODO: What do we send back?
+});
+
+app.post('/reset_allTR', function(req, res) {
+    var user = req.body.user;
+
+    sql = msq.format("select * from Settings where userId = ? ;"
+        ,[user]);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            recursiveQuery = function(rows, currRow, user) {
+                if(currRow >= rows.length){
+                    res.sendStatus(200);
+                    return;
+                }
+                category = rows[currRow].category;
+                timeAllowed = rows[currRow].timeAllowed;
+                var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+                var inserts = [timeAllowed, user, category];
+                sql = msq.format(command,inserts);
+                con.query(sql, function(err) {
+                    if(err){
+                        console.log("error: " + err);
+                        res.sendStatus(400);
+                        return;
+                    }
+                    else {
+                        console.log("command:\n" + sql + "\nsucceeded!");
+                        recursiveQuery(rows, currRow + 1, user);
+                    }
+                });
+            };
+            recursiveQuery(rows, 0, user);
+        }
+    });
+});
+
+app.post('/add_page', function(req, res) {
+    var user = req.body.user;
+    var page = req.body.page;
+    console.log(page);
+    var category = req.body.category;
+
+    var command = "insert into Categories values(??,??,??)";
+    var inserts = ["\'" + user +"\'","\'" +  page + "\'","\'" + category + "\'"];
+    sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql, function(err) {
+        if(err){
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log("command:\n" + sql + "\nsucceeded!");
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[user]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    res.sendStatus(400);
+                }
+                else {
+                    res.send(rows);
+                }
+            });
+        }
+    });
+});
 

@@ -2,7 +2,6 @@
 <html>
   <head>
     <title>DisciPlan</title>
-    <script src="popup.js"></script>
     <link rel="stylesheet" type="text/css" href="popup.css">
     <link rel="stylesheet" type="text/css" href="/public/css/bootstrap.min.css">
   </head>
@@ -11,6 +10,20 @@
     <button id="settings_btn">Change Settings</button>
 
     <p> Current Page: <span id="currentPage"></span></p>
+
+    <div id="addCurrentPageDiv">
+      <div class="dropdown">
+        <button class="btn btn-info dropdown-toggle" type="button" data-toggle="dropdown" id="dropdownMenu">Add this page to:
+        <span class="caret"></span></button>
+        <ul class="dropdown-menu" id="category_dropdown">
+          <!-- <li><a id="HTLM_dropdown">HTML</a></li>
+          <li><a href="#">CSS</a></li>
+          <li><a href="#">JavaScript</a></li> -->
+        </ul>
+      </div>
+    </div>
+
+
     <div id="restrictedPageDiv">
     	<p>Current Category: <span id="currentCategory"></span></p>
 	    <div>
@@ -27,5 +40,9 @@
 		</div>
     </div>
     
+    <script src="popup.js"></script>
+    <script src='jquery-1.12.0.min.js'></script>
+    <script src='/public/js/bootstrap.min.js'></script>
+
   </body>
 </html>
