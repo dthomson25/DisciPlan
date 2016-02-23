@@ -695,9 +695,20 @@ app.post('/update_TR', function(req, res) {
     // TODO: What do we send back?
 });
 
+app.get('/login/', function(req, res) {
+    sql = msq.format("select * from Users where userId = ? and password = ?;",[req.query.userId, req.query.password]);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log ("error" + err)
+            res.sendStatus(400)
+        } else {
+            res.send(rows)
+        }
+    });
+});
+
 app.post('/reset_allTR', function(req, res) {
     var user = req.body.user;
-
     sql = msq.format("select * from Settings where userId = ? ;"
         ,[user]);
     con.query(sql, function(err,rows) {
