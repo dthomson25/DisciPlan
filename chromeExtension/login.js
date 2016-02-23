@@ -48,7 +48,7 @@ function login() {
 
 window.onload = function() {
 	
-	chrome.cookies.remove({url: "http://localhost", name: "disciplan"})
+	// chrome.cookies.remove({url: "http://localhost", name: "disciplan"})
 	// Attempt to get a cookie
 	getCookie("http://localhost", "disciplan", function(cookie) {
 		if (cookie == null) {

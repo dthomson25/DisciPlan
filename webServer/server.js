@@ -369,6 +369,18 @@ app.get('/get_settings/:userId', function(req, res) {
     });
 });
 
+app.get('/login/', function(req, res) {
+    sql = msq.format("select * from Users where userId = ? and password = ?;",[req.query.userId, req.query.password]);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log ("error" + err)
+            res.sendStatus(400)
+        } else {
+            res.send(rows)
+        }
+    });
+});
+
 function deleteUrls(urlsToDeletes) {
     for(var i = 0; i < urlsToDeletes.length; i++) {
         var command = "DELETE from Categories where category = ? and domainName = ? and userId = ?";
