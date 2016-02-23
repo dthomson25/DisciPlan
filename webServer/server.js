@@ -25,6 +25,8 @@ var app = express();
 var bodyParser = require('body-parser');
 var async = require('async'); 
 
+var differentTypes = ["Redirect","Notifications","Nuclear"]
+
 
 app.use(bodyParser.json());
 
@@ -53,7 +55,8 @@ app.get('/user_settings/:userId', function(req, res) {
             res.render('settings', {title: 'DisciPlan Settings', 
                  message: 'This is your settings page!',
                  rows: rows, 
-                 current: '/user_settings'
+                 current: '/user_settings',
+                 setting_types: differentTypes
                 });
         }
     });
@@ -392,10 +395,10 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
     var urlsToDeletes = JSON.parse(req.body["delete_url"])
     var urlToAdds = JSON.parse(req.body["add_url"])
     var timeAllowed = JSON.parse(req.body["time_allowed"])
+    var type = JSON.parse(req.body["type"])
     var categoryName = JSON.parse(req.body["category_name"])
 
     var category = ""
-    console.log(timeAllowed)
     async.series([
         function(callback) {
             if (categoryName.length == 0) {
@@ -409,11 +412,28 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             console.log("query 1: ");
             console.log(sql);
             con.query(sql, function(err) {
-                    console.log("error possible")
                     if (err){
-                        return err;
-                    } 
-                    console.log("no error")
+                         callback(err);
+                         return
+                    }
+                    callback()
+            })
+        },
+        function(callback) {
+            if (type.length == 0) {
+                callback()
+                return
+            }
+            category = type[1]
+            var command = "UPDATE Settings SET type = ? WHERE userId = ? and category = ?"
+            var inserts = [type[1],req.params.userId,type[0]]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
                     callback()
             })
         },
@@ -423,12 +443,18 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
                 var command = "DELETE FROM Categories WHERE domainName = ? and userId = ? and category = ?"
                 var inserts = [url[1],req.params.userId,url[0]]
                 sql = msq.format(command,inserts);
-                console.log("query 2: ");
-                console.log(sql);
-                con.query(sql,callback())
+                con.query(sql, function(err) {
+                    console.log("error possible")
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+                })
                 }, function(err) {
                     if (err){
-                        return (err);
+                        callback(err)
+                        return
                     } 
                     callback()
             },callback)
@@ -440,12 +466,17 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
                 insert = ["\"" +req.params.userId+ "\"", "\"" +url[1]+ "\""," \"" +url[0] + "\""]
                 sql = msq.format(command,insert);
                 sql = sql.replace(/`/g,"");
-                console.log("query 3: ");
-                console.log(sql);
-                con.query(sql,callback())
+                con.query(sql,function(err) {
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+                })
                 }, function(err) {
                     if (err){
-                        return err;
+                        callback(err)
+                        return
                     } 
                     callback()
 
@@ -457,9 +488,13 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
                 var command = "UPDATE Categories SET domainName = ? WHERE domainName = ? and userId = ? and category = ?"
                 var inserts = [url[2],url[1],req.params.userId,url[0]]
                 sql = msq.format(command,inserts);
-                console.log("query 4: ");
-                console.log(sql);
-                con.query(sql,callback())
+                con.query(sql,function(err) {
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+                })
                 }, function(err) {
                     if (err){
                         return err;
@@ -480,17 +515,22 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             console.log("query 5: ");
             console.log(sql);
             con.query(sql, function(err) {
-                    console.log("error possible")
                     if (err){
                         return err;
                     } 
-                    console.log("no error")
                     callback()
             })
         }
         
     ], function(err) {
-        if (err) return err;
+        console.log(err)
+        if (err)  {
+            var message = "Unknown Error"
+            if (err.code == "ER_DUP_ENTRY")
+                message = "Duplicate entry"
+            res.status(400).send(message);
+            return
+        }
         if (category != "") {
             res.send(category)
             return
@@ -498,11 +538,128 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
         res.sendStatus(204)
         return
     })
-    
 });
 
+app.post('/user_settings/:userId/create_category', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log(req.params)
+    console.log(req.body)
+    var userId = req.params["userId"]
+    var categoryName = JSON.parse(req.body["category_name"])
+    var timeAllowed = JSON.parse(req.body["time_allowed"])
+    var type = JSON.parse(req.body["type"])
+    var domainName = JSON.parse(req.body["domain_names"])
+    async.series([
+        function(callback) {
+            var command = "INSERT INTO Settings (userID,category,type,timeAllowed,timeRemaining,resetInterval) VALUES(?,?,?,?,?,?)"
+            var inserts = [userId, categoryName, type,
+            timeAllowed.toString(),timeAllowed.toString(),timeAllowed.toString()]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    console.log("New Setting!")
+                    callback()
 
+            })
+        },
+        function(callback) {
+            console.log("second callback")
+            async.forEach(domainName, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+                var command = "INSERT INTO Categories (userID,domainName,category) VALUES(?,?,?)"
+                var inserts = [userId,url,categoryName]
+                sql = msq.format(command,inserts);
+                console.log(sql)
+                con.query(sql,function(err) {
+                    if (err){
+                        console.log(err)
+                        callback(err)
+                        return
+                    } 
+                    console.log("New Category")
+                    callback()
 
+                })
+                }, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+                })
+        }
+    ], function(err) {
+        if (err)  {
+            console.log(err)
+
+            var message = "Unknown Error"
+            if (err.code == "ER_DUP_ENTRY")
+                message = "Duplicate entry"
+            res.status(400).send(message);
+            return
+        }
+        console.log("All good!")
+
+        res.sendStatus(204)
+        return
+    })
+})
+
+app.post('/user_settings/:userId/delete_category', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log(req.params)
+    console.log(req.body)
+    var userId = req.params["userId"]
+    var categoryName = JSON.parse(req.body["category_name"]) 
+    async.series([
+        function(callback) {
+            var command = "DELETE FROM Settings where userID = ? and category = ?"
+            var inserts = [userId, categoryName]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    console.log("Deleted Setting!")
+                    callback()
+
+            })
+        },
+        function(callback) {
+            console.log("second callback")
+            var command = "DELETE FROM Categories where userId = ? and category= ?"
+            var inserts = [userId,categoryName]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql,function(err) {
+                if (err){
+                    console.log(err)
+                    callback(err)
+                    return
+                } 
+                console.log("Deleted Category")
+                callback()
+
+            })
+        }
+    ], function(err) {
+        if (err)  {
+            console.log(err)
+
+            var message = "Unknown Error"
+            if (err.code == "ER_DUP_ENTRY")
+                message = "Duplicate entry"
+            res.status(400).send(message);
+            return
+        }
+        console.log("All good!")
+
+        res.sendStatus(204)
+        return
+    })
+})
 
 app.post('/update_TR', function(req, res) {
     var user = req.body.user;
@@ -524,10 +681,7 @@ app.post('/update_TR', function(req, res) {
     });
 
     // TODO: What do we send back?
-
 });
-
-
 
 app.post('/reset_allTR', function(req, res) {
     var user = req.body.user;
@@ -599,5 +753,4 @@ app.post('/add_page', function(req, res) {
         }
     });
 });
-
 

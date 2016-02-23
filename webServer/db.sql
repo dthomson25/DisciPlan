@@ -36,8 +36,10 @@ CREATE TABLE Categories (
 CREATE TABLE Settings (
 	userID CHAR(64),
 	category CHAR(64) NOT NULL,
+	type CHAR(64) NOT NULL,
 	timeAllowed INT(64) NOT NULL,
 	timeRemaining INT(64) NOT NULL,
+	resetInterval INT(64) NOT NULL,
 	PRIMARY KEY (userID,category),
 	FOREIGN KEY (userID) REFERENCES Users(userID)
 );
