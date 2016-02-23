@@ -11,7 +11,6 @@
     <h1>DisciPlan</h1>
     <div id="verified_content">  
       <button id="settings_btn">Change Settings</button>
-
       <p> Current Page: <span id="currentPage"></span></p>
       <div id="restrictedPageDiv">
       	<p>Current Category: <span id="currentCategory"></span></p>
@@ -41,5 +40,40 @@
         <a href="register.html">Register a new account</a>
       </form>
     </div>
+    <p> Current Page: <span id="currentPage"></span></p>
+
+    <div id="addCurrentPageDiv">
+      <div class="dropdown">
+        <button class="btn btn-info dropdown-toggle" type="button" data-toggle="dropdown" id="dropdownMenu">Add this page to:
+        <span class="caret"></span></button>
+        <ul class="dropdown-menu" id="category_dropdown">
+          <!-- <li><a id="HTLM_dropdown">HTML</a></li>
+          <li><a href="#">CSS</a></li>
+          <li><a href="#">JavaScript</a></li> -->
+        </ul>
+      </div>
+    </div>
+
+
+    <div id="restrictedPageDiv">
+    	<p>Current Category: <span id="currentCategory"></span></p>
+	    <div>
+		  	<span class="hours">0</span>
+		  	<div class="smalltext">Hours</div>
+	    </div>
+		<div>
+			<span class="minutes">0</span>
+		  	<div class="smalltext">Minutes</div>
+		  	</div>
+		<div>
+		    <span class="seconds">0</span>
+		    <div class="smalltext">Seconds</div>
+		</div>
+    </div>
+    
+    <script src="popup.js"></script>
+    <script src='jquery-1.12.0.min.js'></script>
+    <script src='/public/js/bootstrap.min.js'></script>
+
   </body>
 </html>
