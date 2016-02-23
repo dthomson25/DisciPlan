@@ -38,7 +38,7 @@ app.get('/', function (req, res) {
 
 app.get('/user_settings/:userId', function(req, res) {
 	console.log('Get to /user_settings for user: ' + req.params.userId);
-    sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+    var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
         ,[req.params.userId]);
     con.query(sql, function(err,rows) {
         if(err) {
@@ -83,9 +83,9 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
     console.log(sqlDateTimeStr);
     console.log(req.body.domainName);
     var domainName = req.body.domainName.replace("`","");
-    var command = "insert into TimeSpent values(??,??,??,??,??)";
-    var inserts = ['\'danthom\'', "\'" + domainName + "\'",'NULL', "\'" + sqlDateTimeStr + "\'", req.body.duration];
-    sql = msq.format(command,inserts);
+    var command = "insert into TimeSpent values(??,??,??,??);";
+    var inserts = ['\'danthom\'', "\'" + domainName + "\'", "\'" + sqlDateTimeStr + "\'", req.body.duration];
+    var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
     con.query(sql, function(err) {
         if(err){
@@ -97,13 +97,15 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
             res.sendStatus(204);
         }
     });
+
+
 });
 
 app.get('/usage/view/', function(req,res) {
     con.query("select domainName, sum(timeSpent) as duration from TimeSpent where userID = \'danthom\' group by domainName", function(err,rows) {
         if(err) {
             console.log("error: " + err);
-            res.send(400);
+            res.sendStatus(400);
         }
         else {
             console.log(rows);
@@ -117,6 +119,77 @@ app.get('/usage/view/', function(req,res) {
             message: 'Your usage by site:',
             data: JSON.stringify(d)
             });
+        }
+    });
+});
+
+function formatPieChartData(rows,sortType) {
+    var d = [];
+    if(sortType == "category") {
+        for(var i = 0; i < rows.length; i++) {
+            d.push({value : rows[i].duration, label: rows[i].category});
+        }
+    }
+    else {
+        for(var i = 0; i < rows.length; i++) {
+            d.push({value : rows[i].duration, label: rows[i].domainName});
+        }
+    }
+    return d;
+}
+
+function formatBarChartData(rows,sortType) {
+    lbls = [];
+    values = [];
+    if(sortType == "category") {
+        for(var i = 0; i < rows.length; i++) {
+            lbls.push(rows[i].category);
+            values.push(rows[i].duration);
+        }
+    }
+    else {
+        console.log("here");
+        for(var i = 0; i < rows.length; i++) {
+            lbls.push(rows[i].domainName);
+            values.push(rows[i].duration);
+        }
+    }
+    var d = {labels : lbls, datasets : [{data: values}]};
+    return d;
+}
+
+app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req,res) {
+    var sortType = req.body.sortType;
+    var date = new Date(req.body.startTime);
+    var chartType = req.body.chartType;
+    var command = "";
+    var inserts = [];
+    if(sortType == "category") {
+        command = "select * from (select category, sum(TimeSpent) as duration from Categories as C, TimeSpent as T where C.userId = T.userId and C.userId = ?? and C.domainName = T.domainName and T.startTime > ?? group by category union select \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T1 where T1.userId = ?? and not exists(select * from Categories as C1 where T1.userId = C1.userId and T1.domainName = C1.domainName) group by category) as A";
+        inserts = ['\'danthom\'','\'' + sqlFormatDateTime(date) + '\'', '\'danthom\''];
+    }
+    else {
+        command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName";
+        inserts = ['\'danthom\''];
+    }
+    var sql = msq.format(command, inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql, function(err,rows){
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            var d = null;
+            if (chartType == "pie") {
+                d = formatPieChartData(rows,sortType);
+            }
+            else {
+                d = formatBarChartData(rows,sortType);
+            }
+            console.log(d);
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify(d));
         }
     });
 });
