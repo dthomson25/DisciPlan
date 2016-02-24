@@ -1,0 +1,53 @@
+body {
+    margin-left: 2%;
+    background-color: #2F8DDF;
+    color: #BABABA;
+}
+
+h1 {
+    text-align: center;
+}
+
+#graphContainer {
+    text-align: center;
+}
+
+#submitBtn {
+    margin-left: 5px;
+    font-size: 20px;
+    width: 125px;
+    background-color: #2F8DDF;
+    border-width: 2px;
+    border-color: white;
+}
+
+.small {
+    width: 125px;
+}
+
+.ui-datepicker {
+    margin-left: 150px;
+    width: 240px;
+    height: auto;
+    font: 9pt Arial, sans-serif;
+    -webkit-box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, .5);
+    -moz-box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, .5);
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, .5);
+    background-color: black;
+}
+
+.ui-datepicker-next {
+    margin-left: 79%;
+}
+
+.ui-datepicker td {
+    border: 1px solid #CCC;
+    padding: 0;
+}
+
+.ui-state-default,
+.ui-widget-content .ui-state-default,
+.ui-widget-header .ui-state-default {
+    border: solid #FFF;
+    border-width: 1px 0 0 1px;
+}

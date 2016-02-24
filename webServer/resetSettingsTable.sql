@@ -1,7 +1,7 @@
 USE disciplan;
 
 
-INSERT INTO Users VALUES ("danthom","danthom@stanford.edu","Danny","password");
+INSERT INTO Users VALUES ("danthom","danthom@stanford.edu","Danny", "Thomson","password",22,1);
 
 INSERT INTO Categories VALUES ("danthom","www.facebook.com","Social");
 INSERT INTO Categories VALUES ("danthom","twitter.com","Social");
