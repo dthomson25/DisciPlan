@@ -12,7 +12,7 @@ INSERT INTO Categories VALUES ("danthom","www.usatoday.com","Entertainment");
 
 
 INSERT INTO Settings VALUES ("danthom","Social","Redirect","10","10","5");
-INSERT INTO Settings VALUES ("danthom","Sports","Notifications","20","20","5");
+INSERT INTO Settings VALUES ("danthom","Sports","Notifications","5","5","5");
 INSERT INTO Settings VALUES ("danthom","Entertainment","Nuclear","20","20","5");
 
 DROP TRIGGER IF EXISTS update_settings;

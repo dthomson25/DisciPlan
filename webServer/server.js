@@ -532,4 +532,23 @@ app.post('/add_page', function(req, res) {
 app.get('/newtab_page/:userId', function(req, res){
     var userId = req.params["userId"];
     console.log("Newtab for " + userId);
+
+    sql = msq.format("select * from Settings as S where S.userId = ? ORDER BY S.Category;"
+        ,[req.params.userId]);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            // res.render('settings', {title: 'DisciPlan Settings', 
+            //      message: 'This is your settings page!',
+            //      rows: rows, 
+            //      current: '/user_settings',
+            //      setting_types: differentTypes
+            //     });
+            console.log(rows);
+        }
+    });
+
 });

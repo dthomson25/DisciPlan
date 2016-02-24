@@ -9,7 +9,8 @@ function get_settings() {
     if (xhttp_settings.readyState == 4 && xhttp_settings.status == 200) {
       settings_JSON = JSON.parse(xhttp_settings.responseText);
       // Every time we get new settings we want to check if the reset time is the same
-      startResetTimeout(); 
+      startResetTimeout();
+      console.log(settings_JSON); 
     }
   };
   xhttp_settings.open("GET", "http://localhost:3000/get_settings/danthom", true);
@@ -85,6 +86,7 @@ var startTime
 var endTime
 var currSiteRestricted = false
 var currCategory
+var currType
 var timeoutId
 
 
@@ -118,14 +120,14 @@ function redirectToHome() {
   updateDatabaseCategoryRT();
 
   chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
-    if(lastPage){
-      if(lastPage == tabs[0].url) {
-        badRedirect = true;
-        lastPage = null;
-        return;
-      }
-    }
-    lastPage = tabs[0].url
+    // if(lastPage){
+    //   if(lastPage == tabs[0].url) {
+    //     badRedirect = true;
+    //     lastPage = null;
+    //     return;
+    //   }
+    // }
+    // lastPage = tabs[0].url
     chrome.tabs.update(tabs[0].id, {url: "localhost:3000"}, function() {
       badRedirect = false;
 
@@ -141,8 +143,13 @@ function notifyTimeUp() {
 }
 
 function handleTimeUp() {
-  notifyTimeUp();
-  //redirectToHome()
+  if(currType == "Redirect")
+    redirectToHome();
+  if(currType == "Notifications")
+    notifyTimeUp();
+  // TODO add nuclear option...
+  //if(currType == "Nuclear")
+  //nuclearOption()
 }
 
 function checkIfRestricted(url, alreadyHostName) {
@@ -164,6 +171,7 @@ function checkIfRestricted(url, alreadyHostName) {
       endTime = new Date();
       endTime.setSeconds(endTime.getSeconds() + remainTime);
       currCategory = row.category;
+      currType = row.type;
       return;
     }
   }
