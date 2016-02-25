@@ -1,7 +1,9 @@
 USE disciplan;
 
 
-INSERT INTO Users VALUES ("danthom","danthom@stanford.edu","Danny", "Thomson","password",22,1);
+INSERT INTO Users VALUES ("danthom","danthom@stanford.edu","Danny", "Thomson","password","1993-05-20 00:00:00",1);
+INSERT INTO Users VALUES ("jross3","jross3@stanford.edu","James", "Ross","password","1993-09-07 00:00:00",1);
+INSERT INTO PremiumUserDomains VALUES ('danthom','www.google.com');
 
 INSERT INTO Categories VALUES ("danthom","www.facebook.com","Social");
 INSERT INTO Categories VALUES ("danthom","twitter.com","Social");

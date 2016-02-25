@@ -1,0 +1,4 @@
+cat db.sql resetSettingsTable.sql lazy.sql > tmp.sql;
+mysql -u root -p < tmp.sql;
+rm tmp.sql;
+mysql -u root -p;
