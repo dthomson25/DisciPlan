@@ -43,7 +43,6 @@ var resetTimeoutId
 var resetTime = 0
 
 function resetAllTR() {
-  var info = JSON.stringify({user:"danthom"});
   console.log("Resetting time remaining. Current time: " + new Date());
   var http_reset_allTR = new XMLHttpRequest();
   http_reset_allTR.onreadystatechange = function() {
@@ -53,7 +52,7 @@ function resetAllTR() {
   };
   http_reset_allTR.open("POST", 'http://localhost:3000/reset_allTR');
   http_reset_allTR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-  http_reset_allTR.send(info);
+  http_reset_allTR.send();
 }
 
 function startInterval() {

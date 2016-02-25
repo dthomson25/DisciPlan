@@ -44,7 +44,7 @@ function addCategoriesToDropdown(categories) {
     a.addEventListener('click', function(){
       var category = this.id;
       var currPage = document.getElementById('currentPage').innerText;
-      var update = JSON.stringify({user:"danthom", page:currPage, category:category});
+      var update = JSON.stringify({page:currPage, category:category});
       chrome.runtime.sendMessage({req: "update", update:update}, function(response) { start_timer(); });
 
     });
