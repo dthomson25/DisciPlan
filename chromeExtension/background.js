@@ -3,6 +3,9 @@ tracker.prevDate = new Date();
 getStartingDomain(tracker);
 console.log(tracker);
 
+
+var username = null;
+
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
   checkSettingChangeTab()
     if (tab.url !== undefined && changeInfo.status == "complete") {

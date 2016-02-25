@@ -25,7 +25,7 @@ function get_settings() {
 // End of http request code
 
 
-var username = null;
+
 
 chrome.cookies.get({"url": "http://localhost", "name": "disciplan"}, function(cookie) {
   if (cookie) {
@@ -137,10 +137,11 @@ function redirectToHome() {
     //   }
     // }
     // lastPage = tabs[0].url
-    chrome.tabs.update(tabs[0].id, {url: "localhost:3000"}, function() {
-      badRedirect = false;
-
-    });
+    if(tabs[0]){
+      chrome.tabs.update(tabs[0].id, {url: "localhost:3000"}, function() {
+        badRedirect = false;
+      });
+    }
   });
 
 }
@@ -209,7 +210,6 @@ function updateCategoryRT(elapsed_sec){
 
 function checkSettingChangeTab() {
   // If username is null 
-  console.log(username);
   if(username == null)
     return;
 
