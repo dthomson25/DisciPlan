@@ -18,6 +18,9 @@ function getStartingDomain(tracker) {
 }
 
 function sendXHR(url, tracker) {
+    // If not logged in do not send request
+    if(!username)
+        return;
     console.log(tracker);
     var xhr = new XMLHttpRequest();
     xhr.addEventListener('readystatechange', function(evt) {

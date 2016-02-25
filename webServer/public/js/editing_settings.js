@@ -193,7 +193,7 @@ function findChangedResetInterval(category) {
 function sendSaveRequest(listOfDbChanges) {
   console.log(listOfDbChanges)
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'http://localhost:3000/user_settings/danthom/save',true);
+  xhr.open('POST', 'http://localhost:3000/user_settings/save',true);
   xhr.addEventListener('readystatechange', function(evt) {
       if (xhr.readyState === 4) {
           if (xhr.status === 200) {
@@ -223,7 +223,7 @@ function sendSaveRequest(listOfDbChanges) {
 
 function sendCreateCategoryRequest(newCategory) {
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'http://localhost:3000/user_settings/danthom/create_category',true);
+  xhr.open('POST', 'http://localhost:3000/user_settings/create_category',true);
   xhr.addEventListener('readystatechange', function(evt) {
       if (xhr.readyState === 4) {
           if (xhr.status === 200) {
@@ -325,7 +325,7 @@ $(".main").on("click", ".delete-category",function(argument) {
     var categoryName = category.find("h2").text()
     var xhr = new XMLHttpRequest();
     console.log("test")
-    xhr.open('POST', 'http://localhost:3000/user_settings/danthom/delete_category',true);
+    xhr.open('POST', 'http://localhost:3000/user_settings/delete_category',true);
     xhr.addEventListener('readystatechange', function(evt) {
       if (xhr.readyState === 4) {
           if (xhr.status === 204) {

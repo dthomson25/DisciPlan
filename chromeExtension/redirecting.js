@@ -1,7 +1,9 @@
 
 // Http request to get settings of user
 
-var settings_JSON = []
+
+
+var settings_JSON = null;
 
 function get_settings() {
   var xhttp_settings = new XMLHttpRequest();
@@ -11,18 +13,26 @@ function get_settings() {
       // Every time we get new settings we want to check if the reset time is the same
       startResetTimeout();
       console.log(settings_JSON); 
+
     }
   };
-  xhttp_settings.open("GET", "http://localhost:3000/get_settings/danthom", true);
+  xhttp_settings.open("GET", "http://localhost:3000/get_settings", true);
   xhttp_settings.send();
 }
 
-get_settings();
 
 
 // End of http request code
 
 
+
+
+chrome.cookies.get({"url": "http://localhost", "name": "disciplan"}, function(cookie) {
+  if (cookie) {
+    username = cookie.value;
+    get_settings();
+  } 
+});
 
 
 // Set up interval that gets called to reset time remaining
@@ -33,7 +43,6 @@ var resetTimeoutId
 var resetTime = 0
 
 function resetAllTR() {
-  var info = JSON.stringify({user:"danthom"});
   console.log("Resetting time remaining. Current time: " + new Date());
   var http_reset_allTR = new XMLHttpRequest();
   http_reset_allTR.onreadystatechange = function() {
@@ -43,7 +52,7 @@ function resetAllTR() {
   };
   http_reset_allTR.open("POST", 'http://localhost:3000/reset_allTR');
   http_reset_allTR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-  http_reset_allTR.send(info);
+  http_reset_allTR.send();
 }
 
 function startInterval() {
@@ -101,7 +110,7 @@ redirectCurrentTab = function(Url){
 // When the remaining time for a category goes to 0, send a POST request
 // to update the database with that information. 
 function updateDatabaseCategoryRT(){
-  var update = JSON.stringify({user:"danthom", category: currCategory, TR: 0});
+  var update = JSON.stringify({category: currCategory, TR: 0});
   var http_update_TR = new XMLHttpRequest();
   // Do we get a response?
   // http_update_TR.onreadystatechange = function() {
@@ -128,10 +137,11 @@ function redirectToHome() {
     //   }
     // }
     // lastPage = tabs[0].url
-    chrome.tabs.update(tabs[0].id, {url: "localhost:3000"}, function() {
-      badRedirect = false;
-
-    });
+    if(tabs[0]){
+      chrome.tabs.update(tabs[0].id, {url: "localhost:3000"}, function() {
+        badRedirect = false;
+      });
+    }
   });
 
 }
@@ -199,7 +209,11 @@ function updateCategoryRT(elapsed_sec){
 }
 
 function checkSettingChangeTab() {
+  // If username is null 
+  if(username == null)
+    return;
 
+  // TODO fix this for twitter
   if(badRedirect)
     return;
 
@@ -259,21 +273,43 @@ function popupRequest(request, sender, sendResponse) {
   }
   // If message from popup asking for endtime
   if(request.req == "endTime"){
-    if(currSiteRestricted){
-      sendResponse({restricted: true,
-                     endTime: endTime.toString(),
-                     category: currCategory});
+    if(username){
+      if(currSiteRestricted){
+        sendResponse({ loggedIn: true,
+                       restricted: true,
+                       endTime: endTime.toString(),
+                       category: currCategory});
+      }
+      else{
+        categories = get_categories();
+        sendResponse({ loggedIn: true,
+                       restricted: false,
+                       categories: categories});
+      }
     }
     else{
-      categories = get_categories();
-      sendResponse({restricted: false,
-                    categories: categories});
+      sendResponse({loggedIn: false})
     }
   }
   // If message from newtab asking for information
   if(request.req == "newtab"){
     console.log("newtab message!");
     sendResponse({settings: settings_JSON})
+  }
+  if(request.req == "username"){
+    console.log("Username: " +  request.username);
+    username = request.username;
+    get_settings();
+    intervalId = setInterval(sendStartTimer, 500);
+    function sendStartTimer(){
+      if(settings_JSON){
+        checkSettingChangeTab();
+        sendResponse({res: "start_timer"});
+        clearInterval(intervalId);
+      }
+      
+    }
+
   }
     
 }
@@ -305,6 +341,7 @@ chrome.windows.onFocusChanged.addListener(function(windowId) {
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
+    console.log(request);
     popupRequest(request, sender, sendResponse);
     return true;
 });

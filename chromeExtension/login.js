@@ -26,7 +26,14 @@ function login() {
 					login_content.style.display = "none"
 					var verified_content = document.getElementById("verified_content")
 					verified_content.style.display = "block"
-					chrome.cookies.set({url: "http://localhost", name: "disciplan", value: "logged in", domain: null})
+					chrome.cookies.set({url: "http://localhost", name: "disciplan", value: username, domain: null});
+					// Send username to background script
+					chrome.runtime.sendMessage({req: "username", username: username}, function(response) {
+						// Start timer or display add page dropdown. Function in popup.js
+						if(response.res == "start_timer"){
+							start_timer();
+						}
+					});
 				} else {
 					document.getElementById("wrong_password").style = "block";
 				}
