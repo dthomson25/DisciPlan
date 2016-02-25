@@ -26,7 +26,10 @@
      "default_icon": "clock.png",
      "default_popup": "popup.html"
     },
-    "permissions": [
-      "http://*/*", "tabs", "https://*/*"
-    ]
+
+  "permissions": [
+    "cookies", 
+    "http://*/*", "tabs", "https://*/*"
+  ]
+
 }
