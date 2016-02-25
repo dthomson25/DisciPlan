@@ -59,6 +59,11 @@ function addCategoriesToDropdown(categories) {
 function start_timer(){
   console.log("start_timer");
   chrome.runtime.sendMessage({req: "endTime"}, function(response) {
+    // If not logged in do nothing
+    if(!response.loggedIn){
+      console.log("not logged in");
+      return;
+    }
     if(response.restricted == true) {
       // Hide the add page div
       var addPageDiv = document.getElementById('addCurrentPageDiv');
@@ -81,6 +86,7 @@ function start_timer(){
 }
 
 
+
 document.addEventListener('DOMContentLoaded', function() {
 
   start_timer();
@@ -100,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Event listener to view settings page button. Redirects to localhost:3000/settings
   //TODO not hard coding the user value
   settingsPageButton.addEventListener('click', function() {    
-    redirectCurrentTab("localhost:3000/user_settings/danthom");
+    redirectCurrentTab("localhost:3000/user_settings");
     window.close();
   }, false);
 

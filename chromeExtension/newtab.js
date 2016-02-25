@@ -42,7 +42,7 @@
             //settings_JSON = JSON.parse(http_newtab.responseText);
          }
       };
-      http_newtab.open("GET", "http://localhost:3000/newtab_page/danthom", true);
+      http_newtab.open("GET", "http://localhost:3000/newtab_page", true);
       http_newtab.send();
    }
 

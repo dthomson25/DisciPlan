@@ -74,10 +74,11 @@ app.get('/', function (req, res) {
 
 });
 
-app.get('/user_settings/:userId', function(req, res) {
-	console.log('Get to /user_settings for user: ' + req.params.userId);
+app.get('/user_settings', function(req, res) {
+    var userId = req.headers.cookie.split("=")[1];
+	console.log('Get to /user_settings for user: ' + userId);
     var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-        ,[req.params.userId]);
+        ,[userId]);
     con.query(sql, function(err,rows) {
         if(err) {
             console.log("error: " + err);
@@ -115,11 +116,12 @@ function sqlFormatDateTime(d) {
 app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(req,res) {
     var startDateTime = new Date(req.body.startTime);
     var sqlDateTimeStr = sqlFormatDateTime(startDateTime);
+    var userId = req.headers.cookie.split("=")[1];
     console.log(sqlDateTimeStr);
     console.log(req.body.domainName);
     var domainName = req.body.domainName.replace("`","");
     var command = "insert into TimeSpent values(??,??,??,??);";
-    var inserts = ['\'danthom\'', "\'" + domainName + "\'", "\'" + sqlDateTimeStr + "\'", req.body.duration];
+    var inserts = ["\'" + userId + "\'", "\'" + domainName + "\'", "\'" + sqlDateTimeStr + "\'", req.body.duration];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
     con.query(sql, function(err) {
@@ -136,9 +138,10 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
 
 });
 
-app.get('/usage_premium/view/:userId', function(req, res) {
+app.get('/usage_premium/view', function(req, res) {
+    var userId = req.headers.cookie.split("=")[1];
     var command = "select domainName from PremiumUserDomains where userID = ??;";
-    var inserts = ['\'' + req.params.userId + '\''];
+    var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
     con.query(sql, function(err,rows){
@@ -152,7 +155,7 @@ app.get('/usage_premium/view/:userId', function(req, res) {
             }
             else {
                 command = "select T.userID, sum(timeSpent) as duration from TimeSpent as T where T.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) group by T.userID;";
-                var inserts = ['\'' + req.params.userId + '\''];
+                var inserts = ['\'' + userId + '\''];
                 sql = msq.format(command,inserts);
                 sql = sql.replace(/`/g,"");
                 console.log(sql);
@@ -272,9 +275,10 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
 }
 
 //Graph page
-app.get('/usage/view/:userID', function(req,res) {
+app.get('/usage/view', function(req,res) {
+    var userId = req.headers.cookie.split("=")[1];
     var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
-    var inserts = ['\'' + req.params.userID + '\''];
+    var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
     con.query(sql, function(err,rows) {    
@@ -288,14 +292,14 @@ app.get('/usage/view/:userID', function(req,res) {
                 for(var i = 0; i < rows.length; i++) {
                     d1.push({value : rows[i].duration, label: rows[i].domainName});
                 }
-                versusTimeQuery(req.params.userID,10,d1,res);
+                versusTimeQuery(userId,10,d1,res);
                 // if (d2 == null) {
                 //     res.sendStatus(400);
                 // }
                 // else {
                     // res.render('usage', {
                     // title: 'Browser Usage',
-                    // message: 'Hello, ' + req.params.userID + '!',
+                    // message: 'Hello, ' + userId + '!',
                     // data1: JSON.stringify(d1),
                     // data2: JSON.stringify(d2)
                     // });
@@ -350,13 +354,14 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
     var chartType = req.body.chartType;
     var command = "";
     var inserts = [];
+    var userId = req.headers.cookie.split("=")[1];
     if(sortType == "category") {
         command = "select * from (select category, sum(TimeSpent) as duration from Categories as C, TimeSpent as T where C.userId = T.userId and C.userId = ?? and C.domainName = T.domainName and T.startTime > ?? group by category union select \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T1 where T1.userId = ?? and not exists(select * from Categories as C1 where T1.userId = C1.userId and T1.domainName = C1.domainName) group by category) as A";
-        inserts = ['\'danthom\'','\'' + sqlFormatDateTime(date) + '\'', '\'danthom\''];
+        inserts = ['\'' + userId + '\'','\'' + sqlFormatDateTime(date) + '\'', '\'' + userId + '\''];
     }
     else {
         command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? and startTime > ?? group by domainName";
-        inserts = ['\'danthom\'', '\'' + sqlFormatDateTime(date) + '\''];
+        inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\''];
     }
     var sql = msq.format(command, inserts);
     sql = sql.replace(/`/g,"");
@@ -380,11 +385,12 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
     });
 });
 
-app.get('/get_settings/:userId', function(req, res) {
+app.get('/get_settings', function(req, res) {
+    var userId = req.headers.cookie.split("=")[1];
     console.log("Request for settings...");
     sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-        ,[req.params.userId]);
-    console.log(req.params.userId)
+        ,[userId]);
+    console.log(userId)
     con.query(sql, function(err,rows) {
         if(err) {
             console.log("error: " + err);
@@ -409,31 +415,14 @@ app.get('/login/', function(req, res) {
     });
 });
 
-function deleteUrls(urlsToDeletes) {
-    for(var i = 0; i < urlsToDeletes.length; i++) {
-        var command = "DELETE from Categories where category = ? and domainName = ? and userId = ?";
-        var inserts = [urlsToDeletes[0],urlsToDeletes[1],'danthom']
-        sql = msq.format(command,inserts);
-        con.query(sql, function(err) {
-            if(err){
-                console.log("error: " + err);
-                res.sendStatus(400);
-            }
-            else {
-                console.log("command:\n" + sql + "\nsucceeded!");
-                res.sendStatus(204);
-            }
-        });
-    }
-}
 
-app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}), function(req, res) {
-    console.log("In save socket.id = " + users[req.params["userId"]]);
+app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), function(req, res) {
+    var userId = req.headers.cookie.split("=")[1];
+    console.log("In save: socket.id = " + users[userId]);
 
 
     console.log(req.params)
     console.log(req.body)
-    var userId = req.params["userId"]
     var urlToChanges = JSON.parse(req.body["url_change"]) 
     var urlsToDeletes = JSON.parse(req.body["delete_url"])
     var urlToAdds = JSON.parse(req.body["add_url"])
@@ -450,7 +439,7 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             }
             category = categoryName[1]
             var command = "UPDATE Settings SET category = ? WHERE userId = ? and category = ?"
-            var inserts = [categoryName[1],req.params.userId,categoryName[0]]
+            var inserts = [categoryName[1],userId,categoryName[0]]
             sql = msq.format(command,inserts);
             console.log("query 1: ");
             console.log(sql);
@@ -469,7 +458,7 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             }
             category = type[1]
             var command = "UPDATE Settings SET type = ? WHERE userId = ? and category = ?"
-            var inserts = [type[1],req.params.userId,type[0]]
+            var inserts = [type[1],userId,type[0]]
             sql = msq.format(command,inserts);
             console.log(sql)
             con.query(sql, function(err) {
@@ -484,7 +473,7 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             async.forEach(urlsToDeletes, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
                 category = url[0]
                 var command = "DELETE FROM Categories WHERE domainName = ? and userId = ? and category = ?"
-                var inserts = [url[1],req.params.userId,url[0]]
+                var inserts = [url[1],userId,url[0]]
                 sql = msq.format(command,inserts);
                 con.query(sql, function(err) {
                     console.log("error possible")
@@ -506,7 +495,7 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             async.forEach(urlToAdds, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
                 category = url[0]
                 command = "INSERT into Categories values(??,??,??)"
-                insert = ["\"" +req.params.userId+ "\"", "\"" +url[1]+ "\""," \"" +url[0] + "\""]
+                insert = ["\"" +userId+ "\"", "\"" +url[1]+ "\""," \"" +url[0] + "\""]
                 sql = msq.format(command,insert);
                 sql = sql.replace(/`/g,"");
                 con.query(sql,function(err) {
@@ -529,7 +518,7 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             async.forEach(urlToChanges, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
                 category = url[0]
                 var command = "UPDATE Categories SET domainName = ? WHERE domainName = ? and userId = ? and category = ?"
-                var inserts = [url[2],url[1],req.params.userId,url[0]]
+                var inserts = [url[2],url[1],userId,url[0]]
                 sql = msq.format(command,inserts);
                 con.query(sql,function(err) {
                     if (err){
@@ -553,7 +542,7 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
             }
             category = timeAllowed[0]
             var command = "UPDATE Settings SET timeAllowed = ? WHERE userId = ? and category = ?"
-            var inserts = [timeAllowed[1],req.params.userId,timeAllowed[0]]
+            var inserts = [timeAllowed[1],userId,timeAllowed[0]]
             sql = msq.format(command,inserts);
             console.log("query 5: ");
             console.log(sql);
@@ -583,10 +572,10 @@ app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}
     })
 });
 
-app.post('/user_settings/:userId/create_category', bodyParser.urlencoded({extended : false}), function(req, res) {
+app.post('/user_settings/create_category', bodyParser.urlencoded({extended : false}), function(req, res) {
     console.log(req.params)
     console.log(req.body)
-    var userId = req.params["userId"]
+    var userId = req.headers.cookie.split("=")[1];
     var categoryName = JSON.parse(req.body["category_name"])
     var timeAllowed = JSON.parse(req.body["time_allowed"])
     var type = JSON.parse(req.body["type"])
@@ -649,10 +638,10 @@ app.post('/user_settings/:userId/create_category', bodyParser.urlencoded({extend
     })
 })
 
-app.post('/user_settings/:userId/delete_category', bodyParser.urlencoded({extended : false}), function(req, res) {
+app.post('/user_settings/delete_category', bodyParser.urlencoded({extended : false}), function(req, res) {
     console.log(req.params)
     console.log(req.body)
-    var userId = req.params["userId"]
+    var userId = req.headers.cookie.split("=")[1];
     var categoryName = JSON.parse(req.body["category_name"]) 
     async.series([
         function(callback) {
@@ -705,7 +694,7 @@ app.post('/user_settings/:userId/delete_category', bodyParser.urlencoded({extend
 })
 
 app.post('/update_TR', function(req, res) {
-    var user = req.body.user;
+    var user = req.headers.cookie.split("=")[1];
     var category = req.body.category;
     var TR = req.body.TR;
 
@@ -726,22 +715,22 @@ app.post('/update_TR', function(req, res) {
     // TODO: What do we send back?
 });
 
-app.get('/login/', function(req, res) {
-    sql = msq.format("select * from Users where userId = ? and password = ?;",[req.query.userId, req.query.password]);
-    con.query(sql, function(err, rows) {
-        if (err) {
-            console.log ("error" + err)
-            res.sendStatus(400)
-        } else {
-            res.send(rows)
-        }
-    });
-});
+// app.get('/login/', function(req, res) {
+//     sql = msq.format("select * from Users where userId = ? and password = ?;",[req.query.userId, req.query.password]);
+//     con.query(sql, function(err, rows) {
+//         if (err) {
+//             console.log ("error" + err)
+//             res.sendStatus(400)
+//         } else {
+//             res.send(rows)
+//         }
+//     });
+// });
 
 app.post('/reset_allTR', function(req, res) {
-    var user = req.body.user;
+    var userId = req.headers.cookie.split("=")[1];
     sql = msq.format("select * from Settings where userId = ? ;"
-        ,[user]);
+        ,[userId]);
     con.query(sql, function(err,rows) {
         if(err) {
             console.log("error: " + err);
@@ -756,7 +745,7 @@ app.post('/reset_allTR', function(req, res) {
                 category = rows[currRow].category;
                 timeAllowed = rows[currRow].timeAllowed;
                 var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
-                var inserts = [timeAllowed, user, category];
+                var inserts = [timeAllowed, userId, category];
                 sql = msq.format(command,inserts);
                 con.query(sql, function(err) {
                     if(err){
@@ -766,23 +755,23 @@ app.post('/reset_allTR', function(req, res) {
                     }
                     else {
                         console.log("command:\n" + sql + "\nsucceeded!");
-                        recursiveQuery(rows, currRow + 1, user);
+                        recursiveQuery(rows, currRow + 1, userId);
                     }
                 });
             };
-            recursiveQuery(rows, 0, user);
+            recursiveQuery(rows, 0, userId);
         }
     });
 });
 
 app.post('/add_page', function(req, res) {
-    var user = req.body.user;
+    var userId = req.headers.cookie.split("=")[1];
     var page = req.body.page;
     console.log(page);
     var category = req.body.category;
 
     var command = "insert into Categories values(??,??,??)";
-    var inserts = ["\'" + user +"\'","\'" +  page + "\'","\'" + category + "\'"];
+    var inserts = ["\'" + userId +"\'","\'" +  page + "\'","\'" + category + "\'"];
     sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
     console.log(sql);
@@ -794,7 +783,7 @@ app.post('/add_page', function(req, res) {
         else {
             console.log("command:\n" + sql + "\nsucceeded!");
             sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-                ,[user]);
+                ,[userId]);
             con.query(sql, function(err,rows) {
                 if(err) {
                     console.log("error: " + err);
@@ -808,12 +797,18 @@ app.post('/add_page', function(req, res) {
     });
 });
 
-app.get('/newtab_page/:userId', function(req, res){
-    var userId = req.params["userId"];
+app.get('/newtab_page', function(req, res){
+    console.log("Cookies: " + req.headers.cookie);
+    // Get user name from cookie
+    var userId = req.headers.cookie.split("=")[1];
+    //console.log(userId);
+
+
+    //var userId = req.params["userId"];
     console.log("Newtab for " + userId);
 
     sql = msq.format("select * from Settings as S where S.userId = ? ORDER BY S.Category;"
-        ,[req.params.userId]);
+        ,[userId]);
     con.query(sql, function(err,rows) {
         if(err) {
             console.log("error: " + err);
