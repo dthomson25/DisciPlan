@@ -20,6 +20,16 @@ block content
 				div.form-group
 					label(for="sel1") Type:
 						select.form-control.type(id="sel1")
+							each interval in resetIntervals
+								if interval != rows[n]["reset_interval"]
+									option= interval
+								else
+									option(selected="selected")=interval 
+						input(type="hidden", value= rows[n]["type"])
+
+				div.form-group
+					label(for="sel1") Type:
+						select.form-control.type(id="sel1")
 							each type in setting_types
 								if type != rows[n]["type"]
 									option= type

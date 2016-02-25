@@ -29,7 +29,7 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
 var differentTypes = ["Redirect","Notifications","Nuclear"]
-
+var resetIntervalOptions = [15*60,30*60,45*60,60*60,1*60*60+30*60,2*60*60,3*60*60,4*60*60,6*60*60,12*60*60,24*60*60]
 
 app.use(bodyParser.json());
 
@@ -89,7 +89,8 @@ app.get('/user_settings', function(req, res) {
                  message: 'This is your settings page!',
                  rows: rows, 
                  current: '/user_settings',
-                 setting_types: differentTypes
+                 setting_types: differentTypes,
+                 resetIntervals: resetIntervalOptions
                 });
         }
     });
