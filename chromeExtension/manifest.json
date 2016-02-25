@@ -10,7 +10,8 @@
   },
 
   "background": {
-      "scripts": ["redirecting.js","track_usage.js","background.js"],
+      "page": "background.html",
+      //"scripts": ["redirecting.js","track_usage.js","background.js"],
       "persistent": false
   },
   "content_scripts": [

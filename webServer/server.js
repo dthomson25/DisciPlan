@@ -25,6 +25,9 @@ var app = express();
 var bodyParser = require('body-parser');
 var async = require('async'); 
 
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
+
 var differentTypes = ["Redirect","Notifications","Nuclear"]
 
 
@@ -34,6 +37,35 @@ app.set('view engine', 'jade');
 app.set('views', './views');
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// app.listen(3000, function () {
+//     console.log('Example app listening on port 3000!');
+// });
+
+http.listen(3000, function () {
+    console.log('DisciPlan Server listening on port 3000!');
+});
+
+
+// Maps usernames to socket ids
+var users = [];
+
+io.on('connection', function(socket) {
+    console.log('A user connected!');
+    socket.on('set username', function(name){
+        console.log('Set username');
+        console.log("socket id: " + socket.id);
+        users[name] = socket.id;
+        socket.username = name;
+        socket.emit('ready');
+        //users[name] = socket.id;
+    });
+
+    socket.on('msg', function() {
+        console.log('Message from: ' + socket.username);
+    });
+
+});
 
 
 app.get('/', function (req, res) {
@@ -63,10 +95,6 @@ app.get('/user_settings/:userId', function(req, res) {
 
 });
 
-
-app.listen(3000, function () {
-	console.log('Example app listening on port 3000!');
-});
 
 function pad(n, width) {
   z = '0';
@@ -388,6 +416,9 @@ function deleteUrls(urlsToDeletes) {
 }
 
 app.post('/user_settings/:userId/save', bodyParser.urlencoded({extended : false}), function(req, res) {
+    console.log("In save socket.id = " + users[req.params["userId"]]);
+
+
     console.log(req.params)
     console.log(req.body)
     var userId = req.params["userId"]
