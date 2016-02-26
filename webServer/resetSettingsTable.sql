@@ -22,4 +22,22 @@ CREATE TRIGGER update_settings
     AFTER UPDATE ON Settings
     FOR EACH ROW
     UPDATE Categories Set category = New.Category where Category = Old.Category and UserID = Old.UserID;
-    
+
+-- DROP TRIGGER IF EXISTS time_allowed_limits_updates;
+-- CREATE TRIGGER time_allowed_limits_updates
+-- 	BEFORE UPDATE ON Settings
+-- 	FOR EACH ROW
+-- 		IF NEW.resetInterval < NEW.TimeAllowed THEN
+-- 			SET NEW.TimeAllowed = NEW.resetInterval
+-- 		END;
+-- 	END;
+
+-- DROP TRIGGER IF EXISTS time_allowed_limits_inserts;
+-- CREATE TRIGGER time_allowed_limits_inserts
+-- 	BEFORE INSERT ON Settings
+-- 	FOR EACH ROW
+-- 	BEGIN
+-- 		IF NEW.ResetInterval < NEW.TimeAllowed THEN
+-- 			SET NEW.TimeAllowed = NEW.ResetInterval
+-- 	END IF;
+-- END;

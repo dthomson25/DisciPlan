@@ -171,7 +171,7 @@ var lastPage = null
 // When time remaining goes to 0, update the database and redirect the page
 // to our home page. 
 function redirectToHome() {
-  console.log("Reditect to home")
+  console.log("Redirect to home")
 
   chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
     // if(lastPage){

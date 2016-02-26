@@ -29,7 +29,7 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
 var differentTypes = ["Redirect","Notifications","Nuclear"]
-var resetIntervalOptions = [15*60,30*60,45*60,60*60,1*60*60+30*60,2*60*60,3*60*60,4*60*60,6*60*60,12*60*60,24*60*60]
+var resetIntervalOptions = {3600 : "Every 60 minutes", 5400  : "Every 1 hour 30 minutes",7200 : "Every 2 hours", 10800 : "Every 3 hours", 14400 : "Every 4 hours", 21600 : "Every 6 hours", 43200 : "Every 12 hours",86400: "Every 24 hours"}
 
 app.use(bodyParser.json());
 
@@ -249,24 +249,56 @@ app.get('/', function (req, res) {
 
 app.get('/user_settings', function(req, res) {
     var userId = req.headers.cookie.split("=")[1];
-    var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-        ,[userId]);
-    con.query(sql, function(err,rows) {
-        if(err) {
-            console.log("error: " + err);
-            res.sendStatus(400);
-        }
-        else {
-            res.render('settings', {title: 'DisciPlan Settings', 
-                 message: 'This is your settings page!',
-                 rows: rows, 
-                 current: '/user_settings',
-                 setting_types: differentTypes,
-                 resetIntervals: resetIntervalOptions
-                });
-        }
-    });
+    console.log('Get to /user_settings for user: ' + userId);    rowsToShow = []
+    async.series([
+        function(callback) {
+            var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId]);
+            console.log(sql)
+            con.query(sql, function(err,rows) {
+                if (err){
+                     callback(err);
+                     return
+                }
+                for (var i = 0; i < rows.length; i++) {
+                    rowsToShow.push(rows[i])
+                }               
+                callback()
 
+            })
+        }, 
+        function(callback) {
+            var sql = msq.format("select userID, category, type, resetInterval,timeAllowed from settings S where S.category not in (select C.category from categories C);"
+                ,[userId]);
+            console.log(sql)
+            con.query(sql, function(err,rows) {
+                console.log(rows)
+                if (err){
+                     callback(err);
+                     return
+                }
+                for (var i = 0; i < rows.length; i++) {
+                    rowsToShow.push(rows[i])
+                }
+
+                callback()
+            })
+        }], 
+        function(err) { 
+            if(err) {
+                console.log("error: " + err);
+                res.sendStatus(400);
+            }
+            else {
+                res.render('settings', {title: 'DisciPlan Settings', 
+                     message: 'This is your settings page!',
+                     rows: rowsToShow, 
+                     current: '/user_settings',
+                     setting_types: differentTypes,
+                     resetIntervals: resetIntervalOptions
+                    });
+            }
+        })
 });
 
 
@@ -436,7 +468,7 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
         dsets.push({label : domainsArr[i], data : dataPoints, strokeColor : "rgba(230,255,0,1)"});
     }
     d.datasets = dsets;
-
+    console.log(d)
     res.render('usage', {
     title: 'Browser Usage',
     message: 'Hello, ' + userId + '!',
@@ -586,19 +618,17 @@ app.get('/login/', function(req, res) {
     });
 });
 
-
 app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), function(req, res) {
     var userId = req.headers.cookie.split("=")[1];
     console.log("In save: socket.id = " + users[userId]);
-
-
-    console.log(req.params)
+    // saveSettings(req)
     console.log(req.body)
     var urlToChanges = JSON.parse(req.body["url_change"]) 
     var urlsToDeletes = JSON.parse(req.body["delete_url"])
     var urlToAdds = JSON.parse(req.body["add_url"])
     var timeAllowed = JSON.parse(req.body["time_allowed"])
     var type = JSON.parse(req.body["type"])
+    var resetInterval = JSON.parse(req.body["reset_interval"])
     var categoryName = JSON.parse(req.body["category_name"])
 
     var category = ""
@@ -633,6 +663,25 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
             sql = msq.format(command,inserts);
             console.log(sql)
             con.query(sql, function(err) {
+                    if (err){
+                         callback(err);
+                         return
+                    }
+                    callback()
+            })
+        },
+        function(callback) {
+            if (resetInterval.length == 0) {
+                callback()
+                return
+            }
+            category = resetInterval[1]
+            var command = "UPDATE Settings SET resetInterval = ? WHERE userId = ? and category = ?"
+            var inserts = [resetInterval[1],req.params.userId,resetInterval[0]]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                console.log(err)
                     if (err){
                          callback(err);
                          return
@@ -772,12 +821,13 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
     var categoryName = JSON.parse(req.body["category_name"])
     var timeAllowed = JSON.parse(req.body["time_allowed"])
     var type = JSON.parse(req.body["type"])
+    var resetInterval = JSON.parse(req.body["reset_interval"])
     var domainName = JSON.parse(req.body["domain_names"])
     async.series([
         function(callback) {
             var command = "INSERT INTO Settings (userID,category,type,timeAllowed,timeRemaining,resetInterval) VALUES(?,?,?,?,?,?)"
             var inserts = [userId, categoryName, type,
-            timeAllowed.toString(),timeAllowed.toString(),timeAllowed.toString()]
+            timeAllowed.toString(),timeAllowed.toString(),resetInterval.toString()]
             sql = msq.format(command,inserts);
             console.log(sql)
             con.query(sql, function(err) {
@@ -815,17 +865,18 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
                 })
         }
     ], function(err) {
+        console.log(err)
         if (err)  {
-            console.log(err)
-
             var message = "Unknown Error"
             if (err.code == "ER_DUP_ENTRY")
                 message = "Duplicate entry"
             res.status(400).send(message);
             return
         }
-        console.log("All good!")
-
+        if (categoryName != "") {
+            res.send(categoryName)
+            return
+        }
         res.sendStatus(204)
         return
     })
