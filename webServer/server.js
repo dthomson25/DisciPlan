@@ -76,7 +76,8 @@ app.get('/', function (req, res) {
 
 app.get('/user_settings', function(req, res) {
     var userId = req.headers.cookie.split("=")[1];
-    console.log('Get to /user_settings for user: ' + userId);    rowsToShow = []
+    console.log('Get to /user_settings for user: ' + userId)
+    rowsToShow = []
     async.series([
         function(callback) {
             var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
@@ -87,6 +88,8 @@ app.get('/user_settings', function(req, res) {
                      callback(err);
                      return
                 }
+                console.log(rows)
+
                 for (var i = 0; i < rows.length; i++) {
                     rowsToShow.push(rows[i])
                 }               
@@ -104,6 +107,7 @@ app.get('/user_settings', function(req, res) {
                      callback(err);
                      return
                 }
+                console.log(rows)
                 for (var i = 0; i < rows.length; i++) {
                     rowsToShow.push(rows[i])
                 }
@@ -117,6 +121,7 @@ app.get('/user_settings', function(req, res) {
                 res.sendStatus(400);
             }
             else {
+                console.log(rowsToShow)
                 res.render('settings', {title: 'DisciPlan Settings', 
                      message: 'This is your settings page!',
                      rows: rowsToShow, 
@@ -418,6 +423,7 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
 });
 
 app.get('/get_settings', function(req, res) {
+    console.log(req.headers.cookie);
     var userId = req.headers.cookie.split("=")[1];
     console.log("Request for settings...");
     sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
