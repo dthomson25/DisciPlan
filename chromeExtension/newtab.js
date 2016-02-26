@@ -11,10 +11,22 @@
             var labels = [];
             var dataUsed = [];
             var dataRemaining = [];
+            var fillSpent = [];
+            var strokeSpent = [];
             for(i = categories.length-1; i >= 0; i--){
                labels.push(categories[i].category);
-               dataRemaining.push(categories[i].timeRemaining);
-               dataUsed.push(categories[i].timeAllowed - categories[i].timeRemaining);
+               if(categories[i].timeRemaining < 0){
+                  dataRemaining.push(0);
+                  dataUsed.push(categories[i].timeAllowed);
+                  fillSpent.push("rgba(255,51,51,0.2)");
+                  strokeSpent.push("rgba(255,51,51,1)");
+               }
+               else{
+                  dataRemaining.push(categories[i].timeRemaining);
+                  dataUsed.push(categories[i].timeAllowed - categories[i].timeRemaining);
+                  fillSpent.push("rgba(51,153,255,0.2)");
+                  strokeSpent.push("rgba(51,153,255,1)")
+               }
             }
 
             var datasets = [ 
@@ -25,8 +37,8 @@
                   title : "Time Remaining"
                },
                {
-                  fillColor : "rgba(51,153,255,0.2)",
-                  strokeColor : "rgba(51,153,255,1)",
+                  fillColor : fillSpent,
+                  strokeColor : strokeSpent,
                   data : dataUsed,
                   title : "Time Spent"
                }

@@ -224,7 +224,9 @@ io.on('connection', function(socket) {
             }
             else {
                 console.log("command:\n" + sql + "\nsucceeded!");
-                sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                //sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                 //   ,[userId]);
+                sql = msq.format("select * from Settings where userId = ? ORDER BY timeAllowed;"// or order by timeRemaining
                     ,[userId]);
                 con.query(sql, function(err,rows) {
                     if(err) {

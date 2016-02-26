@@ -25,9 +25,7 @@ socket.on('settings object', function(settings) {
     startResetTimeout();
   }
 });
-socket.on('RT updated', function(settings) {
-  settings_JSON = settings;
-});
+
 socket.on('all RT reset', function(settings) {
   settings_JSON = settings;
 });
@@ -55,6 +53,10 @@ socket.on('top unres sites', function(sites){
   console.log(sites);
   unresSites = sites;
 
+});
+
+socket.on('RT updated', function(categories) {
+  RTCategories = categories;
 });
 
 
@@ -146,7 +148,7 @@ function startResetTimeout() {
     resetDate.setHours(resetDate.getHours() + 24);
     diff = resetDate - currDate;
   }
-  //diff = 1; // TODO remove this after testing
+  diff = 1; // TODO remove this after testing
   resetTimeoutId = setTimeout(startInterval, diff);
 }
 
@@ -174,9 +176,9 @@ redirectCurrentTab = function(Url){
 
 // When the remaining time for a category goes to 0, send a POST request
 // to update the database with that information. 
-function updateDatabaseCategoryRT(){
+function updateDatabaseCategoryRT(time){
   // TODO make this so that the TR is not hardcoded to 0 and we can update for any value
-  var update = JSON.stringify({category: currCategory, TR: 0});
+  var update = JSON.stringify({category: currCategory, TR: time});
   socket.emit('update_cat_TR', update);
 
 
@@ -224,7 +226,7 @@ function notifyTimeUp() {
 
 function handleTimeUp() {
 
-  updateDatabaseCategoryRT();
+  updateDatabaseCategoryRT(0);
   console.log(currType);
 
   if(currType == "Redirect")
@@ -274,12 +276,15 @@ function startTimeout() {
 }
 
 function updateCategoryRT(elapsed_sec){
+  var time_remain;
   for(i = 0; i < settings_JSON.length; i++){
     row = settings_JSON[i];
     if(row.category == currCategory){
       row.timeRemaining = row.timeRemaining - elapsed_sec;
+      time_remain = row.timeRemaining;
     }
   }
+  updateDatabaseCategoryRT(time_remain);
 }
 
 function checkSettingChangeTab() {
