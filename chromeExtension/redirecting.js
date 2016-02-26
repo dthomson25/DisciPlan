@@ -1,24 +1,61 @@
 
+var settings_JSON = null;
+
+
+// Set up persistent connection to server for updates
+
+var socket = io.connect('http://localhost:3000');
+
+socket.on('connect', function() {
+    console.log('socket connected');
+    //socket.emit('set username', 'danthom');
+});
+socket.on('username set', function() {
+    socket.emit('get settings');
+
+});
+socket.on('error', function(error) {
+  console.log('Error: ' + error);
+});
+socket.on('settings object', function(settings) {
+  if(settings){
+    console.log("Received settings object from socket...");
+    console.log(settings);
+    settings_JSON = settings;
+    startResetTimeout();
+  }
+});
+socket.on('RT updated', function(settings) {
+  settings_JSON = settings;
+});
+socket.on('all RT reset', function(settings) {
+  settings_JSON = settings;
+});
+
+function set_socket_username_get_settings(){
+  socket.emit('set username', username);
+}
+
+
+
+
 // Http request to get settings of user
 
 
 
-var settings_JSON = null;
 
-function get_settings() {
-  var xhttp_settings = new XMLHttpRequest();
-  xhttp_settings.onreadystatechange = function() {
-    if (xhttp_settings.readyState == 4 && xhttp_settings.status == 200) {
-      settings_JSON = JSON.parse(xhttp_settings.responseText);
-      // Every time we get new settings we want to check if the reset time is the same
-      startResetTimeout();
-      console.log(settings_JSON); 
-
-    }
-  };
-  xhttp_settings.open("GET", "http://localhost:3000/get_settings", true);
-  xhttp_settings.send();
-}
+// function get_settings() {
+//   var xhttp_settings = new XMLHttpRequest();
+//   xhttp_settings.onreadystatechange = function() {
+//     if (xhttp_settings.readyState == 4 && xhttp_settings.status == 200) {
+//       settings_JSON = JSON.parse(xhttp_settings.responseText);
+//       // Every time we get new settings we want to check if the reset time is the same
+//       startResetTimeout();
+//     }
+//   };
+//   xhttp_settings.open("GET", "http://localhost:3000/get_settings", true);
+//   xhttp_settings.send();
+// }
 
 
 
@@ -30,7 +67,8 @@ function get_settings() {
 chrome.cookies.get({"url": "http://localhost", "name": "disciplan"}, function(cookie) {
   if (cookie) {
     username = cookie.value;
-    get_settings();
+    set_socket_username_get_settings();
+    //get_settings();
   } 
 });
 
@@ -43,16 +81,19 @@ var resetTimeoutId
 var resetTime = 0
 
 function resetAllTR() {
-  console.log("Resetting time remaining. Current time: " + new Date());
-  var http_reset_allTR = new XMLHttpRequest();
-  http_reset_allTR.onreadystatechange = function() {
-    if (http_reset_allTR.readyState == 4 && http_reset_allTR.status == 200) {
-      get_settings();
-    }
-  };
-  http_reset_allTR.open("POST", 'http://localhost:3000/reset_allTR');
-  http_reset_allTR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-  http_reset_allTR.send();
+  console.log("Resetting all time remaining request");
+  socket.emit('Reset_allTR');
+
+
+  // var http_reset_allTR = new XMLHttpRequest();
+  // http_reset_allTR.onreadystatechange = function() {
+  //   if (http_reset_allTR.readyState == 4 && http_reset_allTR.status == 200) {
+  //     get_settings();
+  //   }
+  // };
+  // http_reset_allTR.open("POST", 'http://localhost:3000/reset_allTR');
+  // http_reset_allTR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  // http_reset_allTR.send();
 }
 
 function startInterval() {
@@ -65,7 +106,6 @@ function startInterval() {
 }
 
 function startResetTimeout() {
-  console.log("Starting reset interval.");
   if(resetTimeoutId)
     window.clearTimeout(resetTimeoutId);
   var oldResetTime = resetTime;
@@ -110,15 +150,20 @@ redirectCurrentTab = function(Url){
 // When the remaining time for a category goes to 0, send a POST request
 // to update the database with that information. 
 function updateDatabaseCategoryRT(){
+  // TODO make this so that the TR is not hardcoded to 0 and we can update for any value
   var update = JSON.stringify({category: currCategory, TR: 0});
-  var http_update_TR = new XMLHttpRequest();
-  // Do we get a response?
-  // http_update_TR.onreadystatechange = function() {
+  socket.emit('update_cat_TR', update);
 
-  // };
-  http_update_TR.open("POST", 'http://localhost:3000/update_TR');
-  http_update_TR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-  http_update_TR.send(update);
+
+
+  // var http_update_TR = new XMLHttpRequest();
+  // // Do we get a response?
+  // // http_update_TR.onreadystatechange = function() {
+
+  // // };
+  // http_update_TR.open("POST", 'http://localhost:3000/update_TR');
+  // http_update_TR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  // http_update_TR.send(update);
 }
 
 
@@ -126,7 +171,7 @@ var lastPage = null
 // When time remaining goes to 0, update the database and redirect the page
 // to our home page. 
 function redirectToHome() {
-  updateDatabaseCategoryRT();
+  console.log("Reditect to home")
 
   chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
     // if(lastPage){
@@ -153,6 +198,10 @@ function notifyTimeUp() {
 }
 
 function handleTimeUp() {
+
+  updateDatabaseCategoryRT();
+  console.log(currType);
+
   if(currType == "Redirect")
     redirectToHome();
   if(currType == "Notifications")
@@ -247,29 +296,38 @@ function get_categories() {
 
 
 function popupRequest(request, sender, sendResponse) {
-  // console.log(sender.tab ?
-  //               "from a content script:" + sender.tab.url :
-  //               "from the extension");
-
   // If message from popup telling us to add a domain to a category
   if(request.req == "update"){
     update = request.update;
-    var http_add_page = new XMLHttpRequest();
-    sendRes = function() { sendResponse(); };
-    http_add_page.onreadystatechange = function() {
-      // The response has the new updated settings
-      if (http_add_page.readyState == 4 && http_add_page.status == 200) {
-        settings_JSON = JSON.parse(http_add_page.responseText);
-        startTime = new Date();
-        page = JSON.parse(update).page;
-        checkIfRestricted(page, true);
-        startTimeout();
-        sendRes(); // Send the response once the settings have been updated
-      }
-    };
-    http_add_page.open("POST", 'http://localhost:3000/add_page');
-    http_add_page.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    http_add_page.send(update);
+    socket.emit('add page', update);
+    socket.on('page added', function(settings) {
+      settings_JSON = settings;
+      startTime = new Date();
+      page = JSON.parse(update).page;
+      checkIfRestricted(page, true);
+      startTimeout();
+      sendResponse(); // Send the response once the settings have been updated
+    });
+
+
+
+
+    // var http_add_page = new XMLHttpRequest();
+    
+    // http_add_page.onreadystatechange = function() {
+    //   // The response has the new updated settings
+    //   if (http_add_page.readyState == 4 && http_add_page.status == 200) {
+    //     settings_JSON = JSON.parse(http_add_page.responseText);
+    //     startTime = new Date();
+    //     page = JSON.parse(update).page;
+    //     checkIfRestricted(page, true);
+    //     startTimeout();
+    //     sendRes(); // Send the response once the settings have been updated
+    //   }
+    // };
+    // http_add_page.open("POST", 'http://localhost:3000/add_page');
+    // http_add_page.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    // http_add_page.send(update);
   }
   // If message from popup asking for endtime
   if(request.req == "endTime"){
@@ -293,55 +351,30 @@ function popupRequest(request, sender, sendResponse) {
   }
   // If message from newtab asking for information
   if(request.req == "newtab"){
-    console.log("newtab message!");
     sendResponse({settings: settings_JSON})
   }
   if(request.req == "username"){
-    console.log("Username: " +  request.username);
     username = request.username;
-    get_settings();
+    set_socket_username_get_settings();
+    //get_settings();
     intervalId = setInterval(sendStartTimer, 500);
     function sendStartTimer(){
       if(settings_JSON){
         checkSettingChangeTab();
         sendResponse({res: "start_timer"});
         clearInterval(intervalId);
-      }
-      
+      } 
     }
-
-  }
-    
+  }  
 }
 
 
-// Update remaning time for last category, cancel timeout, then
-// check if current site is restricted and if it is start
-// a timeout to redirect page
-// chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-//   checkSettingsNewTab(tabId, changeInfo, tab)
-// });
-
-
-
-// Update remaning time for last category, cancel timeout, then
-// check if current site is restricted and if it is start
-// a timeout to redirect page
-// chrome.tabs.onActivated.addListener(function(tabId, changeInfo, tab) {
-//   checkSettingChangeTab(tabId, changeInfo, tab)
-
-// });
-
-
-
 chrome.windows.onFocusChanged.addListener(function(windowId) {
-  // console.log("window changed");
   checkSettingChangeTab();
 });
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    console.log(request);
     popupRequest(request, sender, sendResponse);
     return true;
 });
