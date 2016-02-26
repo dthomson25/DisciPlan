@@ -223,11 +223,11 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
     currDate.setUTCSeconds(0);
     currDate.setUTCMinutes(0);
     currDate.setUTCHours(0);
+    currDate = new Date(currDate.getTime() + 24*60*1000);
     var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
-    currDate = prevDate;
-    prevDate = new Date(currDate.getTime() - 24*60*60*1000);
-    dates.push(shortDateStr(currDate));
+    dates.push(shortDateStr(prevDate));
 
+    console.log("FIRST DATE: " + dates);
     var result = [];
     inserts = [];
     var totalCommand = "select * from (";
@@ -235,13 +235,13 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
         if(i > 0) {
             totalCommand += " union ";
         }
-        totalCommand += "select \'" + shortDateStr(currDate) + "\' as date, sum(timeSpent) as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime > ?? group by domainName";
+        totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime > ?? group by domainName";
         inserts.push('\'' + userId + '\'');
         inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
         inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
         currDate = prevDate;
         prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
-        dates.unshift(shortDateStr(currDate));
+        dates.unshift(shortDateStr(prevDate));
     }
     totalCommand += ") as Result order by domainName;";
     var sql = msq.format(totalCommand,inserts);
