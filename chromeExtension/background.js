@@ -1,7 +1,6 @@
 var tracker = {};
 tracker.prevDate = new Date();
 getStartingDomain(tracker);
-console.log(tracker);
 
 
 var username = null;

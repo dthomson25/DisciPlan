@@ -13,7 +13,7 @@ function extractDomain(url) {
 function getStartingDomain(tracker) {
     chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
         tracker.prevDomain = extractDomain(tabs[0].url);
-        console.log("starting domain: " + tracker.prevDomain);
+        // console.log("starting domain: " + tracker.prevDomain);
     });
 }
 
@@ -21,12 +21,12 @@ function sendXHR(url, tracker) {
     // If not logged in do not send request
     if(!username)
         return;
-    console.log(tracker);
+    // console.log(tracker);
     var xhr = new XMLHttpRequest();
     xhr.addEventListener('readystatechange', function(evt) {
         if (xhr.readyState === 4) {
             if (xhr.status === 204) {
-                console.log("yay");
+                // console.log("yay");
             }
             else {
                 console.log("ERROR: status " + xhr.status);
