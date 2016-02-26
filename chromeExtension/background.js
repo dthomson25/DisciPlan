@@ -1,7 +1,9 @@
 var tracker = {};
 tracker.prevDate = new Date();
 getStartingDomain(tracker);
-console.log(tracker);
+
+
+var username = null;
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
   checkSettingChangeTab()

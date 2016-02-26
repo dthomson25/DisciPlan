@@ -18,6 +18,17 @@ block content
 						input.form-control.time(type="number",placeholder=(Math.floor(parseInt(rows[n]["timeAllowed"])/60)%60).toString(), min="0", aria-describedby="sizing-addon2")
 						span.input-group-addon  minutes
 				div.form-group
+					label(for="sel1") Reset Interval:
+						select.form-control.reset-interval(id="sel1")
+							each val,index in resetIntervals
+								if parseInt(index) == rows[n]["resetInterval"]
+									option(selected="selected", value=index)= val
+								else
+									option(value=index)= val
+						input(type="hidden", value= rows[n]["resetInterval"])
+						-console.log(rows[n])
+
+				div.form-group
 					label(for="sel1") Type:
 						select.form-control.type(id="sel1")
 							each type in setting_types
@@ -28,13 +39,14 @@ block content
 						input(type="hidden", value= rows[n]["type"])
 
 				while n < rows.length && currCategory === rows[n]["category"]
-					.input-group()
-						span.input-group-btn.edit-url-btn
-							button.btn.btn-default(  type="button") Edit!
-						input.form-control(type="text", value= rows[n]["domainName"], disabled='')
-						span.input-group-btn.delete-url
-							button.btn.btn-default(type='button') Delete!
-					input(type="hidden", value= rows[n]["domainName"])
+					if(("domainName" in rows[n]))
+						.input-group()
+							span.input-group-btn.edit-url-btn
+								button.btn.btn-default(  type="button") Edit!
+							input.form-control(type="text", value= rows[n]["domainName"], disabled='')
+							span.input-group-btn.delete-url
+								button.btn.btn-default(type='button') Delete!
+						input(type="hidden", value= rows[n]["domainName"])
 					- n++
 				button.btn.btn-default.add-url(type='button') +
 

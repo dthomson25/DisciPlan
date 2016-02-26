@@ -14,12 +14,30 @@ INSERT INTO Categories VALUES ("danthom","www.usatoday.com","Entertainment");
 
 
 INSERT INTO Settings VALUES ("danthom","Social","Redirect","10","10","5");
-INSERT INTO Settings VALUES ("danthom","Sports","Notifications","20","20","5");
-INSERT INTO Settings VALUES ("danthom","Entertainment","Nuclear","20","20","5");
+INSERT INTO Settings VALUES ("danthom","Sports","Notifications","5","5","5");
+INSERT INTO Settings VALUES ("danthom","Entertainment","Nuclear","20","11","5");
 
 DROP TRIGGER IF EXISTS update_settings;
 CREATE TRIGGER update_settings 
     AFTER UPDATE ON Settings
     FOR EACH ROW
     UPDATE Categories Set category = New.Category where Category = Old.Category and UserID = Old.UserID;
-    
+
+-- DROP TRIGGER IF EXISTS time_allowed_limits_updates;
+-- CREATE TRIGGER time_allowed_limits_updates
+-- 	BEFORE UPDATE ON Settings
+-- 	FOR EACH ROW
+-- 		IF NEW.resetInterval < NEW.TimeAllowed THEN
+-- 			SET NEW.TimeAllowed = NEW.resetInterval
+-- 		END;
+-- 	END;
+
+-- DROP TRIGGER IF EXISTS time_allowed_limits_inserts;
+-- CREATE TRIGGER time_allowed_limits_inserts
+-- 	BEFORE INSERT ON Settings
+-- 	FOR EACH ROW
+-- 	BEGIN
+-- 		IF NEW.ResetInterval < NEW.TimeAllowed THEN
+-- 			SET NEW.TimeAllowed = NEW.ResetInterval
+-- 	END IF;
+-- END;
