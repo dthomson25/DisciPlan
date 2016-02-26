@@ -87,7 +87,32 @@ io.on('connection', function(socket) {
         });
 
 //
-    });
+    }); // End on get settings
+
+    socket.on('get time remaining', function (){
+        var userId = socket.username;
+        var socketId = users[userId];
+
+        sql = msq.format("select * from Settings where userId = ? ORDER BY timeAllowed;"// or order by timeRemaining
+            ,[userId]);
+        con.query(sql, function(err,rows) {
+            if(err) {
+                console.log("error: " + err);
+                if (io.sockets.connected[socketId]){
+                    io.to(socketId).emit("error", err);
+                }
+            }
+            else {
+                console.log(rows); 
+                if (io.sockets.connected[socketId]){
+                    io.to(socketId).emit("all time remaining", rows);
+                }
+                //res.send(rows);
+            }
+        });
+    }); // End all time remaining
+
+
 
     socket.on('Reset_allTR', function() {
         var userId = socket.username;

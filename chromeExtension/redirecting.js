@@ -34,7 +34,20 @@ socket.on('all RT reset', function(settings) {
 
 function set_socket_username_get_settings(){
   socket.emit('set username', username);
+  socket.emit('get time remaining');
 }
+
+
+var RTCategories = null;
+
+// TODO when do we socket.emit('get time remaining') so we have 
+// recent data but not right before newtab because that is slowish?
+socket.on('all time remaining', function(categories){
+  console.log("categories remaining time");
+  console.log(categories);
+  RTCategories = categories;
+});
+
 
 
 
@@ -122,7 +135,7 @@ function startResetTimeout() {
     resetDate.setHours(resetDate.getHours() + 24);
     diff = resetDate - currDate;
   }
-  diff = 1; // remove this after testing
+  //diff = 1; // TODO remove this after testing
   resetTimeoutId = setTimeout(startInterval, diff);
 }
 
@@ -297,6 +310,7 @@ function get_categories() {
 
 function popupRequest(request, sender, sendResponse) {
   // If message from popup telling us to add a domain to a category
+  console.log("request: " + request.req);
   if(request.req == "update"){
     update = request.update;
     socket.emit('add page', update);
@@ -351,7 +365,7 @@ function popupRequest(request, sender, sendResponse) {
   }
   // If message from newtab asking for information
   if(request.req == "newtab"){
-    sendResponse({settings: settings_JSON})
+    sendResponse({username: username, categories: RTCategories})
   }
   if(request.req == "username"){
     username = request.username;
