@@ -28,6 +28,7 @@ socket.on('settings object', function(settings) {
 
 socket.on('all RT reset', function(settings) {
   settings_JSON = settings;
+  socket.emit('get time remaining');
 });
 
 function set_socket_username_get_settings(){
@@ -109,6 +110,7 @@ var resetTime = 0
 function resetAllTR() {
   console.log("Resetting all time remaining request");
   socket.emit('Reset_allTR');
+
 
 
   // var http_reset_allTR = new XMLHttpRequest();
