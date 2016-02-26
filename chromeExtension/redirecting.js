@@ -35,10 +35,12 @@ socket.on('all RT reset', function(settings) {
 function set_socket_username_get_settings(){
   socket.emit('set username', username);
   socket.emit('get time remaining');
+  socket.emit('get top unres sites');
 }
 
 
 var RTCategories = null;
+var unresSites = null;
 
 // TODO when do we socket.emit('get time remaining') so we have 
 // recent data but not right before newtab because that is slowish?
@@ -47,6 +49,15 @@ socket.on('all time remaining', function(categories){
   console.log(categories);
   RTCategories = categories;
 });
+
+socket.on('top unres sites', function(sites){
+  console.log('Top sites not on restricted lists.');
+  console.log(sites);
+  unresSites = sites;
+
+});
+
+
 
 
 
@@ -155,8 +166,9 @@ var timeoutId
 var badRedirect = false
 
 redirectCurrentTab = function(Url){
+  console.log(Url);
   chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
-        chrome.tabs.update(tabs[0].id, {url: Url});
+      chrome.tabs.update(tabs[0].id, {url: Url});
     });
 }
 
@@ -365,7 +377,9 @@ function popupRequest(request, sender, sendResponse) {
   }
   // If message from newtab asking for information
   if(request.req == "newtab"){
-    sendResponse({username: username, categories: RTCategories})
+    sendResponse({username: username, 
+                  categories: RTCategories,
+                  sites: unresSites})
   }
   if(request.req == "username"){
     username = request.username;

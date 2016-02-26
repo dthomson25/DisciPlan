@@ -110,7 +110,30 @@ io.on('connection', function(socket) {
                 //res.send(rows);
             }
         });
-    }); // End all time remaining
+    }); // End on all time remaining
+
+    socket.on('get top unres sites', function() {
+        var userId = socket.username;
+        var socketId = users[userId];
+         sql = msq.format("select domainName, SUM(timeSpent) as TotalTime from Timespent T where domainName not in (Select C.domainName from Categories C where userID = ?) group by domainName order by totalTime desc limit 8;"
+            ,[userId]);
+        con.query(sql, function(err,rows) {
+            if(err) {
+                console.log("error: " + err);
+                if (io.sockets.connected[socketId]){
+                    io.to(socketId).emit("error", err);
+                }
+            }
+            else {
+                console.log("top unres sites");
+                console.log(rows); 
+                if (io.sockets.connected[socketId]){
+                    io.to(socketId).emit("top unres sites", rows);
+                }
+                //res.send(rows);
+            }
+        });
+    }); // End on get top unres sites
 
 
 

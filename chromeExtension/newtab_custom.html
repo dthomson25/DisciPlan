@@ -1,24 +1,73 @@
 <html>
  <head>
   <title>DisciPlan</title>
+  <link rel="stylesheet" type="text/css" href="/public/css/bootstrap.min.css">
   <style>
-  div {
-    color: #cccccc;
-    vertical-align: 50%;
-    text-align: center;
-    font-family: sans-serif;
-    font-size: 300%;
+
+  canvas{
+    float: left;
+  }
+  #main {
+    width:1000px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #funFact{
+    float: left;
+    background-color: #F0F0F0;
+    min-height: 400px;
+    min-width: 500px;
+    font-size: 40pt;
+    color: white;
+  }
+  #mostVisited{
+    width: 970px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+  }
+  #top{
+    margin-bottom: 20px;
+    width: 1000px;
+    height: 400px;
+  }
+  .col-md-3{
+    background-color: F0F0F0;
+    outline-color: 707070;
+    outline-style: solid;
+    outline-width: 1px;
+    min-height: 40px;
   }
   </style>
  </head>
  <body>
-  <canvas id="timeRemainingCanvas" height="300" width="500">
+  <div id="main">
+    <div id="top">
+      <canvas id="timeRemainingCanvas" height="400" width="500">
+      </canvas>
+      <div id="funFact" height="400" width="500">THIS IS FUN FACT</div>
+    </div>
+    <div id="mostVisited">
+      <div class="row">
+        <div class="col-md-3" id="site1"></div>
+        <div class="col-md-3" id="site2"></div>
+        <div class="col-md-3" id="site3"></div>
+        <div class="col-md-3" id="site4"></div>
 
-  </canvas>
+      </div>
+      <div class="row">
+        <div class="col-md-3" id="site5"></div>
+        <div class="col-md-3" id="site6"></div>
+        <div class="col-md-3" id="site7"></div>
+        <div class="col-md-3" id="site8"></div>
+      </div>
+    </div>
+  </div>
 
-
+  <script src='/public/js/jquery-1.12.0.min.js'></script>
   <script src="public/js/ChartNew.js"></script>
   <script src="newtab.js"></script>
+  <script src='/public/js/bootstrap.min.js'></script>
  </body>
 </html>
 
