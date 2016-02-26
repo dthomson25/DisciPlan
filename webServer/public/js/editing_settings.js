@@ -219,7 +219,6 @@ $(".main").on("click",".save",function() {
     sendCreateCategoryRequest(newCategory)
     return;
   }
-  return
   urlsToChange = findChangedUrls(category)
   urlsToDelete = findDeletedUrls(category)
   urlsToAdd = findNewUrls(category)
