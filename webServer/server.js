@@ -381,6 +381,37 @@ app.get('/login/', function(req, res) {
     });
 });
 
+app.get('/register/', function(req, res) {
+    sql = msq.format("select * from Users where userId = ?;", [req.query.userId]);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log ("error" + err)
+            res.sendStatus(400)
+        } else {
+            if (rows.length > 0) {
+                var message = "That userId is already taken"
+                console.log(message)
+                res.status(400).send(message)
+                return;
+            } else {    // Insert the new user
+                /** TODO: Change this at some point to getting an actual birthday **/
+                var sqlDate = sqlFormatDateTime(new Date());
+                sql = msq.format("INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, 0);",
+                    [req.query.userId, req.query.email, req.query.first_name,
+                      req.query.last_name, req.query.password, sqlDate]);
+                con.query(sql, function(err,rows) {
+                    if (err) {
+                        console.log("error" + err)
+                        res.sendStatus(400)
+                    } else {
+                        res.sendStatus(200)
+                    }
+                });
+            }
+        }
+    });
+});
+
 function deleteUrls(urlsToDeletes) {
     for(var i = 0; i < urlsToDeletes.length; i++) {
         var command = "DELETE from Categories where category = ? and domainName = ? and userId = ?";
@@ -693,18 +724,6 @@ app.post('/update_TR', function(req, res) {
     });
 
     // TODO: What do we send back?
-});
-
-app.get('/login/', function(req, res) {
-    sql = msq.format("select * from Users where userId = ? and password = ?;",[req.query.userId, req.query.password]);
-    con.query(sql, function(err, rows) {
-        if (err) {
-            console.log ("error" + err)
-            res.sendStatus(400)
-        } else {
-            res.send(rows)
-        }
-    });
 });
 
 app.post('/reset_allTR', function(req, res) {
