@@ -46,6 +46,16 @@ http.listen(3000, function () {
     console.log('DisciPlan Server listening on port 3000!');
 });
 
+function getDisciplanCookie(cookies) {
+    var re = new RegExp("disciplan=([a-zA-z0-9]*)");
+    var matches = re.exec(cookies);
+    if(matches.length > 1) {
+        return re.exec(cookies)[1];
+    }
+    else {
+        return -1;
+    }
+}
 
 // Maps usernames to socket ids
 var users = [];
@@ -298,7 +308,7 @@ app.get('/', function (req, res) {
 });
 
 app.get('/user_settings', function(req, res) {
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     console.log('Get to /user_settings for user: ' + userId)
     rowsToShow = []
     async.series([
@@ -376,7 +386,7 @@ function sqlFormatDateTime(d) {
 app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(req,res) {
     var startDateTime = new Date(req.body.startTime);
     var sqlDateTimeStr = sqlFormatDateTime(startDateTime);
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     console.log(sqlDateTimeStr);
     console.log(req.body.domainName);
     var domainName = req.body.domainName.replace("`","");
@@ -397,7 +407,7 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
 });
 
 app.get('/usage_premium/view', function(req, res) {
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     var command = "select domainName from PremiumUserDomains where userID = ??;";
     var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
@@ -550,7 +560,8 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
 
 //Graph page
 app.get('/usage/view', function(req,res) {
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
+    console.log(userId);
     var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
     var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
@@ -567,7 +578,7 @@ app.get('/usage/view', function(req,res) {
                     d1.push({value : rows[i].duration, label: rows[i].domainName});
                 }
 
-                versusTimeQuery(req.params.userID,10,d1,res);
+                versusTimeQuery(userId,10,d1,res);
             }
     });
 });
@@ -618,7 +629,7 @@ app.post('/usage/update/left/:userID',bodyParser.urlencoded({extended : false}),
     var chartType = req.body.chartType;
     var command = "";
     var inserts = [];
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     if(sortType == "category") {
         command = "select * from (select category, sum(TimeSpent) as duration from Categories as C, TimeSpent as T where C.userId = T.userId and C.userId = ?? and C.domainName = T.domainName and T.startTime > ?? group by category union select \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T1 where T1.userId = ?? and not exists(select * from Categories as C1 where T1.userId = C1.userId and T1.domainName = C1.domainName) group by category) as A";
         inserts = ['\'' + userId + '\'','\'' + sqlFormatDateTime(date) + '\'', '\'' + userId + '\''];
@@ -660,13 +671,13 @@ app.post('/usage/update/right/:userID',bodyParser.urlencoded({extended : false})
     var date = new Date(req.body.startTime);
     var numToView = req.body.numToView;
     var numDays = getNumberOfDays(date);
-    versusTimeOneCategoryQuery(category,req.params.userID,)
+    //versusTimeOneCategoryQuery(category,req.params.userID,)
 
 });
 
 app.get('/get_settings', function(req, res) {
     console.log(req.headers.cookie);
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     console.log("Request for settings...");
     sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
         ,[userId]);
@@ -696,7 +707,7 @@ app.get('/login/', function(req, res) {
 });
 
 app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), function(req, res) {
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     console.log("In save: socket.id = " + users[userId]);
     // saveSettings(req)
     console.log(req.body)
@@ -894,7 +905,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
 app.post('/user_settings/create_category', bodyParser.urlencoded({extended : false}), function(req, res) {
     console.log(req.params)
     console.log(req.body)
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     var categoryName = JSON.parse(req.body["category_name"])
     var timeAllowed = JSON.parse(req.body["time_allowed"])
     var type = JSON.parse(req.body["type"])
@@ -962,7 +973,7 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
 app.post('/user_settings/delete_category', bodyParser.urlencoded({extended : false}), function(req, res) {
     console.log(req.params)
     console.log(req.body)
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     var categoryName = JSON.parse(req.body["category_name"]) 
     async.series([
         function(callback) {
@@ -1016,7 +1027,7 @@ app.post('/user_settings/delete_category', bodyParser.urlencoded({extended : fal
 
 app.get('/newtab_page', function(req, res){
     // Get user name from cookie
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
 
     sql = msq.format("select * from Settings as S where S.userId = ? ORDER BY S.Category;"
         ,[userId]);
