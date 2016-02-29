@@ -16,11 +16,31 @@ var typeHTML = "<div class=\"form-group\">\
   <select id=\"sel1\" class=\"form-control type\">\
   <option selected=\"selected\">Redirect</option><option>Notifications</option><option>Nuclear</option></select>\
   <input type=\"hidden\" value=\"Redirect\"></label></div>"
-var categoryHTML = "<div class=\"input-group\"><span class=\"input-group-btn\"><button class=\"btn btn-default\" type=\"button\">Edit!</button></span><input type=\"text\" class=\"form-control new-url\" value=\"\"><span class=\"input-group-btn delete-url\"><button class=\"btn btn-default\" type=\"button\">Delete!</button></span></div><!-- /input-group -->"
+var resetIntervalHTML = "<div class=\"form-group\">\
+  <label for=\"sel1\">Reset Interval:\
+  <select id=\"sel1\" class=\"form-control reset-interval\">\
+    <option value=\"3600\">Every 60 minutes</option>\
+    <option value=\"5400\">Every 1 hour 30 minutes</option>\
+    <option value=\"7200\">Every 2 hours</option>\
+    <option value=\"10800\">Every 3 hours</option>\
+    <option value=\"14400\">Every 4 hours</option>\
+    <option value=\"21600\">Every 6 hours</option>\
+    <option value=\"43200\">Every 12 hours</option>\
+    <option value=\"86400\">Every 24 hours</option>\
+  </select>\<input type=\"hidden\"></label></div>"
+var categoryHTML = "<div class=\"input-group\">\
+  <span class=\"input-group-btn\">\
+    <button class=\"btn btn-default\" type=\"button\">Edit!</button>\
+  </span>\
+  <input type=\"text\" class=\"form-control new-url\" value=\"\">\
+  <span class=\"input-group-btn delete-url\">\
+    <button class=\"btn btn-default\" type=\"button\">Delete!</button>\
+  </span>\
+  </div><!-- /input-group -->"
 var plusButtonHTML = "<button class=\'btn btn-default add-url\', type='button'>+</button>"
 
 var containerHTML = "<div class=\"jumbotron categories new-category\">" + titleHTML + 
-  "<br>" + timeAllowedHTML + typeHTML + categoryHTML + plusButtonHTML + "</div>"
+  "<br>" + timeAllowedHTML + resetIntervalHTML + typeHTML + categoryHTML + plusButtonHTML + "</div>"
 
 
 $('.main').on("click", ".editH2",function() {
@@ -44,6 +64,20 @@ function hiddenValue(value) {
 }
 
 function savedEditedCategory(editedCategory) {
+  var newCategoryName = editedCategory.find("h2").text()
+  editedCategory.find("h2").next().val(newCategoryName) 
+
+  var newTime = calculateTime(editedCategory)
+  editedCategory.find(".time").each(function(index) {
+    $(this)[0].placeholder = $(this).val()
+  })
+  
+  var newResetInterval = editedCategory.find("reset-interval").val()
+  editedCategory.find(".reset-interval").next().val(newResetInterval)
+  
+  var newType = editedCategory.find(".type").val()
+  editedCategory.find(".type").next().val(newType)
+
   editedCategory.find(".deleted-url").remove()
   editedCategory.find(".edited-url").each(function(index) {
     var input = $(this)
@@ -56,11 +90,11 @@ function savedEditedCategory(editedCategory) {
     var input = $(this)
     input[0].disabled = true
     input.removeClass("new-url")
-    console.log(input.parent().parent())
     input.parent().after(hiddenValue(input.val()))
   })
   editedCategory.find(".save").remove()
   editedCategory.removeClass("edited-category")
+  editedCategory.removeClass("new-category")
   editedCategory.notify("Edits Saved","success")
 }
 
@@ -148,10 +182,18 @@ function findChangedType(category) {
   return []
 }
 
+function findChangedResetInterval(category) {
+  var categoryName = category.find("h2").text()
+  var type = category.find(".reset-interval")
+  if (type.val() != type.next().val())
+    return [categoryName, type.val()]
+  return []
+}
+
 function sendSaveRequest(listOfDbChanges) {
   console.log(listOfDbChanges)
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'http://localhost:3000/user_settings/danthom/save',true);
+  xhr.open('POST', 'http://localhost:3000/user_settings/save',true);
   xhr.addEventListener('readystatechange', function(evt) {
       if (xhr.readyState === 4) {
           if (xhr.status === 200) {
@@ -175,16 +217,20 @@ function sendSaveRequest(listOfDbChanges) {
   category_name = "&category_name=" + JSON.stringify(listOfDbChanges[3])
   time_allowed = "&time_allowed=" + JSON.stringify(listOfDbChanges[4])
   type = "&type=" + JSON.stringify(listOfDbChanges[5])
-  xhr.send( url_changes + delete_url + add_url + category_name + time_allowed + type)
+  reset_interval = "&reset_interval=" + JSON.stringify(listOfDbChanges[6])
+  xhr.send( url_changes + delete_url + add_url + category_name + time_allowed + type + reset_interval)
 }
 
 function sendCreateCategoryRequest(newCategory) {
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'http://localhost:3000/user_settings/danthom/create_category',true);
+  xhr.open('POST', 'http://localhost:3000/user_settings/create_category',true);
   xhr.addEventListener('readystatechange', function(evt) {
       if (xhr.readyState === 4) {
           if (xhr.status === 200) {
-            
+              var category = xhr.responseText
+              var editedCategory = $(".new-category").find("h2").
+                filter(':contains(' + category + ')').closest(".new-category")
+              savedEditedCategory(editedCategory) 
           }
           else {
 
@@ -195,25 +241,26 @@ function sendCreateCategoryRequest(newCategory) {
   category_name = "category_name=" + JSON.stringify(newCategory[0])
   time_allowed = "&time_allowed=" + JSON.stringify(newCategory[1])
   type = "&type=" + JSON.stringify(newCategory[2])
-  domainNames = "&domain_names=" + JSON.stringify(newCategory[3])
-  xhr.send( category_name + time_allowed + type + domainNames)
+  reset_interval = "&reset_interval=" + JSON.stringify(newCategory[3])
+  domainNames = "&domain_names=" + JSON.stringify(newCategory[4])
+  xhr.send( category_name + time_allowed + type + domainNames + reset_interval)
 }
 
 
 //Change remaining time when time allowed is changed.
 $(".main").on("click",".save",function() {
   var category = $(this).closest(".categories")
-  console.log(category)
-  console.log(category.hasClass("new-category"))
   if (category.hasClass("new-category")) {
     newCategory = []
     newCategory.push(category.find("h2").text())
     newCategory.push(calculateTime(category))
     newCategory.push(category.find(".type").val())
+    newCategory.push(category.find(".reset-interval").val())
     urls = []
     category.find(".new-url").each(function() {
       urls.push($(this).val())
     })
+    newCategory.push()
     newCategory.push(urls)
     console.log(newCategory)
     sendCreateCategoryRequest(newCategory)
@@ -225,8 +272,9 @@ $(".main").on("click",".save",function() {
   changedCategory = findChangedCategory(category)
   changedTime= findChangedTime(category)
   changedType = findChangedType(category)
+  changedResetInterval = findChangedResetInterval(category)
 
-  sendSaveRequest([urlsToChange,urlsToDelete,urlsToAdd,changedCategory,changedTime,changedType])
+  sendSaveRequest([urlsToChange,urlsToDelete,urlsToAdd,changedCategory,changedTime,changedType,changedResetInterval])
   
 })
 
@@ -235,6 +283,10 @@ $(".main").on("change",".timeAllowed",function() {
 })
 
 $(".main").on("change",".type",function() {
+  appendSaveButton($(this).closest(".categories"))
+})
+
+$(".main").on("change",".reset-interval",function() {
   appendSaveButton($(this).closest(".categories"))
 })
 
@@ -273,7 +325,7 @@ $(".main").on("click", ".delete-category",function(argument) {
     var categoryName = category.find("h2").text()
     var xhr = new XMLHttpRequest();
     console.log("test")
-    xhr.open('POST', 'http://localhost:3000/user_settings/danthom/delete_category',true);
+    xhr.open('POST', 'http://localhost:3000/user_settings/delete_category',true);
     xhr.addEventListener('readystatechange', function(evt) {
       if (xhr.readyState === 4) {
           if (xhr.status === 204) {

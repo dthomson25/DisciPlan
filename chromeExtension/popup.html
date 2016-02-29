@@ -2,8 +2,6 @@
 <html>
   <head>
     <title>DisciPlan</title>
-    <script src="popup.js"></script>
-    <script src="login.js"></script>
     <link rel="stylesheet" type="text/css" href="popup.css">
     <link rel="stylesheet" type="text/css" href="/public/css/bootstrap.min.css">
   </head>
@@ -12,52 +10,36 @@
     <div id="verified_content">  
       <button id="settings_btn">Change Settings</button>
       <p> Current Page: <span id="currentPage"></span></p>
-      <div id="restrictedPageDiv">
-      	<p>Current Category: <span id="currentCategory"></span></p>
-  	    <div>
-  		  	<span class="hours">0</span>
-  		  	<div class="smalltext">Hours</div>
-  	    </div>
-    		<div>
-    			<span class="minutes">0</span>
-    		  	<div class="smalltext">Minutes</div>
-    		  	</div>
-    		<div>
-  		    <span class="seconds">0</span>
-  		    <div class="smalltext">Seconds</div>
-  		  </div>
-      </div>
-
-    <div id="addCurrentPageDiv">
-      <div class="dropdown">
-        <button class="btn btn-info dropdown-toggle" type="button" data-toggle="dropdown" id="dropdownMenu">Add this page to:
-        <span class="caret"></span></button>
-        <ul class="dropdown-menu" id="category_dropdown">
-          <!-- <li><a id="HTLM_dropdown">HTML</a></li>
-          <li><a href="#">CSS</a></li>
-          <li><a href="#">JavaScript</a></li> -->
-        </ul>
-      </div>
-    </div>
 
 
-    <div id="restrictedPageDiv">
-      <p>Current Category: <span id="currentCategory"></span></p>
-      <div>
-        <span class="hours">0</span>
-        <div class="smalltext">Hours</div>
-      </div>
-    <div>
-      <span class="minutes">0</span>
-        <div class="smalltext">Minutes</div>
+      <div id="addCurrentPageDiv">
+        <div class="dropdown">
+          <button class="btn btn-info dropdown-toggle" type="button" data-toggle="dropdown" id="dropdownMenu">Add this page to:
+          <span class="caret"></span></button>
+          <ul class="dropdown-menu" id="category_dropdown">
+          </ul>
         </div>
-    <div>
-        <span class="seconds">0</span>
-        <div class="smalltext">Seconds</div>
+      </div>
+
+
+      <div id="restrictedPageDiv">
+        <p>Current Category: <span id="currentCategory"></span></p>
+        <div>
+          <span class="hours">0</span>
+          <div class="smalltext">Hours</div>
+        </div>
+      <div>
+        <span class="minutes">0</span>
+          <div class="smalltext">Minutes</div>
+          </div>
+      <div>
+          <span class="seconds">0</span>
+          <div class="smalltext">Seconds</div>
+      </div>
+      </div>
+
     </div>
     <button type="button" id="logout_button">logout</button>
-
-    </div>
     </div><!-- verified content (logged in) div -->
 
     <div id="login_content">
@@ -73,8 +55,11 @@
     </div>
 
     
-    <script src='jquery-1.12.0.min.js'></script>
+    <script src="popup.js"></script>
+    <script src="login.js"></script>
+    <script src='/public/js/jquery-1.12.0.min.js'></script>
     <script src='/public/js/bootstrap.min.js'></script>
+
 
   </body>
 </html>
