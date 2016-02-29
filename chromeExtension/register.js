@@ -13,8 +13,10 @@ function register() {
 			if (this.status === 200) {
 				// Great success.
 				chrome.cookies.set({url: "http://localhost", name: "disciplan", value: username, domain: null})
-				console.log("Have successfully registered")
-				chrome.runtime.sendMessage({redirect: "http://popup.html"})
+				var success = document.getElementById("success")
+				success.innerHTML = "Successfully Registered!\nFollow the link back to the main page, or reopen the extension"
+				success.style = "block"
+				// chrome.runtime.sendMessage({redirect: "http://popup.html"})
 			} else  {
 				// Failure, error, etc
 				console.log("failure")

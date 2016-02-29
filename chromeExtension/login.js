@@ -46,6 +46,10 @@ function login() {
 	return false;
 }
 
+function logout() {
+	chrome.cookies.remove({url: "http://localhost", name: "disciplan"})
+}
+
 window.onload = function() {
 	
 	// chrome.cookies.remove({url: "http://localhost", name: "disciplan"})
@@ -64,5 +68,8 @@ window.onload = function() {
 
 	var login_button = document.getElementById("login_button")
 	login_button.onclick = function() { login() };
+
+	var logout_button = document.getElementById("logout_button")
+	logout_button.onclick = function() { logout() };
 }
 
