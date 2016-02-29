@@ -172,6 +172,7 @@ function startResetTimeout() {
 
 var startTime
 var endTime
+var currTimeAllowed
 var currSiteRestricted = false
 var currCategory
 var currType
@@ -271,6 +272,7 @@ function checkIfRestricted(url, alreadyHostName) {
       endTime.setSeconds(endTime.getSeconds() + remainTime);
       currCategory = row.category;
       currType = row.type;
+      currTimeAllowed = row.timeAllowed;
       return;
     }
   }
@@ -380,7 +382,9 @@ function popupRequest(request, sender, sendResponse) {
         sendResponse({ loggedIn: true,
                        restricted: true,
                        endTime: endTime.toString(),
-                       category: currCategory});
+                       category: currCategory,
+                       timeAllowed: currTimeAllowed,
+                       type: currType});
       }
       else{
         categories = get_categories();
