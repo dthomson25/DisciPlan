@@ -828,6 +828,29 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
                     } 
                     callback()
             })
+        },
+        function(callback) {
+            // send new settings to background page
+            var socketId = users[userId];
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("error", err);
+                    }
+                    return err;
+                }
+                else {
+                    console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
+                    console.log(rows);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("settings saved", rows);
+                    }
+                }
+                callback();
+            });
         }
         
     ], function(err) {
@@ -843,6 +866,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
             res.send(category)
             return
         }
+
         res.sendStatus(204)
         return
     })
@@ -919,7 +943,31 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
                     } 
                     callback()
                 })
+        },
+        function(callback) {
+            // send new settings to background page
+            var socketId = users[userId];
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("error", err);
+                    }
+                    return err;
+                }
+                else {
+                    console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
+                    console.log(rows);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("settings saved", rows);
+                    }
+                }
+                callback();
+            });
         }
+
     ], function(err) {
         console.log(err)
         if (err)  {
@@ -975,6 +1023,29 @@ app.post('/user_settings/delete_category', bodyParser.urlencoded({extended : fal
                 callback()
 
             })
+        },
+        function(callback) {
+            // send new settings to background page
+            var socketId = users[userId];
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("error", err);
+                    }
+                    return err;
+                }
+                else {
+                    console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
+                    console.log(rows);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("settings saved", rows);
+                    }
+                }
+                callback();
+            });
         }
     ], function(err) {
         if (err)  {

@@ -26,6 +26,15 @@ socket.on('settings object', function(settings) {
   }
 });
 
+socket.on('settings saved', function(settings) {
+  if(settings){
+    console.log(settings);
+    settings_JSON = settings;
+    startResetTimeout();
+    socket.emit('get time remaining');
+  }
+})
+
 socket.on('all RT reset', function(settings) {
   settings_JSON = settings;
   socket.emit('get time remaining');
@@ -33,6 +42,8 @@ socket.on('all RT reset', function(settings) {
 
 function set_socket_username_get_settings(){
   socket.emit('set username', username);
+  
+  // For new tab page
   socket.emit('get time remaining');
   socket.emit('get top unres sites');
 }
