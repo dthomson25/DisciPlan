@@ -12,7 +12,16 @@ h1 {
     text-align: center;
 }
 
-#submitBtn {
+#submitBtn1 {
+    margin-left: 5px;
+    font-size: 20px;
+    width: 125px;
+    background-color: #2F8DDF;
+    border-width: 2px;
+    border-color: white;
+}
+
+#submitBtn2 {
     margin-left: 5px;
     font-size: 20px;
     width: 125px;

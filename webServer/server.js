@@ -164,7 +164,6 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
     var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
     dates.push(shortDateStr(prevDate));
 
-    console.log("FIRST DATE: " + dates);
     var result = [];
     inserts = [];
     var totalCommand = "select * from (";
@@ -183,7 +182,6 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
     totalCommand += ") as Result order by domainName;";
     var sql = msq.format(totalCommand,inserts);
     sql = sql.replace(/`/g,"");
-    console.log(sql);
     con.query(sql, function(err,rows) {
         if(err) {
             console.log("error: " + err);
@@ -202,7 +200,7 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
     domainsArr = [];
     for (var i = 0; i < rows.length; i++) {
         if (!domainSet.has(rows[i].domainName)) {
-            domainSet.add(rows[i].domainName); 
+            domainSet.add(rows[i].domainName);
             domainsArr.push(rows[i].domainName);
         }
     }
@@ -220,8 +218,6 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
 
 
     for (var i = 0; i < domainsArr.length; i++) {
-        //var currDomain = {};
-        //currDomain.label = domainsArr[i];
         var dataPoints = [];
         for (var j = 0; j < dates.length; j++) {
             if (dates[j] in domainNames[domainsArr[i]]) {
@@ -235,12 +231,33 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
     }
     d.datasets = dsets;
 
-    res.render('usage', {
-    title: 'Browser Usage',
-    message: 'Hello, ' + userId + '!',
-    data1: JSON.stringify(dataSet1),
-    data2: JSON.stringify(d)
+    var command = "select distinct category from Categories where userID = ??;";
+    var inserts = ['\'' + userId + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql,function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            var arr = [];
+            for(var i = 0; i < rows.length; i++) {
+                arr.push(rows[i].category);
+            }
+            console.log(arr);
+            res.render('usage', {
+                title: 'Browser Usage',
+                message: 'Hello, ' + userId + '!',
+                data1: JSON.stringify(dataSet1),
+                data2: JSON.stringify(d),
+                categories : JSON.stringify(arr)
+            }); 
+        }
     });
+
+
 }
 
 //Graph page
@@ -261,17 +278,6 @@ app.get('/usage/view/:userID', function(req,res) {
                     d1.push({value : rows[i].duration, label: rows[i].domainName});
                 }
                 versusTimeQuery(req.params.userID,10,d1,res);
-                // if (d2 == null) {
-                //     res.sendStatus(400);
-                // }
-                // else {
-                    // res.render('usage', {
-                    // title: 'Browser Usage',
-                    // message: 'Hello, ' + req.params.userID + '!',
-                    // data1: JSON.stringify(d1),
-                    // data2: JSON.stringify(d2)
-                    // });
-                // }
             }
     });
 });
@@ -316,19 +322,20 @@ function formatBarChartData(rows,sortType) {
     return d;
 }
 
-app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req,res) {
+app.post('/usage/update/left/:userID',bodyParser.urlencoded({extended : false}), function(req,res) {
     var sortType = req.body.sortType;
     var date = new Date(req.body.startTime);
     var chartType = req.body.chartType;
+    var userID = req.params.userID;
     var command = "";
     var inserts = [];
     if(sortType == "category") {
         command = "select * from (select category, sum(TimeSpent) as duration from Categories as C, TimeSpent as T where C.userId = T.userId and C.userId = ?? and C.domainName = T.domainName and T.startTime > ?? group by category union select \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T1 where T1.userId = ?? and not exists(select * from Categories as C1 where T1.userId = C1.userId and T1.domainName = C1.domainName) group by category) as A";
-        inserts = ['\'danthom\'','\'' + sqlFormatDateTime(date) + '\'', '\'danthom\''];
+        inserts = ['\'' + userID + '\'','\'' + sqlFormatDateTime(date) + '\'', '\'' + userID + '\''];
     }
     else {
         command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? and startTime > ?? group by domainName";
-        inserts = ['\'danthom\'', '\'' + sqlFormatDateTime(date) + '\''];
+        inserts = ['\''+ userID + '\'', '\'' + sqlFormatDateTime(date) + '\''];
     }
     var sql = msq.format(command, inserts);
     sql = sql.replace(/`/g,"");
@@ -350,6 +357,21 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
             res.send(JSON.stringify(d));
         }
     });
+});
+
+function getNumberOfDays(then) {
+    var now = new Date();
+    var diff = now.getTime() - then.getTime();
+    return Math.floor(diff / (1000*60*60*24));
+}
+
+app.post('/usage/update/right/:userID',bodyParser.urlencoded({extended : false}), function(req,res) {
+    var category = req.body.category;
+    var date = new Date(req.body.startTime);
+    var numToView = req.body.numToView;
+    var numDays = getNumberOfDays(date);
+    versusTimeOneCategoryQuery(category,req.params.userID,)
+
 });
 
 app.get('/get_settings/:userId', function(req, res) {
