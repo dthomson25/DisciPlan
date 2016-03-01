@@ -412,6 +412,7 @@ app.get('/usage_premium/view', function(req, res) {
     var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
+    console.log(sql);
     con.query(sql, function(err,rows){
         if(err) {
             console.log("error: " + err);
@@ -419,10 +420,11 @@ app.get('/usage_premium/view', function(req, res) {
         }
         else {
             if (rows.length == 0) {
+                console.log("empty query result");
                 res.sendStatus(400);
             }
             else {
-                command = "select T.userID, sum(timeSpent) as duration from TimeSpent as T where T.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) group by T.userID;";
+                command = "select * from AgeGroupView as A where A.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??);";
                 var inserts = ['\'' + userId + '\''];
                 sql = msq.format(command,inserts);
                 sql = sql.replace(/`/g,"");
@@ -433,7 +435,7 @@ app.get('/usage_premium/view', function(req, res) {
                         res.sendStatus(400);
                     }
                     else {
-                        var d = formatBarChartData(rows,'userID');
+                        var d = formatBarChartData(rows,'AgeGroup');
                         res.render('usage_premium', {
                             title: "Domain Visitors",
                             message: "Here's who's looking at your site:",
@@ -613,6 +615,12 @@ function formatBarChartData(rows,sortType) {
             values.push(rows[i].duration);
         }
     }
+    else if (sortType == "AgeGroup") {
+        for (var i = 0; i < rows.length; i++) {
+            lbls.push(rows[i].AgeGroup);
+            values.push(rows[i].duration);
+        }
+    }
     else {
         for(var i = 0; i < rows.length; i++) {
             lbls.push(rows[i].userID);
@@ -623,7 +631,7 @@ function formatBarChartData(rows,sortType) {
     return d;
 }
 
-app.post('/usage/update/left/:userID',bodyParser.urlencoded({extended : false}), function(req,res) {
+app.post('/usage/update/left',bodyParser.urlencoded({extended : false}), function(req,res) {
     var sortType = req.body.sortType;
     var date = new Date(req.body.startTime);
     var chartType = req.body.chartType;
@@ -666,13 +674,20 @@ function getNumberOfDays(then) {
     return Math.floor(diff / (1000*60*60*24));
 }
 
-app.post('/usage/update/right/:userID',bodyParser.urlencoded({extended : false}), function(req,res) {
+function versusTimeOneCategoryQuery(category,userId,numDays,numToView) {
+    var command = "select domainName,sum(timeSpent) as duration from TimeSpent where userID = ?? and ";
+}
+
+app.post('/usage/update/right',bodyParser.urlencoded({extended : false}), function(req,res) {
     var category = req.body.category;
     var date = new Date(req.body.startTime);
     var numToView = req.body.numToView;
     var numDays = getNumberOfDays(date);
-    //versusTimeOneCategoryQuery(category,req.params.userID,)
-
+    var userId = getDisciplanCookie(req.headers.cookie);
+    if (numDays <= 0) {
+        numDays = 5;
+    }
+    versusTimeOneCategoryQuery(category,userId,numDays,numToView);
 });
 
 app.get('/get_settings', function(req, res) {
