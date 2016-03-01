@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS Users;
 DROP TABLE IF EXISTS TimeSpent;
 DROP TABLE IF EXISTS Categories;
 DROP TABLE IF EXISTS Settings;
+DROP TABLE IF EXISTS Friends;
+DROP TABLE IF EXISTS PremiumUserDomains;
 
 CREATE TABLE Users (
 	userID CHAR(64) NOT NULL PRIMARY KEY,
@@ -49,6 +51,14 @@ CREATE TABLE PremiumUserDomains (
 	domainName CHAR(64) NOT NULL,
 	PRIMARY KEY (userID, domainName),
 	FOREIGN KEY (userID) REFERENCES Users(userID)
+);
+
+CREATE TABLE Friends (
+	userID1 CHAR(64) NOT NULL,
+	userID2 CHAR(64) NOT NULL,
+	PRIMARY KEY (userID1, userID2),
+	FOREIGN KEY (userID1) REFERENCES Users(userID),
+	FOREIGN KEY (userID2) REFERENCES Users(userID)
 );
 
 CREATE VIEW AgeGroupView AS
