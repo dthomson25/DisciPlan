@@ -14,6 +14,7 @@ body
 			div(class="col-md-6")
 				div(id="graphContainer2")
 					canvas(id="myChart2")
+					div(id="legend2", class="chart-legend")
 		div(style="text-align : center;") scroll over the charts to view more info!
 
 		div(class="row")
@@ -97,6 +98,7 @@ body
 				ctx2.canvas.height = 300;
 				var d2 = !{data2};
 				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds"});
+				document.getElementById("legend2").innerHTML = chart2.generateLegend();
 
 				createChart1 = function() {
 
@@ -155,7 +157,9 @@ body
 						if (xhr.readyState === 4) {
 							if (xhr.status === 200) {
 								$("#myChart2").remove();
+								$("#legend2").remove();
 								$("#graphContainer2").append('<canvas id="myChart2"></canvas>');
+								$("#graphContainer2").append('<div id="legend2" class="chart-legend"></div>');
 								canvas2 = document.getElementById("myChart2");
 								ctx2 = canvas2.getContext("2d");
 								ctx2.canvas.width = 300;
@@ -163,6 +167,7 @@ body
 								d2 = JSON.parse(xhr.responseText);
 								console.log(d2);
 								chart2 = new Chart(ctx2).Line(d2,{datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds"});
+								document.getElementById("legend2").innerHTML = chart2.generateLegend();
 							}
 						}
 					});

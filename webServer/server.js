@@ -465,7 +465,6 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
     var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
     dates.push(shortDateStr(prevDate));
 
-    var result = [];
     inserts = [];
     var totalCommand = "select * from (";
     for(var i = 0; i < numDays; i++) {
@@ -486,7 +485,7 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
     con.query(sql, function(err,rows) {
         if(err) {
             console.log("error: " + err);
-            res.send(400);
+            res.sendStatus(400);
         }
         else {
             formatLineChartData(rows,dates,userId,dataSet1,res);
@@ -547,13 +546,18 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
                 arr.push(rows[i].category);
             }
             console.log(arr);
-            res.render('usage', {
-                title: 'Browser Usage',
-                message: 'Hello, ' + userId + '!',
-                data1: JSON.stringify(dataSet1),
-                data2: JSON.stringify(d),
-                categories : JSON.stringify(arr)
-            }); 
+            if(dataSet1 != null) {
+                res.render('usage', {
+                    title: 'Browser Usage',
+                    message: 'Hello, ' + userId + '!',
+                    data1: JSON.stringify(dataSet1),
+                    data2: JSON.stringify(d),
+                    categories : JSON.stringify(arr)
+                }); 
+            }
+            else {
+                res.send(JSON.stringify(d));//BAD STYLE SHOULD CHANGE BUT MAYBE NOT OH WELL
+            }
         }
     });
 
@@ -674,8 +678,63 @@ function getNumberOfDays(then) {
     return Math.floor(diff / (1000*60*60*24));
 }
 
-function versusTimeOneCategoryQuery(category,userId,numDays,numToView) {
-    var command = "select domainName,sum(timeSpent) as duration from TimeSpent where userID = ?? and ";
+function versusTimeOneCategoryQuery(category,userId,numDays,numToView,date,res) {
+    var inDomainNameSet = "";
+    if (category == "all") {
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration limit ??";
+        var inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\'', numToView.toString()];
+        inDomainNameSet = msq.format(inDomainNameSet,inserts);
+    }
+    else if (category == "other") {
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and not exists (select * from Categories as C2 where T.domainName = C2.domainName and T.userID = C2.userID) group by T.domainName order by duration limit ??";
+        var inserts = ['\'' + userId + '\'', '\''+ sqlFormatDateTime(date) + '\'', numToView.toString()];
+        inDomainNameSet = msq.format(inDomainNameSet,inserts);
+    }
+    else {
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and C.domainName = T.domainName and C.category = ?? group by T.domainName order by duration limit ??";
+        var inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\'', '\'' + category + '\'', numToView.toString()];
+        inDomainNameSet = msq.format(inDomainNameSet, inserts);
+    }
+    inDomainNameSet = '(' + inDomainNameSet + ')';
+
+    var dates = [];
+    var currDate = new Date();
+    currDate.setUTCSeconds(0);
+    currDate.setUTCMinutes(0);
+    currDate.setUTCHours(0);
+    currDate = new Date(currDate.getTime() + 24*60*1000);
+    var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+    dates.push(shortDateStr(prevDate));
+
+    inserts = [];
+    var totalCommand = "select * from (";
+    for(var i = 0; i < numDays; i++) {
+        if(i > 0) {
+            totalCommand += " union ";
+        }
+        totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime > ?? group by domainName";
+        inserts.push('\'' + userId + '\'');
+        inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+        inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+        currDate = prevDate;
+        prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+        dates.unshift(shortDateStr(prevDate));
+    }
+    totalCommand += ") as Result, " + inDomainNameSet + " as DNames where Result.domainName = DNames.domainName order by Result.domainName;";
+    var sql = msq.format(totalCommand,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log(rows);
+            formatLineChartData(rows,dates,userId,null,res);
+        }
+    });
+    
 }
 
 app.post('/usage/update/right',bodyParser.urlencoded({extended : false}), function(req,res) {
@@ -684,10 +743,8 @@ app.post('/usage/update/right',bodyParser.urlencoded({extended : false}), functi
     var numToView = req.body.numToView;
     var numDays = getNumberOfDays(date);
     var userId = getDisciplanCookie(req.headers.cookie);
-    if (numDays <= 0) {
-        numDays = 5;
-    }
-    versusTimeOneCategoryQuery(category,userId,numDays,numToView);
+
+    versusTimeOneCategoryQuery(category,userId,numDays,numToView,date,res);
 });
 
 app.get('/get_settings', function(req, res) {
