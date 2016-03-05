@@ -74,7 +74,8 @@ body
 				$("#datepicker").datepicker({dateFormat: 'yyyy-mm-dd'});
 
 				var cats = !{categories};
-				cats.push("All");
+				cats.push("all");
+				cats.push("other");
 				var chooseCat = document.getElementById("chooseCategory");
 				for(var i = 0; i < cats.length; i++) {
 					var node = document.createElement("option");
@@ -142,7 +143,7 @@ body
 					var category = document.getElementById("chooseCategory");
 					category = category.options[category.selectedIndex].value;
 					var numToView = document.getElementById("numToView");
-					numToView = numToView.options[category.selectedIndex].value;
+					numToView = numToView.options[numToView.selectedIndex].value;
 					var date = new Date($("#datepicker2").val());
 					if(date.toString() == 'Invalid Date'){
 						date = new Date((new Date()).getTime() - 10*24*60*60*1000);
@@ -157,9 +158,10 @@ body
 								$("#graphContainer2").append('<canvas id="myChart2"></canvas>');
 								canvas2 = document.getElementById("myChart2");
 								ctx2 = canvas2.getContext("2d");
-								ctx2.canvas2.width = 300;
-								ctx2.canvas2.height = 300;
+								ctx2.canvas.width = 300;
+								ctx2.canvas.height = 300;
 								d2 = JSON.parse(xhr.responseText);
+								console.log(d2);
 								chart2 = new Chart(ctx2).Line(d2,{datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds"});
 							}
 						}
