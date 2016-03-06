@@ -38,10 +38,6 @@ app.set('views', './views');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// app.listen(3000, function () {
-//     console.log('Example app listening on port 3000!');
-// });
-
 http.listen(3000, function () {
     console.log('DisciPlan Server listening on port 3000!');
 });
@@ -56,6 +52,8 @@ function getDisciplanCookie(cookies) {
         return -1;
     }
 }
+
+var colorConstants = ["rgba(242,182,50,1)","rgba(205,220,57,1)","rgba(233,30,91,1)","rgba(123,31,162,1)","rgba(33,150,243,1)"];
 
 // Maps usernames to socket ids
 var users = [];
@@ -438,7 +436,7 @@ app.get('/usage_premium/view', function(req, res) {
                         var d = formatBarChartData(rows,'AgeGroup');
                         res.render('usage_premium', {
                             title: "Domain Visitors",
-                            message: "Here's who's looking at your site:",
+                            message: "hello, " + userId + "!",
                             data: JSON.stringify(d)
                         });
                     }
@@ -466,7 +464,7 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
     dates.push(shortDateStr(prevDate));
 
     inserts = [];
-    var totalCommand = "select * from (";
+    var totalCommand = "select Result.date, Result.domainName, Result.duration from (";
     for(var i = 0; i < numDays; i++) {
         if(i > 0) {
             totalCommand += " union ";
@@ -479,7 +477,13 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
         prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
         dates.unshift(shortDateStr(prevDate));
     }
-    totalCommand += ") as Result order by domainName;";
+    //totalCommand += ") as Result order by domainName;";
+    var inDomainNameSet = "(select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration limit ??)";
+    var inserts2 = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(currDate) + '\'', "5"];
+    inDomainNameSet = msq.format(inDomainNameSet,inserts2);
+
+    totalCommand += ") as Result, " + inDomainNameSet + " as DNames where Dnames.domainName = Result.domainName;";
+
     var sql = msq.format(totalCommand,inserts);
     sql = sql.replace(/`/g,"");
     con.query(sql, function(err,rows) {
@@ -527,7 +531,7 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
                 dataPoints.push(0);
             }
         }
-        dsets.push({label : domainsArr[i], data : dataPoints, strokeColor : "rgba(230,255,0,1)"});
+        dsets.push({label : domainsArr[i], data : dataPoints, strokeColor : colorConstants[i%colorConstants.length],pointColor : "rgba(0,0,0,0)", pointStrokeColor : "rgba(0,0,0,0)"});
     }
     d.datasets = dsets;
     var command = "select distinct category from Categories where userID = ??;";
@@ -631,7 +635,7 @@ function formatBarChartData(rows,sortType) {
             values.push(rows[i].duration);
         } 
     }
-    var d = {labels : lbls, datasets : [{data: values, fillColor: "rgba(230,255,0,1)"}]};
+    var d = {labels : lbls, datasets : [{data: values, fillColor: "rgba(100,100,100,1)"}]};
     return d;
 }
 
@@ -1119,5 +1123,27 @@ app.get('/newtab_page', function(req, res){
         }
     });
 
+});
+
+app.get('/usage/compare', function(req,res){
+    var userId = getDisciplanCookie(req.headers.cookie);
+    var command = "select U.firstName, U.lastName from Friends as F, Users as U where F.user2 = ?? and F.user1 = U.userID;";
+    var inserts = ['\'' + userId + '\''];
+    var sql = ms1.format(command,inserts);
+    con.query(sql,function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            var friends = [];
+            for(var i = 0; i < rows.length; i++) {
+                friends.push(rows[i].firstName + " " + rows[i].lastName);
+            }
+            res.render('usage_compare',{title : 'Comparing with Friends',
+                message : "With whom would you like to compare internet usage?",
+                people : friends});
+        }
+    });
 });
 

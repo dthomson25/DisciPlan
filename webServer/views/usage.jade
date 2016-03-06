@@ -8,14 +8,17 @@ body
 
 		h1= message
 		div(class="row")
-			div(class="col-md-6")
+			div(class="col-md-5")
 				div(id="graphContainer")
 					canvas(id="myChart")
-			div(class="col-md-6")
+					div(id="blurb1") Your all-time usage by domain name.
+			div(class="col-md-4")
 				div(id="graphContainer2")
 					canvas(id="myChart2")
-					div(id="legend2", class="chart-legend")
-		div(style="text-align : center;") scroll over the charts to view more info!
+					div(id="blurb2") Your top 5 sites in the past 10 days.
+			div(class="col-md-3")
+				div(id="legend2", class="chart-legend")
+				
 
 		div(class="row")
 			div(class="col-md-3")
@@ -69,10 +72,15 @@ body
 			var createChart2 = null;
 			$(document).ready(function() {
 				var $j = jQuery.noConflict();
-				$("#datepicker").datepicker({
+				$("#datepicker1").datepicker({
 					changeMonth: true,
 					changeYear: true});
-				$("#datepicker").datepicker({dateFormat: 'yyyy-mm-dd'});
+				$("#datepicker1").datepicker({dateFormat: 'yyyy-mm-dd'});
+
+				$("#datepicker2").datepicker({
+					changeMonth: true,
+					changeYear: true});
+				$("#datepicker2").datepicker({dateFormat: 'yyyy-mm-dd'});
 
 				var cats = !{categories};
 				cats.push("all");
@@ -97,7 +105,8 @@ body
 				ctx2.canvas.width = 400;
 				ctx2.canvas.height = 300;
 				var d2 = !{data2};
-				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds"});
+
+				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds", legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips: false});
 				document.getElementById("legend2").innerHTML = chart2.generateLegend();
 
 				createChart1 = function() {
@@ -157,16 +166,14 @@ body
 						if (xhr.readyState === 4) {
 							if (xhr.status === 200) {
 								$("#myChart2").remove();
-								$("#legend2").remove();
 								$("#graphContainer2").append('<canvas id="myChart2"></canvas>');
-								$("#graphContainer2").append('<div id="legend2" class="chart-legend"></div>');
 								canvas2 = document.getElementById("myChart2");
 								ctx2 = canvas2.getContext("2d");
-								ctx2.canvas.width = 300;
+								ctx2.canvas.width = 400;
 								ctx2.canvas.height = 300;
 								d2 = JSON.parse(xhr.responseText);
 								console.log(d2);
-								chart2 = new Chart(ctx2).Line(d2,{datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds"});
+								chart2 = new Chart(ctx2).Line(d2,{datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds",legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>",showTooltips: false});
 								document.getElementById("legend2").innerHTML = chart2.generateLegend();
 							}
 						}
