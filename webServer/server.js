@@ -356,6 +356,12 @@ app.get('/user_settings', function(req, res) {
         })
 });
 
+app.get('/friends', function(req, res) {
+
+
+
+});
+
 
 function pad(n, width) {
   z = '0';
@@ -1042,96 +1048,6 @@ app.post('/user_settings/delete_category', bodyParser.urlencoded({extended : fal
         return
     })
 })
-
-// app.post('/update_TR', function(req, res) {
-//     var user = req.headers.cookie.split("=")[1];
-//     var category = req.body.category;
-//     var TR = req.body.TR;
-
-//     var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
-//     var inserts = [TR, user, category];
-//     sql = msq.format(command,inserts);
-//     con.query(sql, function(err) {
-//         if(err){
-//             console.log("error: " + err);
-//             res.sendStatus(400);
-//         }
-//         else {
-//             console.log("command:\n" + sql + "\nsucceeded!");
-//             res.sendStatus(204);
-//         }
-//     });
-
-//     // TODO: What do we send back? - Settings - Jefe
-// });
-
-// app.post('/reset_allTR', function(req, res) {
-//     var userId = req.headers.cookie.split("=")[1];
-//     sql = msq.format("select * from Settings where userId = ? ;"
-//         ,[userId]);
-//     con.query(sql, function(err,rows) {
-//         if(err) {
-//             console.log("error: " + err);
-//             res.sendStatus(400);
-//         }
-//         else {
-//             recursiveQuery = function(rows, currRow, user) {
-//                 if(currRow >= rows.length){
-//                     res.sendStatus(200);
-//                     return;
-//                 }
-//                 category = rows[currRow].category;
-//                 timeAllowed = rows[currRow].timeAllowed;
-//                 var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
-//                 var inserts = [timeAllowed, userId, category];
-//                 sql = msq.format(command,inserts);
-//                 con.query(sql, function(err) {
-//                     if(err){
-//                         console.log("error: " + err);
-//                         res.sendStatus(400);
-//                         return;
-//                     }
-//                     else {
-//                         console.log("command:\n" + sql + "\nsucceeded!");
-//                         recursiveQuery(rows, currRow + 1, userId);
-//                     }
-//                 });
-//             };
-//             recursiveQuery(rows, 0, userId);
-//         }
-//     });
-// });
-
-// app.post('/add_page', function(req, res) {
-//     var userId = req.headers.cookie.split("=")[1];
-//     var page = req.body.page;
-//     var category = req.body.category;
-
-//     var command = "insert into Categories values(??,??,??)";
-//     var inserts = ["\'" + userId +"\'","\'" +  page + "\'","\'" + category + "\'"];
-//     sql = msq.format(command,inserts);
-//     sql = sql.replace(/`/g,"");
-//     con.query(sql, function(err) {
-//         if(err){
-//             console.log("error: " + err);
-//             res.sendStatus(400);
-//         }
-//         else {
-//             console.log("command:\n" + sql + "\nsucceeded!");
-//             sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-//                 ,[userId]);
-//             con.query(sql, function(err,rows) {
-//                 if(err) {
-//                     console.log("error: " + err);
-//                     res.sendStatus(400);
-//                 }
-//                 else {
-//                     res.send(rows);
-//                 }
-//             });
-//         }
-//     });
-// });
 
 app.get('/newtab_page', function(req, res){
     // Get user name from cookie
