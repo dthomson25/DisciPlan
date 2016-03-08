@@ -1113,12 +1113,6 @@ app.get('/newtab_page', function(req, res){
             res.sendStatus(400);
         }
         else {
-            // res.render('settings', {title: 'DisciPlan Settings', 
-            //      message: 'This is your settings page!',
-            //      rows: rows, 
-            //      current: '/user_settings',
-            //      setting_types: differentTypes
-            //     });
             console.log(rows);
         }
     });
@@ -1127,23 +1121,117 @@ app.get('/newtab_page', function(req, res){
 
 app.get('/usage/compare', function(req,res){
     var userId = getDisciplanCookie(req.headers.cookie);
-    var command = "select U.firstName, U.lastName from Friends as F, Users as U where F.user2 = ?? and F.user1 = U.userID;";
-    var inserts = ['\'' + userId + '\''];
-    var sql = ms1.format(command,inserts);
+    res.render('usage_compare',{title : 'Comparing with Friends',
+        message : "Compare your usage with friends!"
+    });
+});
+
+// function formatBarChartData(rows,sortType) {
+//     lbls = [];
+//     values = [];
+//     if(sortType == "category") {
+//         for(var i = 0; i < rows.length; i++) {
+//             lbls.push(rows[i].category);
+//             values.push(rows[i].duration);
+//         }
+//     }
+
+//     var d = {labels : lbls, datasets : [{data: values, fillColor: "rgba(100,100,100,1)"}]};
+//     return d;
+// }
+
+function formatMultiUserBarChartData(usersArray,rows,res) {
+    var tmpD = {}
+    for(var i = 0; i < usersArray.length; i++) {
+        tmpD[usersArray[i]] = {};
+    }
+    var allCatsSet = new Set();
+    for (var i = 0; i < rows.length; i++) {
+        if (!allCatsSet.has(rows[i].category)) {
+            allCatsSet.add(rows[i].category);
+            for(var user in tmpD) {
+                if(tmpD.hasOwnProperty(user)) {
+                    tmpD[user][rows[i].category] = 0;
+                }
+            }
+        }
+    }
+    for (var i = 0; i < rows.length; i++) {
+        tmpD[rows[i].userID][rows[i].category] = rows[i].duration;
+    }
+    var allCats = Array.from(allCatsSet);
+    var dSets = [];
+    for (var i = 0; i < usersArray.length; i++) {
+        var dataPoints = [];
+        for(j = 0; j < allCats.length; j++) {
+            dataPoints.push(tmpD[usersArray[i]][allCats[j]]);
+        }
+        dSets.push({label : usersArray[i],data : dataPoints, fillColor : colorConstants[i%colorConstants.length]});
+    }
+    var d = {labels : allCats, datasets : dSets};
+    res.send(JSON.stringify(d));
+}
+
+function queryTwoFriends(user1,user2,res) {
+    var date = new Date();
+    var startDate = new Date(date.getTime() - 14*24*60*60*1000); //default graph will show last two weeks.
+    var command = "select * from ((select T0.userID, \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T0 where (T0.userId = ?? or T0.userID = ??) and not exists(select * from Categories as C0 where T0.userId = C0.userId and T0.domainName = C0.domainName) group by userID, category) union (select T1.userID, C1.category, sum(T1.timeSpent) as duration from TimeSpent as T1, Categories as C1 where T1.userID = ?? or T1.userID = ?? and T1.userID = C1.userID and T1.domainName = C1.domainName and T1.startTime >= ?? group by T1.userID,C1.category)) as Result order by Result.userID;";
+    var inserts = ['\'' + user1 + '\'', '\'' + user2 + '\'','\'' + user1 + '\'', '\'' + user2 + '\'', '\'' + sqlFormatDateTime(startDate) + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
     con.query(sql,function(err,rows) {
         if(err) {
             console.log("error: " + err);
             res.sendStatus(400);
         }
         else {
-            var friends = [];
-            for(var i = 0; i < rows.length; i++) {
-                friends.push(rows[i].firstName + " " + rows[i].lastName);
+            formatMultiUserBarChartData([user1,user2],rows,res);
+        }
+    });
+}
+
+app.post('/usage/compare/graphs_update', bodyParser.urlencoded({extended : false}), function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    var friendName = req.body.friendName;
+    var firstAndLast = friendName.split(" ");
+    var command = "select U.userID from Users as U, Friends as F where F.user2 = ?? and F.user1 = U.userID and U.firstName = ?? and U.lastName = ??;";
+    var inserts = [ '\'' + userId + '\'', '\'' + firstAndLast[0] + '\'', '\'' + firstAndLast[1] + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log("first query: ");
+    console.log(sql);
+    con.query(sql,function(err,rows) {
+        if(err) {
+            console.log("error the first: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            if(rows.length == 0) {
+                console.log("error: no friends of " + userId + " with name " + friendName);
+                res.sendStatus(400);
             }
-            res.render('usage_compare',{title : 'Comparing with Friends',
-                message : "With whom would you like to compare internet usage?",
-                people : friends});
+            else {
+                queryTwoFriends(userId,rows[0].userID,res);
+            }
         }
     });
 });
+
+app.get('usage/compare/friends_update', bodyParser.urlencoded({extended : false}), function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    var prefixFirstOrLast = req.body.prefix;
+    var command = "select U.firstName, U.lastName, U.userId from Users as U, Friends as F where F.user1 = ?? and (U.firstName like ?? or U.lastName like ??) and U.userID = F.user2;";
+    var inserts = ['\'' + userId + '\'', '\'' + prefixFirstOrLast + '%\'', '\'' + prefixFirstOrLast + '%\''];
+    var sql = msq.format(command,inserts);
+    con.query(sql,function(err,rows){
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            res.send(JSON.stringify(rows));
+        }
+
+    });
+})
 
