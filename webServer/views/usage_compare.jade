@@ -1,0 +1,146 @@
+extends navbar_fixed_top.jade
+
+body
+	block content
+
+
+
+		h1= message
+		div(class="row")
+			div(class="col-md-2")
+				h2 Compare with:
+				input(type="text",id="friendName")
+				input(id="friendNameSubmit",type="submit", value="Compare!", onclick="createCharts()")
+			div(class="col-md-3")
+				div(id="graphContainer1")
+					canvas(id="chart1")
+			div(class="col-md-2")
+				div(id="legend1", class="chart-legend")
+			div(class="col-md-3")
+				div(id="graphContainer2")
+					canvas(id="chart2")
+		div(class="row")
+			div(class="col-md-2")
+			div(class="col-md-3")
+				div(id="blurb1")
+			div(class="col-md-2")
+			div(class="col-md-3")
+				div(id="blurb2")
+		div(class="row")
+			div(class="col-md-7")
+			div(class="col-md-3",id="catOptionsCell")
+				div(id="catContainer",style="visibility: hidden") Comparing Category: 
+					select(id="catToShow")
+						input(id="catSubmit",type="submit",value="show",onclick="requestChart2Change()")
+
+		script(src="/js/Chart.js")
+		script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js')
+		script(src="//code.jquery.com/ui/1.11.4/jquery-ui.js")
+		script.
+			var createCharts = null;
+			var requestChart2Change = null;
+			$(document).ready(function(){
+				var $j = jQuery.noConflict();
+
+				function getDisciplanCookie(cookies){
+				    var re = new RegExp("disciplan=([a-zA-z0-9]*)");
+				    var matches = re.exec(cookies);
+				    if(matches.length > 1) {
+				        return re.exec(cookies)[1];
+				    }
+				    else {
+				        return -1;
+				    }
+				}
+
+				function updateChart1(data){
+					$("#chart1").remove();
+					$("#graphContainer1").append('<canvas id="chart1"></canvas>');
+					var canvas1 = document.getElementById("chart1");
+					ctx1 = canvas1.getContext("2d");
+					ctx1.canvas.width = 300;
+					ctx1.canvas.height = 300;
+					console.log(data);
+					var chart1 = new Chart(ctx1).Bar(data,{legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].fillColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips : false});
+					document.getElementById("legend1").innerHTML = chart1.generateLegend();
+				}
+
+				function updateChart2(data,cats) {
+					$("#chart2").remove();
+					$("#graphContainer2").append('<canvas id="chart2"></canvas>');
+					var canvas2 = document.getElementById("chart2");
+					ctx2 = canvas2.getContext("2d");
+					ctx2.canvas.width = 300;
+					ctx2.canvas.height = 300;		
+					console.log(data);
+					var chart2 = new Chart(ctx2).Line(data, {showTooltips : false});
+
+					if(cats) {
+						var chooseCat = document.getElementById("catToShow");
+						chooseCat.innerHTML = "";
+						for(var i = 0; i < cats.length; i++) {
+							var node = document.createElement("option");
+							node.setAttribute('value',cats[i]);
+							node.innerHTML = cats[i];
+							chooseCat.appendChild(node);
+						}
+						document.getElementById("catContainer").style.visibility = "visible";
+					}
+				}
+
+				requestChart2Change = function() {
+					var userId = getDisciplanCookie(document.cookie);
+					var otherUser = "";
+					var usersList = document.getElementById("legend1").childNodes[0].childNodes;
+					for(var i = 0; i < usersList.length; i++) {
+						console.log(usersList[i].childNodes[1].textContent);
+						if(usersList[i].childNodes[1].textContent != userId) {
+							otherUser = usersList[i].childNodes[1].textContent;
+						}
+					}
+
+					var xhr = new XMLHttpRequest();
+					xhr.addEventListener("readystatechange",function() {
+				        if (xhr.readyState === 4) {
+				            if (xhr.status === 200) {
+				            	var d = JSON.parse(xhr.responseText);
+				            	updateChart2(d,null);
+							}
+						}
+					});
+
+					var category = document.getElementById("catToShow");
+					category = category.options[category.selectedIndex].value;
+					var form = "otherUser=" + otherUser + "&category=" + category;
+					console.log(form);
+					xhr.open('POST','http://localhost:3000/usage/compare/graphs_update/right');
+					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+					xhr.send(form);
+				}
+
+				createCharts = function() {
+					var friendName = document.getElementById("friendName");
+					friendName = friendName.value;
+
+					var xhr = new XMLHttpRequest();
+					xhr.addEventListener("readystatechange",function() {
+				        if (xhr.readyState === 4) {
+				            if (xhr.status === 200) {
+				            	var d = JSON.parse(xhr.responseText);
+				            	updateChart1(d.data1);
+				            	updateChart2(d.data2,d.categories);
+							}
+						}
+					});
+
+					var form = "friendName=" + friendName;
+					xhr.open('POST','http://localhost:3000/usage/compare/graphs_update'
+					,true);
+					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+					xhr.send(form);
+				}
+			});
+
+
+		link(rel='stylesheet', href='/css/usage.css')

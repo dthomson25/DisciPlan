@@ -8,13 +8,17 @@ body
 
 		h1= message
 		div(class="row")
-			div(class="col-md-6")
+			div(class="col-md-5")
 				div(id="graphContainer")
 					canvas(id="myChart")
-			div(class="col-md-6")
+					div(id="blurb1") Your all-time usage by domain name.
+			div(class="col-md-4")
 				div(id="graphContainer2")
 					canvas(id="myChart2")
-		div(style="text-align : center;") scroll over the charts to view more info!
+					div(id="blurb2") Your top 5 sites in the past 10 days.
+			div(class="col-md-3")
+				div(id="legend2", class="chart-legend")
+				
 
 		div(class="row")
 			div(class="col-md-3")
@@ -68,13 +72,19 @@ body
 			var createChart2 = null;
 			$(document).ready(function() {
 				var $j = jQuery.noConflict();
-				$("#datepicker").datepicker({
+				$("#datepicker1").datepicker({
 					changeMonth: true,
 					changeYear: true});
-				$("#datepicker").datepicker({dateFormat: 'yyyy-mm-dd'});
+				$("#datepicker1").datepicker({dateFormat: 'yyyy-mm-dd'});
+
+				$("#datepicker2").datepicker({
+					changeMonth: true,
+					changeYear: true});
+				$("#datepicker2").datepicker({dateFormat: 'yyyy-mm-dd'});
 
 				var cats = !{categories};
-				cats.push("All");
+				cats.push("all");
+				cats.push("other");
 				var chooseCat = document.getElementById("chooseCategory");
 				for(var i = 0; i < cats.length; i++) {
 					var node = document.createElement("option");
@@ -95,7 +105,9 @@ body
 				ctx2.canvas.width = 400;
 				ctx2.canvas.height = 300;
 				var d2 = !{data2};
-				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds"});
+
+				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds", legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips: false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' seconds';}});
+				document.getElementById("legend2").innerHTML = chart2.generateLegend();
 
 				createChart1 = function() {
 
@@ -132,7 +144,7 @@ body
 				        }
 					});
 					var form = "sortType=" + sortType + "&startTime=" + date.toString() + "&chartType=" + chartType;
-					xhr.open('POST','http://localhost:3000/usage/update/left/' + userID,true);
+					xhr.open('POST','http://localhost:3000/usage/update/left',true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
 					xhr.send(form);
@@ -142,7 +154,7 @@ body
 					var category = document.getElementById("chooseCategory");
 					category = category.options[category.selectedIndex].value;
 					var numToView = document.getElementById("numToView");
-					numToView = numToView.options[category.selectedIndex].value;
+					numToView = numToView.options[numToView.selectedIndex].value;
 					var date = new Date($("#datepicker2").val());
 					if(date.toString() == 'Invalid Date'){
 						date = new Date((new Date()).getTime() - 10*24*60*60*1000);
@@ -157,15 +169,17 @@ body
 								$("#graphContainer2").append('<canvas id="myChart2"></canvas>');
 								canvas2 = document.getElementById("myChart2");
 								ctx2 = canvas2.getContext("2d");
-								ctx2.canvas2.width = 300;
-								ctx2.canvas2.height = 300;
+								ctx2.canvas.width = 400;
+								ctx2.canvas.height = 300;
 								d2 = JSON.parse(xhr.responseText);
-								chart2 = new Chart(ctx2).Line(d2,{datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds"});
+								console.log(d2);
+								chart2 = new Chart(ctx2).Line(d2,{datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds",legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>",showTooltips: false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' seconds';}});
+								document.getElementById("legend2").innerHTML = chart2.generateLegend();
 							}
 						}
 					});
 					var form = "category=" + category + "&numToView=" + numToView + "&startTime=" + date.toString();
-					xhr.open('POST','http://localhost:3000/usage/update/right/' + userID,true);
+					xhr.open('POST','http://localhost:3000/usage/update/right',true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					xhr.send(form);
 				}
