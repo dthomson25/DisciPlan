@@ -43,6 +43,15 @@ h1 {
     border-color: white;
 }
 
+#catSubmit {
+    margin-left: 5px;
+    font-size: 12px;
+    width: 50px;
+    background-color: #D0D0D0;
+    border-width: 2px;
+    border-color: white;
+}
+
 .small {
     width: 125px;
 }

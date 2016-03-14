@@ -477,7 +477,6 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
         prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
         dates.unshift(shortDateStr(prevDate));
     }
-    //totalCommand += ") as Result order by domainName;";
     var inDomainNameSet = "(select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration limit ??)";
     var inserts2 = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(currDate) + '\'', "5"];
     inDomainNameSet = msq.format(inDomainNameSet,inserts2);
@@ -572,7 +571,7 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
 app.get('/usage/view', function(req,res) {
     var userId = getDisciplanCookie(req.headers.cookie);
     console.log(userId);
-    var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
+    var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName order by duration desc;";
     var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
@@ -582,12 +581,7 @@ app.get('/usage/view', function(req,res) {
                 res.sendStatus(400);
             }
             else {
-                console.log(rows);
-                var d1 = [];
-                for(var i = 0; i < rows.length; i++) {
-                    d1.push({value : rows[i].duration, label: rows[i].domainName});
-                }
-
+                var d1 = formatDoughnutChartData(rows,"domainName");
                 versusTimeQuery(userId,10,d1,res);
             }
     });
@@ -601,8 +595,17 @@ function formatDoughnutChartData(rows,sortType) {
         }
     }
     else {
+        var otherSum = 0;
         for(var i = 0; i < rows.length; i++) {
-            d.push({value : rows[i].duration, label: rows[i].domainName});
+            if(i < 5) {
+                d.push({value : rows[i].duration, label: rows[i].domainName});                
+            }
+            else {
+                otherSum += rows[i].duration;
+            }
+        }
+        if(otherSum > 0) {
+            d.push({value : otherSum, label : "other sites"});
         }
     }
     return d;
@@ -1126,21 +1129,8 @@ app.get('/usage/compare', function(req,res){
     });
 });
 
-// function formatBarChartData(rows,sortType) {
-//     lbls = [];
-//     values = [];
-//     if(sortType == "category") {
-//         for(var i = 0; i < rows.length; i++) {
-//             lbls.push(rows[i].category);
-//             values.push(rows[i].duration);
-//         }
-//     }
 
-//     var d = {labels : lbls, datasets : [{data: values, fillColor: "rgba(100,100,100,1)"}]};
-//     return d;
-// }
-
-function formatMultiUserBarChartData(usersArray,rows,res) {
+function formatMultiUserBarChartData(usersArray,rows) {
     var tmpD = {}
     for(var i = 0; i < usersArray.length; i++) {
         tmpD[usersArray[i]] = {};
@@ -1169,26 +1159,203 @@ function formatMultiUserBarChartData(usersArray,rows,res) {
         dSets.push({label : usersArray[i],data : dataPoints, fillColor : colorConstants[i%colorConstants.length]});
     }
     var d = {labels : allCats, datasets : dSets};
-    res.send(JSON.stringify(d));
+    return d;
 }
 
-function queryTwoFriends(user1,user2,res) {
+function formatMultiUserLineChart(usersArray,category,dates,rows) {
+    var usersData = {};
+    for (var i = 0; i < usersArray.length; i++) {
+        var user = usersArray[i];
+        var arr = [];
+        for (var j = 0; j < rows.length; j++) {
+            var row = rows[j];
+            if(user == row.userID) {
+                arr.push(row);
+            }
+        }
+        usersData[user] = arr;
+    }
+    var dSets = [];
+    var k = 0;
+    for(var user in usersData) {
+        var points = [];
+        var j = 0;
+        for(var i = 0; i < dates.length; i++) {
+            if( j < usersData[user].length && usersData[user][j].date == dates[i]) {
+                points.push(usersData[user][j].duration);
+                j++;
+            }
+            else {
+                points.push(0);
+            }
+        }
+        dSets.push({label : user, data : points, strokeColor : colorConstants[k%colorConstants.length],fillColor : "rgba(0,0,0,0)",pointColor : "rgba(0,0,0,0)", pointStrokeColor : "rgba(0,0,0,0)"});
+        k++;
+    }
+    return {labels : dates, datasets: dSets};
+}
+
+function queryTwoFriends(user1,user2,numDays,res) {
     var date = new Date();
     var startDate = new Date(date.getTime() - 14*24*60*60*1000); //default graph will show last two weeks.
-    var command = "select * from ((select T0.userID, \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T0 where (T0.userId = ?? or T0.userID = ??) and not exists(select * from Categories as C0 where T0.userId = C0.userId and T0.domainName = C0.domainName) group by userID, category) union (select T1.userID, C1.category, sum(T1.timeSpent) as duration from TimeSpent as T1, Categories as C1 where T1.userID = ?? or T1.userID = ?? and T1.userID = C1.userID and T1.domainName = C1.domainName and T1.startTime >= ?? group by T1.userID,C1.category)) as Result order by Result.userID;";
-    var inserts = ['\'' + user1 + '\'', '\'' + user2 + '\'','\'' + user1 + '\'', '\'' + user2 + '\'', '\'' + sqlFormatDateTime(startDate) + '\''];
-    var sql = msq.format(command,inserts);
-    sql = sql.replace(/`/g,"");
-    con.query(sql,function(err,rows) {
-        if(err) {
-            console.log("error: " + err);
+    var command1 = "select * from ((select T0.userID, \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T0 where (T0.userId = ?? or T0.userID = ??) and not exists(select * from Categories as C0 where T0.userId = C0.userId and T0.domainName = C0.domainName) group by userID, category) union (select T1.userID, C1.category, sum(T1.timeSpent) as duration from TimeSpent as T1, Categories as C1 where T1.userID = ?? or T1.userID = ?? and T1.userID = C1.userID and T1.domainName = C1.domainName and T1.startTime >= ?? group by T1.userID,C1.category)) as Result order by Result.userID;";
+    var inserts1 = ['\'' + user1 + '\'', '\'' + user2 + '\'','\'' + user1 + '\'', '\'' + user2 + '\'', '\'' + sqlFormatDateTime(startDate) + '\''];
+    var sql1 = msq.format(command1,inserts1);
+    sql1 = sql1.replace(/`/g,"");
+    con.query(sql1,function(err1,rows1) {
+        if(err1) {
+            console.log("error: " + err1);
             res.sendStatus(400);
         }
         else {
-            formatMultiUserBarChartData([user1,user2],rows,res);
+            var d1 = formatMultiUserBarChartData([user1,user2],rows1);
+            var dates = [];
+            var currDate = new Date();
+            currDate.setUTCSeconds(0);
+            currDate.setUTCMinutes(0);
+            currDate.setUTCHours(0);
+            currDate = new Date(currDate.getTime() + 24*60*1000);
+            var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+            dates.push(shortDateStr(prevDate));
+            var inserts2 = [];
+            var totalCommand = "select Result.date, Result.duration, Result.userID from (";
+            for (var i = 0; i < numDays; i++) {
+                if(i > 0) {
+                    totalCommand += "union ";
+                }
+                totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? group by userID ";
+                inserts2.push('\'' + user1 + '\'');
+                inserts2.push('\'' + user2 + '\'');
+                inserts2.push('\'' + sqlFormatDateTime(currDate) + '\'');
+                inserts2.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+                currDate = prevDate;
+                prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+                dates.unshift(shortDateStr(prevDate));
+            }
+            totalCommand += ") as Result order by Result.userID,Result.date;";
+            var sql2 = msq.format(totalCommand,inserts2);
+            sql2 = sql2.replace(/`/g,"");
+            con.query(sql2,function(err2,rows2) {
+                if(err2) {
+                    console.log("error: " + err2);
+                    res.sendStatus(400);
+                }
+                else {
+                    var d2 = formatMultiUserLineChart([user1,user2],"all",dates,rows2);
+                    var getCategories = "select distinct \'all\' as category from Categories union select distinct \'other\' as category from Categories union select C.category from Categories as C, users as U where U.userID = C.userID and ?? = U.userID and exists(select * from Categories as C2 where C2.category = C.category and C2.userID = ??);";
+                    var catInserts = ['\'' + user1 + '\'', '\'' + user2 + '\''];
+                    var catSql = msq.format(getCategories,catInserts);
+                    catSql = catSql.replace(/`/g,"");
+                    con.query(catSql,function(err3,rows3) {
+                        if(err3) {
+                            console.log("error: " + err3);
+                            res.sendStatus(400);
+                        }
+                        else {
+                            var cats = [];
+                            for(var i = 0; i < rows3.length; i++) {
+                                cats.push(rows3[i].category);
+                            }  
+                           var all = {data1 : d1,data2 : d2,categories : cats};
+                           res.send(JSON.stringify(all));  
+                        }
+
+                   });
+
+                }
+            });
         }
     });
 }
+
+app.post('/usage/compare/graphs_update/right',bodyParser.urlencoded({extended : false}), function(req,res) {
+    var user1 = getDisciplanCookie(req.headers.cookie);
+    var user2 = req.body.otherUser;
+    console.log("--------------")
+    console.log(user2);
+    var numDays = req.body.numDays;
+    numDays = 14;
+    var category = req.body.category;
+    console.log(category);
+    var command = "";
+    var inserts = [];
+
+    var dates = [];
+    var currDate = new Date();
+    currDate.setUTCSeconds(0);
+    currDate.setUTCMinutes(0);
+    currDate.setUTCHours(0);
+    currDate = new Date(currDate.getTime() + 24*60*1000);
+    var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+    dates.push(shortDateStr(prevDate));
+    var inserts = [];
+    var totalCommand = "select Result.date, Result.duration, Result.userID from (";
+
+
+    if(category = "other") {
+        for (var i = 0; i < numDays; i++) {
+            if(i > 0) {
+                totalCommand += " union ";
+            }
+            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? and not exists(select * from Categories as C where C.userID = T" + i.toString() + ".userID and C.domainName = T" + i.toString() + ".domainName) group by userID";
+            inserts.push('\'' + user1 + '\'');
+            inserts.push('\'' + user2 + '\'');
+            inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+            inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+            currDate = prevDate;
+            prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+            dates.unshift(shortDateStr(prevDate));
+        }
+        totalCommand += ") as Result order by Result.userID,Result.date;";
+    }
+    else if (category = "all") {
+        for (var i = 0; i < numDays; i++) {
+            if(i > 0) {
+                totalCommand += " union ";
+            }
+            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? group by userID";
+            inserts.push('\'' + user1 + '\'');
+            inserts.push('\'' + user2 + '\'');
+            inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+            inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+            currDate = prevDate;
+            prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+            dates.unshift(shortDateStr(prevDate));
+        }
+        totalCommand += ") as Result order by Result.userID,Result.date;";
+    }
+    else {
+        for (var i = 0; i < numDays; i++) {
+            if(i > 0) {
+                totalCommand += " union ";
+            }
+            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + ", Categories as C" + i.toString() + " where (T" + i.toString() + ".userID = ?? or T " + i.toString() + ".userID = ??) and startTime < ?? and startTime > ?? and C" + i.toString() + ".userID = T" + i.toString() + ".userID and C" + i.toString() + ".category = ?? and C" + i.toString() + ".domainName = T" + i.toString() + ".domainName group by userID";
+            inserts.push('\'' + user1 + '\'');
+            inserts.push('\'' + user2 + '\'');
+            inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+            inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+            inserts.push('\'' + category + '\'');
+            currDate = prevDate;
+            prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+            dates.unshift(shortDateStr(prevDate));
+        }
+        totalCommand += ") as Result order by Result.userID,result.date;";
+    }
+    var sql = msq.format(totalCommand,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql,function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+        }
+        else {
+            var d = formatMultiUserLineChart([user1,user2],category,dates,rows);
+            res.send(JSON.stringify(d));
+        }
+    })
+
+
+});
 
 app.post('/usage/compare/graphs_update', bodyParser.urlencoded({extended : false}), function(req,res) {
     var userId = getDisciplanCookie(req.headers.cookie);
@@ -1198,8 +1365,6 @@ app.post('/usage/compare/graphs_update', bodyParser.urlencoded({extended : false
     var inserts = [ '\'' + userId + '\'', '\'' + firstAndLast[0] + '\'', '\'' + firstAndLast[1] + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
-    console.log("first query: ");
-    console.log(sql);
     con.query(sql,function(err,rows) {
         if(err) {
             console.log("error the first: " + err);
@@ -1211,7 +1376,7 @@ app.post('/usage/compare/graphs_update', bodyParser.urlencoded({extended : false
                 res.sendStatus(400);
             }
             else {
-                queryTwoFriends(userId,rows[0].userID,res);
+                queryTwoFriends(userId,rows[0].userID,14,res);
             }
         }
     });
