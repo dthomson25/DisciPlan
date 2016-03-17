@@ -221,9 +221,6 @@ function sendSaveRequest(listOfDbChanges) {
               if(editedCategory.find(".type").val() == "Nuclear") {
                 lockedCategory(editedCategory);
               }
-            $("body").notify("Edits Saved","success")
-
-
           }
           else {
               console.log("ERROR: status " + xhr.responseText);
@@ -288,8 +285,20 @@ $(".main").on("click",".save",function() {
     return;
   }
   urlsToChange = findChangedUrls(category)
+  for(x in urlsToChange) {
+    if (urlsToChange[x][2].length == 0) {
+      category.notify("Cannot have an empty url","error")
+      return
+    }
+  }
   urlsToDelete = findDeletedUrls(category)
   urlsToAdd = findNewUrls(category)
+  for(x in urlsToAdd) {
+    if (urlsToAdd[x][1].length == 0) {
+      category.notify("Cannot have an empty url","error")
+      return
+    }
+  }
   changedCategory = findChangedCategory(category)
   changedTime= findChangedTime(category)
   changedType = findChangedType(category)
