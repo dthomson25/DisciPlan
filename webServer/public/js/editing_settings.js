@@ -1,15 +1,23 @@
 var newUrls = {}
 var newCategories
 
+
+var deleteCategoryBtnHTML= "<button class=\"btn btn-danger delete-category\" style=\"float:right;\">x</button>"
 var titleHTML = "<label for=\"category\" class=\"control-label editH2\">\
   <h2 class=\"text-info\">New Category</h2>\
   <input type=\"hidden\" value=\"New Category\" class=\"form-control\">\
   </label>"
-var timeAllowedHTML = "<label for=\"remainingTime\" class=\"control-label\">Allowed Time:</label>\
+var timeAllowedHTML = "<label for=\"alllowedTime\" class=\"control-label\">Allowed Time:</label>\
   <div class=\"input-group timeAllowed\">\
-  <input type=\"number\" placeholder=\"0\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time\">\
+  <input type=\"number\" placeholder=\"0\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time allowed hours\">\
   <span class=\"input-group-addon\"> hours</span>\
-  <input type=\"number\" placeholder=\"15\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time\">\
+  <input type=\"number\" placeholder=\"15\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time allowed minutes\">\
+  <span class=\"input-group-addon\"> minutes</span></div>"  
+var timeRemainingHTML = "<label for=\"remainingTime\" class=\"control-label\">Remaining Time:</label>\
+  <div class=\"input-group timeRemaining\">\
+  <input type=\"number\" disabled=\"\" placeholder=\"0\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time hours\">\
+  <span class=\"input-group-addon\"> hours</span>\
+  <input type=\"number\" disabled=\"\" placeholder=\"15\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time minutes\">\
   <span class=\"input-group-addon\"> minutes</span></div>"  
 var typeHTML = "<div class=\"form-group\">\
   <label for=\"sel1\">Type:\
@@ -29,7 +37,7 @@ var resetIntervalHTML = "<div class=\"form-group\">\
     <option value=\"86400\">Every 24 hours</option>\
   </select>\<input type=\"hidden\"></label></div>"
 var categoryHTML = "<div class=\"input-group\">\
-  <span class=\"input-group-btn\">\
+  <span class=\"input-group-btn  edit-url-btn\">\
     <button class=\"btn btn-default\" type=\"button\">Edit!</button>\
   </span>\
   <input type=\"text\" class=\"form-control new-url\" value=\"\">\
@@ -39,8 +47,8 @@ var categoryHTML = "<div class=\"input-group\">\
   </div><!-- /input-group -->"
 var plusButtonHTML = "<button class=\'btn btn-default add-url\', type='button'>+</button>"
 
-var containerHTML = "<div class=\"jumbotron categories new-category\">" + titleHTML + 
-  "<br>" + timeAllowedHTML + resetIntervalHTML + typeHTML + categoryHTML + plusButtonHTML + "</div>"
+var containerHTML = "<div class=\"jumbotron categories new-category\">" + deleteCategoryBtnHTML + titleHTML + 
+  "<br>" + timeAllowedHTML + "<br>"+ timeRemainingHTML+ "<br>" + resetIntervalHTML + typeHTML + categoryHTML + plusButtonHTML + "</div>"
 
 
 $('.main').on("click", ".editH2",function() {
@@ -59,6 +67,15 @@ $('.main').on("click", ".editH2",function() {
  });
 });
 
+$( document ).ready(function() {
+  $(".categories").each(function(index){
+    var time = calculateRemainingTime($(this));
+    if (time == 0) {
+      lockedCategory($(this))
+    }
+  })
+});
+
 function hiddenValue(value) {
   return "<input type='hidden' value='" + value + "' >"
 }
@@ -69,7 +86,14 @@ function savedEditedCategory(editedCategory) {
 
   var newTime = calculateTime(editedCategory)
   editedCategory.find(".time").each(function(index) {
-    $(this)[0].placeholder = $(this).val()
+    console.log($(this).val())
+    console.log($(this).val() == undefined)
+    console.log($(this).val() == "")
+    if($(this).val() == "") {
+      $(this)[0].placeholder = 0
+    } else {
+      $(this)[0].placeholder = $(this).val()
+    }
   })
   
   var newResetInterval = editedCategory.find("reset-interval").val()
@@ -162,6 +186,23 @@ function calculateTime(category) {
   }
   return time
 }
+
+function calculateRemainingTime(category) {
+  var time = 0
+  var allowedTime = category.find(".timeRemaining input")
+  if (allowedTime[0].value == "") {
+    time += parseInt(allowedTime[0].placeholder) * 3600
+  } else {
+    time += parseInt(allowedTime[0].value) * 3600
+  }
+  if (allowedTime[1].value == "") {
+    time += parseInt(allowedTime[1].placeholder) * 60
+  }  else {
+    time += parseInt(allowedTime[1].value) * 60 
+  }
+  return time
+}
+
 
 function findChangedTime(category) {
   var categoryName = category.find("h2").text()
@@ -264,8 +305,39 @@ function sendCreateCategoryRequest(newCategory) {
   xhr.send( category_name + time_allowed + type + domainNames + reset_interval)
 }
 
+function checkRemainingTime(changedTime,category) {
+  if (changedTime == []) {
+    return
+  }
+  var newTime = changedTime[1]
+  var remainingTime = calculateRemainingTime(category)
+  if (newTime < remainingTime) {
+    var remainingTimeHtml = category.find(".timeRemaining input")
+    remainingTimeHtml[0].value = Math.floor(parseInt(newTime)/3600)
+    remainingTimeHtml[1].value = Math.floor(parseInt(newTime)/60)%60
+  }
 
-//Change remaining time when time allowed is changed.
+}
+
+
+function checkResetWithTime(changedResetInterval,changedTime,category) {
+  if (changedResetInterval ==[] && changedTime ==[]) {
+    return false
+  }
+  var allowedTime = calculateTime(category)
+  if (changedTime != []) {
+    allowedTime = changedTime[1]
+  }
+  var resetTime = category.find(".reset-interval").val()
+  if (changedResetInterval != []) {
+    resetTime = changedResetInterval[1]
+  }
+  if (allowedTime > resetTime) {
+    return true
+  }
+  return false
+}
+
 $(".main").on("click",".save",function() {
   var category = $(this).closest(".categories")
   if (category.hasClass("new-category")) {
@@ -278,7 +350,6 @@ $(".main").on("click",".save",function() {
     category.find(".new-url").each(function() {
       urls.push($(this).val())
     })
-    newCategory.push()
     newCategory.push(urls)
     console.log(newCategory)
     sendCreateCategoryRequest(newCategory)
@@ -301,8 +372,13 @@ $(".main").on("click",".save",function() {
   }
   changedCategory = findChangedCategory(category)
   changedTime= findChangedTime(category)
+  checkRemainingTime(changedTime,category)
   changedType = findChangedType(category)
   changedResetInterval = findChangedResetInterval(category)
+  if(checkResetWithTime(changedResetInterval,changedTime,category)) {
+    category.notify("Allowed Time cannot be smaller than reset interval.","error")
+    return
+  }
 
   sendSaveRequest([urlsToChange,urlsToDelete,urlsToAdd,changedCategory,changedTime,changedType,changedResetInterval])
   
@@ -337,7 +413,7 @@ $(".main").on("click",".delete-url",function(argument) {
   $(this).parent().remove()
 })
 
-
+var first = true
 //TODO don't add another box until a valid url is added.
 $(".main").on("click", ".add-url",function (argument) {
   var plusButton = $(this);
@@ -347,6 +423,23 @@ $(".main").on("click", ".add-url",function (argument) {
 
 $(".addCategory").click( function(argument) {
   $(".main").append(containerHTML)
+  if(first) {
+    $('.new-category').on("change",".allowed",function() {
+      var changedInput
+      if($(this).hasClass('hours')){
+        changedInput = 'hours'
+      }
+      if($(this).hasClass('minutes')){
+        changedInput = 'minutes'
+      }
+      var inputs = $(this).closest('.new-category').find("."+changedInput)
+      console.log(inputs[0].value)
+      console.log(inputs[1].value)
+      inputs[1].value = inputs[0].value
+    })
+    first = false
+  }
+
 });
 
 
@@ -426,6 +519,10 @@ $(".nuclear").click(function(argument) {
 $(".main").on("click", ".delete-category",function(argument) {
   if(confirm("Are you sure you want to delete this category.")) {
     var category = $(this).closest(".categories")
+    if (category.hasClass("new-category")) {
+      category.remove()
+      return
+    }
     var categoryName = category.find("h2").text()
     var xhr = new XMLHttpRequest();
     console.log("test")
@@ -433,7 +530,6 @@ $(".main").on("click", ".delete-category",function(argument) {
     xhr.addEventListener('readystatechange', function(evt) {
       if (xhr.readyState === 4) {
           if (xhr.status === 204) {
-            category
             category.remove()
           }
           else {
@@ -446,5 +542,4 @@ $(".main").on("click", ".delete-category",function(argument) {
     console.log("test")
     xhr.send( category_name)
   }
-
 })

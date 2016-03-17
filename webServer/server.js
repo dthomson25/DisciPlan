@@ -1055,7 +1055,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
             })
         },
         function(callback) {
-            async.forEach(urlToChanges, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+            async.forEach(urlToChanges, function(url, callback) { 
                 category = url[0]
                 var command = "UPDATE Categories SET domainName = ? WHERE domainName = ? and userId = ? and category = ?"
                 var inserts = [url[2],url[1],userId,url[0]]
@@ -1085,6 +1085,24 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
             var inserts = [timeAllowed[1],userId,timeAllowed[0]]
             sql = msq.format(command,inserts);
             console.log("query 5: ");
+            console.log(sql);
+            con.query(sql, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+            })
+        },
+        function(callback) {
+            if (timeAllowed.length == 0) {
+                callback()
+                return
+            }
+            category = timeAllowed[0]
+            var command = "UPDATE Settings SET timeRemaining = ? WHERE userId = ? and category = ? and timeAllowed < timeRemaining"
+            var inserts = [timeAllowed[1],userId,timeAllowed[0]]
+            sql = msq.format(command,inserts);
+            console.log("query 6: ");
             console.log(sql);
             con.query(sql, function(err) {
                     if (err){
