@@ -843,10 +843,37 @@ function createDefaultSettings(userId) {
 
 }
 
+app.post('/user_settings/nuke_all', function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    var command = "UPDATE Settings Set type = 'Nuclear' where userId = ? and type != 'Nuclear'"
+    var inserts = [userId]
+    sql = msq.format(command,inserts);
+    con.query(sql, function(err) {
+        if (err){
+            res.status(400).send(err)
+        }
+        res.sendStatus(204)
+    })
+});
+
+
+app.post('/user_settings/un_nuke_all', function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    var command = "UPDATE Settings Set type = 'Redirect' where userId = ?"
+    var inserts = [userId]
+    sql = msq.format(command,inserts);
+    console.log(sql)
+    con.query(sql, function(err) {
+        if (err){
+            res.status(400).send(err)
+        }
+        res.sendStatus(204)
+    })
+});
+
+
 app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), function(req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
-    defaultSettings(userId)
-
     console.log("In save: socket.id = " + users[userId]);
     // saveSettings(req)
     console.log(req.body)
@@ -884,7 +911,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
                 callback()
                 return
             }
-            category = type[1]
+            category = type[0]
             var command = "UPDATE Settings SET type = ? WHERE userId = ? and category = ?"
             var inserts = [type[1],userId,type[0]]
             sql = msq.format(command,inserts);
@@ -902,7 +929,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
                 callback()
                 return
             }
-            category = resetInterval[1]
+            category = resetInterval[0]
             var command = "UPDATE Settings SET resetInterval = ? WHERE userId = ? and category = ?"
             var inserts = [resetInterval[1],req.params.userId,resetInterval[0]]
             sql = msq.format(command,inserts);
