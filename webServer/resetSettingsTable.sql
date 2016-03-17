@@ -13,9 +13,9 @@ INSERT INTO Categories VALUES ("danthom","www.cnn.com","Entertainment");
 INSERT INTO Categories VALUES ("danthom","www.usatoday.com","Entertainment");
 
 
-INSERT INTO Settings VALUES ("danthom","Social","Redirect","10","10","5");
-INSERT INTO Settings VALUES ("danthom","Sports","Notifications","5","5","5");
-INSERT INTO Settings VALUES ("danthom","Entertainment","Nuclear","20","11","5");
+INSERT INTO Settings VALUES ("danthom","Social","Redirect","120","100","86400");
+INSERT INTO Settings VALUES ("danthom","Sports","Notifications","3600","3600","86400");
+INSERT INTO Settings VALUES ("danthom","Entertainment","Nuclear","3720","3660","86400");
 
 DROP TRIGGER IF EXISTS update_settings;
 CREATE TRIGGER update_settings 
