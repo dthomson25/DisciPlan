@@ -1,0 +1,16 @@
+extends navbar_fixed_top
+
+
+block content
+	div#content
+		h1.text-center= message
+
+		div#searcharea.text-center
+			input#textbar(type="text")
+			
+		div#searchresults
+			div.row
+				span#resultField
+
+	link(rel='stylesheet', href='/css/friends.css')
+	script(src="/js/friends.js")

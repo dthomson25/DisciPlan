@@ -310,6 +310,10 @@ app.get('/', function (req, res) {
 
 app.get('/user_settings', function(req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {message: "You don't seem to be logged in!",
+            m2: "Log in or register a new account via your chrome extension."})
+    }
     console.log('Get to /user_settings for user: ' + userId)
     rowsToShow = []
     async.series([
@@ -370,22 +374,26 @@ app.get('/user_settings', function(req, res) {
 app.get('/user_login', function(req,res) {
     var userId = getDisciplanCookie(req.headers.cookie);
     if (userId != null)
-        res.render('login_page', {title: "Login Page",
-            message: "You're already logged in",
-            user_id: userId});
+        res.render('settings', {title: "Login Page",
+            message: "You're already logged in!"});
     else
         res.render('login_page', {title: "Login Page",
-            message: "Login or register",
+            message: "You don't seem to be logged in!\nLog in or register a new account via your chrome extension.",
             user_id: "null"});
 });
 
 
 app.get('/friends', function(req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
-    if (userId == null) res.render('login_page', {title: "Login Page"});
+    if (userId == null) {
+        res.render('login_page', {title: "Login Page", message: "You don't seem to be logged in!", 
+        m2: "Log in or register a new account via your chrome extension."});
+    } else {
+
     res.render('friends', {title: "Friend Page",
-        message: 'This is dumb'
+        message: "Search for new friends here!", 
         });
+    }
 });
 
 
@@ -712,6 +720,18 @@ app.get('/get_settings', function(req, res) {
         else {
             console.log(rows); 
             res.send(rows);
+        }
+    });
+});
+
+app.get('/findUsers/', function(req, res) {
+    sql = msq.format("select * from Users WHERE LOWER(userId) LIKE ?;", ["%" + req.query.userId.toLowerCase() + "%"]);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log("error" + err)
+            res.sendStatus(400)
+        } else {
+            res.send(rows)
         }
     });
 });
