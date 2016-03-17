@@ -190,6 +190,23 @@ function findChangedResetInterval(category) {
   return []
 }
 
+
+function lockedCategory(category) {
+  category.find(".editH2").removeClass("editH2")
+  category.find(".timeAllowed").children()[0].disabled = true
+  category.find(".timeAllowed").children()[2].disabled = true
+  category.find(".reset-interval")[0].disabled = true
+  category.find(".type")[0].disabled = true
+  category.find(".delete-category").remove()
+  category.find(".add-url").remove();
+  category.find(".url").each(function(index) {
+    $(this).find(".edit-url-btn").remove()
+    $(this).find(".delete-url").remove()
+
+  })
+
+}
+
 function sendSaveRequest(listOfDbChanges) {
   console.log(listOfDbChanges)
   var xhr = new XMLHttpRequest();
@@ -201,11 +218,15 @@ function sendSaveRequest(listOfDbChanges) {
               var editedCategory = $(".edited-category").find("h2").
                 filter(':contains(' + category + ')').closest(".edited-category")
               savedEditedCategory(editedCategory)
+              if(editedCategory.find(".type").val() == "Nuclear") {
+                lockedCategory(editedCategory);
+              }
+            $("body").notify("Edits Saved","success")
+
 
           }
           else {
               console.log("ERROR: status " + xhr.responseText);
-              $("body").notify("Edits Saved","success")
 
           }
       }
@@ -315,8 +336,82 @@ $(".main").on("click", ".add-url",function (argument) {
   appendSaveButton($(this).closest(".categories")) 
 });
 
-$(".addCategory").click( function (argument) {
+$(".addCategory").click( function(argument) {
   $(".main").append(containerHTML)
+});
+
+
+function undoChanges(category) {
+  if(findChangedType(category) != []) {
+    category.find(".type") = category.find(".type").next().val()
+  }
+  var time = findChangedTime(category)
+  var deleted = findDeletedUrls(category)
+  var categoryName = findChangedCategory(category)
+  var urls = findChangedUrls(category)
+  var newUrls = findNewUrls(category)
+  var deletedUrls = findDeletedUrls(category)
+}
+
+
+$(".unnuclear").click(function(argument) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'http://localhost:3000/user_settings/un_nuke_all',true);
+  xhr.addEventListener('readystatechange', function(evt) {
+    if (xhr.readyState === 4) {
+        if (xhr.status === 204) {
+          location.reload();
+
+          // $(".categories").each(function(index) {
+          //   var category = $(this)
+          //   // if (category.hasClass("edited-category")) {
+          //   //   undoChanges(category)
+          //   // }
+          //   // if (category.hasClass("new-category")) {
+          //   //   category.remove()
+          //   // }
+
+          //   lockedCategory($(this))
+          // })
+        }
+        else {
+          //add notification
+        }
+    }
+  })
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+  xhr.send() 
+});
+
+$(".nuclear").click(function(argument) {
+  if(window.confirm("Please confirm that you want to place all categories in nuclear mode. Note: all unsaved changes will be lost.")) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'http://localhost:3000/user_settings/nuke_all',true);
+    xhr.addEventListener('readystatechange', function(evt) {
+      if (xhr.readyState === 4) {
+          if (xhr.status === 204) {
+            location.reload();
+
+            // $(".categories").each(function(index) {
+            //   var category = $(this)
+            //   // if (category.hasClass("edited-category")) {
+            //   //   undoChanges(category)
+            //   // }
+            //   // if (category.hasClass("new-category")) {
+            //   //   category.remove()
+            //   // }
+
+            //   lockedCategory($(this))
+            // })
+          }
+          else {
+            //add notification
+          }
+      }
+    })
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+    xhr.send() 
+  }
 });
 
 $(".main").on("click", ".delete-category",function(argument) {

@@ -8,22 +8,32 @@ body
 
 		h1= message
 		div(class="row")
-			div(class="col-md-6")
+			div(class="col-md-5")
 				div(id="graphContainer")
 					canvas(id="myChart")
-			div(class="col-md-6")
+					div(id="blurb1") Your all-time usage by domain name.
+			div(class="col-md-4")
 				div(id="graphContainer2")
 					canvas(id="myChart2")
-		div(style="text-align : center;") scroll over the charts to view more info!
+					div(id="blurb2") Your top 5 sites in the past 10 days.
+			div(class="col-md-3")
+				div(id="legend2", class="chart-legend")
+				
 
 		div(class="row")
 			div(class="col-md-3")
-				h2 Sort Usage by:
+				h2 Sort usage by:
 			div(class="col-md-3")
 				h2
 					select(id="sortType")
 						option(value="category") Category
 						option(value="domainName") Domain Name
+			div(class="col-md-3")
+				h2 View top sites in:
+			div(class="col-md-3")
+				h2
+					select(id="chooseCategory")
+
 		div(class="row")
 			div(class="col-md-3")
 				h2 Type of chart?
@@ -32,26 +42,56 @@ body
 					select(id="chartType")
 						option(value="doughnut") Doughnut Chart
 						option(value="bar") Bar Graph
+			div(class="col-md-3")
+				h2 How many sites to view?
+			div(class="col-md-3")
+				h2
+					select(id="numToView")
+						each val in [1,2,3,4,5]
+							option(value=val)= val
+
 		div(class="row")
 			div(class="col-md-3")
 				h2 View Usage since:
 			div(class="col-md-3")
 				h2
-					input(type="text", id="datepicker",class="small")
-					input(id="submitBtn",type="submit", value="View Chart!", onclick="createChart()")
+					input(type="text", id="datepicker1",class="small")
+					input(id="submitBtn1",type="submit", value="View Chart!", onclick="createChart1()")
+			div(class="col-md-3")
+				h2 View Usage since:
+			div(class="col-md-3")
+				h2
+					input(type="text", id="datepicker2",class="small")
+					input(id="submitBtn2",type="submit", value="View Chart!", onclick="createChart2()")
 
 		script(src="/js/Chart.js")
 		script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js')
 		script(src="//code.jquery.com/ui/1.11.4/jquery-ui.js")
 		script.
-			var createChart = null;
+			var createChart1 = null;
+			var createChart2 = null;
 			$(document).ready(function() {
-
 				var $j = jQuery.noConflict();
-				$("#datepicker").datepicker({
+				$("#datepicker1").datepicker({
 					changeMonth: true,
 					changeYear: true});
-				$("#datepicker").datepicker({dateFormat: 'yyyy-mm-dd'});
+				$("#datepicker1").datepicker({dateFormat: 'yyyy-mm-dd'});
+
+				$("#datepicker2").datepicker({
+					changeMonth: true,
+					changeYear: true});
+				$("#datepicker2").datepicker({dateFormat: 'yyyy-mm-dd'});
+
+				var cats = !{categories};
+				cats.push("all");
+				cats.push("other");
+				var chooseCat = document.getElementById("chooseCategory");
+				for(var i = 0; i < cats.length; i++) {
+					var node = document.createElement("option");
+					node.setAttribute('value',cats[i]);
+					node.innerHTML = cats[i];
+					chooseCat.appendChild(node);
+				}
 
 				var canvas = document.getElementById("myChart");
 				var ctx = canvas.getContext("2d");
@@ -65,16 +105,17 @@ body
 				ctx2.canvas.width = 400;
 				ctx2.canvas.height = 300;
 				var d2 = !{data2};
-				console.log(d2);
-				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds"});
 
-				createChart = function() {
+				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds", legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips: false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' seconds';}});
+				document.getElementById("legend2").innerHTML = chart2.generateLegend();
+
+				createChart1 = function() {
 
 					var sortType = document.getElementById("sortType");
 					sortType = sortType.options[sortType.selectedIndex].value;
 					var chartType = document.getElementById("chartType");
 					chartType = chartType.options[chartType.selectedIndex].value;
-					var date = new Date($("#datepicker").val());
+					var date = new Date($("#datepicker1").val());
 					if(date.toString() == 'Invalid Date'){
 						date = new Date("1971-01-01");
 					}
@@ -84,7 +125,7 @@ body
 				        if (xhr.readyState === 4) {
 				            if (xhr.status === 200) {
 								$("#myChart").remove();
-								$("#graphContainer").append('<canvas id="myChart"><canvas>');
+								$("#graphContainer").append('<canvas id="myChart"></canvas>');
 								canvas = document.getElementById("myChart");
 								ctx = canvas.getContext("2d");
 								ctx.canvas.width = 300;
@@ -103,9 +144,43 @@ body
 				        }
 					});
 					var form = "sortType=" + sortType + "&startTime=" + date.toString() + "&chartType=" + chartType;
-					xhr.open('POST','http://localhost:3000/usage/update',true);
+					xhr.open('POST','http://localhost:3000/usage/update/left',true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
+					xhr.send(form);
+				}
+
+				createChart2 = function() {
+					var category = document.getElementById("chooseCategory");
+					category = category.options[category.selectedIndex].value;
+					var numToView = document.getElementById("numToView");
+					numToView = numToView.options[numToView.selectedIndex].value;
+					var date = new Date($("#datepicker2").val());
+					if(date.toString() == 'Invalid Date'){
+						date = new Date((new Date()).getTime() - 10*24*60*60*1000);
+					}
+
+					var xhr = new XMLHttpRequest();
+
+					xhr.addEventListener('readystatechange',function(evt) {
+						if (xhr.readyState === 4) {
+							if (xhr.status === 200) {
+								$("#myChart2").remove();
+								$("#graphContainer2").append('<canvas id="myChart2"></canvas>');
+								canvas2 = document.getElementById("myChart2");
+								ctx2 = canvas2.getContext("2d");
+								ctx2.canvas.width = 400;
+								ctx2.canvas.height = 300;
+								d2 = JSON.parse(xhr.responseText);
+								console.log(d2);
+								chart2 = new Chart(ctx2).Line(d2,{datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds",legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>",showTooltips: false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' seconds';}});
+								document.getElementById("legend2").innerHTML = chart2.generateLegend();
+							}
+						}
+					});
+					var form = "category=" + category + "&numToView=" + numToView + "&startTime=" + date.toString();
+					xhr.open('POST','http://localhost:3000/usage/update/right',true);
+					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					xhr.send(form);
 				}
 			});
