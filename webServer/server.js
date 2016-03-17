@@ -115,7 +115,7 @@ io.on('connection', function(socket) {
     socket.on('get top unres sites', function() {
         var userId = socket.username;
         var socketId = users[userId];
-         sql = msq.format("select domainName, SUM(timeSpent) as TotalTime from Timespent T where domainName not in (Select C.domainName from Categories C where userID = ?) group by domainName order by totalTime desc limit 8;"
+         sql = msq.format("select domainName, SUM(timeSpent) as TotalTime from Timespent T where domainName not in (Select C.domainName from Categories C where userID = ?) and domainName != \'newtab\' group by domainName order by totalTime desc limit 8;"
             ,[userId]);
         con.query(sql, function(err,rows) {
             if(err) {
@@ -137,10 +137,11 @@ io.on('connection', function(socket) {
 
 
 
-    socket.on('Reset_allTR', function() {
+    socket.on('Reset_allTR', function(prev_nuclear_types) {
         var userId = socket.username;
         var socketId = users[userId];
         console.log("Reset all time remaining from : " + userId);
+        console.log(prev_nuclear_types)
 
 
 //
