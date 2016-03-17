@@ -38,14 +38,22 @@ app.set('views', './views');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// app.listen(3000, function () {
-//     console.log('Example app listening on port 3000!');
-// });
-
 http.listen(3000, function () {
     console.log('DisciPlan Server listening on port 3000!');
 });
 
+function getDisciplanCookie(cookies) {
+    var re = new RegExp("disciplan=([a-zA-z0-9]*)");
+    var matches = re.exec(cookies);
+    if(matches.length > 1) {
+        return re.exec(cookies)[1];
+    }
+    else {
+        return -1;
+    }
+}
+
+var colorConstants = ["rgba(242,182,50,1)","rgba(205,220,57,1)","rgba(233,30,91,1)","rgba(123,31,162,1)","rgba(33,150,243,1)"];
 
 // Maps usernames to socket ids
 var users = [];
@@ -298,7 +306,7 @@ app.get('/', function (req, res) {
 });
 
 app.get('/user_settings', function(req, res) {
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     console.log('Get to /user_settings for user: ' + userId)
     rowsToShow = []
     async.series([
@@ -376,7 +384,7 @@ function sqlFormatDateTime(d) {
 app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(req,res) {
     var startDateTime = new Date(req.body.startTime);
     var sqlDateTimeStr = sqlFormatDateTime(startDateTime);
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     console.log(sqlDateTimeStr);
     console.log(req.body.domainName);
     var domainName = req.body.domainName.replace("`","");
@@ -397,11 +405,12 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
 });
 
 app.get('/usage_premium/view', function(req, res) {
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     var command = "select domainName from PremiumUserDomains where userID = ??;";
     var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
+    console.log(sql);
     con.query(sql, function(err,rows){
         if(err) {
             console.log("error: " + err);
@@ -409,10 +418,11 @@ app.get('/usage_premium/view', function(req, res) {
         }
         else {
             if (rows.length == 0) {
+                console.log("empty query result");
                 res.sendStatus(400);
             }
             else {
-                command = "select T.userID, sum(timeSpent) as duration from TimeSpent as T where T.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) group by T.userID;";
+                command = "select * from AgeGroupView as A where A.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??);";
                 var inserts = ['\'' + userId + '\''];
                 sql = msq.format(command,inserts);
                 sql = sql.replace(/`/g,"");
@@ -423,10 +433,10 @@ app.get('/usage_premium/view', function(req, res) {
                         res.sendStatus(400);
                     }
                     else {
-                        var d = formatBarChartData(rows,'userID');
+                        var d = formatBarChartData(rows,'AgeGroup');
                         res.render('usage_premium', {
                             title: "Domain Visitors",
-                            message: "Here's who's looking at your site:",
+                            message: "hello, " + userId + "!",
                             data: JSON.stringify(d)
                         });
                     }
@@ -453,10 +463,8 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
     var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
     dates.push(shortDateStr(prevDate));
 
-    console.log("FIRST DATE: " + dates);
-    var result = [];
     inserts = [];
-    var totalCommand = "select * from (";
+    var totalCommand = "select Result.date, Result.domainName, Result.duration from (";
     for(var i = 0; i < numDays; i++) {
         if(i > 0) {
             totalCommand += " union ";
@@ -469,14 +477,18 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
         prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
         dates.unshift(shortDateStr(prevDate));
     }
-    totalCommand += ") as Result order by domainName;";
+    var inDomainNameSet = "(select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration limit ??)";
+    var inserts2 = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(currDate) + '\'', "5"];
+    inDomainNameSet = msq.format(inDomainNameSet,inserts2);
+
+    totalCommand += ") as Result, " + inDomainNameSet + " as DNames where Dnames.domainName = Result.domainName;";
+
     var sql = msq.format(totalCommand,inserts);
     sql = sql.replace(/`/g,"");
-    console.log(sql);
     con.query(sql, function(err,rows) {
         if(err) {
             console.log("error: " + err);
-            res.send(400);
+            res.sendStatus(400);
         }
         else {
             formatLineChartData(rows,dates,userId,dataSet1,res);
@@ -491,7 +503,7 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
     domainsArr = [];
     for (var i = 0; i < rows.length; i++) {
         if (!domainSet.has(rows[i].domainName)) {
-            domainSet.add(rows[i].domainName); 
+            domainSet.add(rows[i].domainName);
             domainsArr.push(rows[i].domainName);
         }
     }
@@ -509,8 +521,6 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
 
 
     for (var i = 0; i < domainsArr.length; i++) {
-        //var currDomain = {};
-        //currDomain.label = domainsArr[i];
         var dataPoints = [];
         for (var j = 0; j < dates.length; j++) {
             if (dates[j] in domainNames[domainsArr[i]]) {
@@ -520,22 +530,48 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
                 dataPoints.push(0);
             }
         }
-        dsets.push({label : domainsArr[i], data : dataPoints, strokeColor : "rgba(230,255,0,1)"});
+        dsets.push({label : domainsArr[i], data : dataPoints, strokeColor : colorConstants[i%colorConstants.length],pointColor : "rgba(0,0,0,0)", pointStrokeColor : "rgba(0,0,0,0)"});
     }
     d.datasets = dsets;
-    console.log(d)
-    res.render('usage', {
-    title: 'Browser Usage',
-    message: 'Hello, ' + userId + '!',
-    data1: JSON.stringify(dataSet1),
-    data2: JSON.stringify(d)
+    var command = "select distinct category from Categories where userID = ??;";
+    var inserts = ['\'' + userId + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql,function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            var arr = [];
+            for(var i = 0; i < rows.length; i++) {
+                arr.push(rows[i].category);
+            }
+            console.log(arr);
+            if(dataSet1 != null) {
+                res.render('usage', {
+                    title: 'Browser Usage',
+                    message: 'Hello, ' + userId + '!',
+                    data1: JSON.stringify(dataSet1),
+                    data2: JSON.stringify(d),
+                    categories : JSON.stringify(arr)
+                }); 
+            }
+            else {
+                res.send(JSON.stringify(d));//BAD STYLE SHOULD CHANGE BUT MAYBE NOT OH WELL
+            }
+        }
     });
+
+
 }
 
 //Graph page
 app.get('/usage/view', function(req,res) {
-    var userId = req.headers.cookie.split("=")[1];
-    var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
+    var userId = getDisciplanCookie(req.headers.cookie);
+    console.log(userId);
+    var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName order by duration desc;";
     var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
@@ -545,23 +581,8 @@ app.get('/usage/view', function(req,res) {
                 res.sendStatus(400);
             }
             else {
-                console.log(rows);
-                var d1 = [];
-                for(var i = 0; i < rows.length; i++) {
-                    d1.push({value : rows[i].duration, label: rows[i].domainName});
-                }
+                var d1 = formatDoughnutChartData(rows,"domainName");
                 versusTimeQuery(userId,10,d1,res);
-                // if (d2 == null) {
-                //     res.sendStatus(400);
-                // }
-                // else {
-                    // res.render('usage', {
-                    // title: 'Browser Usage',
-                    // message: 'Hello, ' + userId + '!',
-                    // data1: JSON.stringify(d1),
-                    // data2: JSON.stringify(d2)
-                    // });
-                // }
             }
     });
 });
@@ -574,8 +595,17 @@ function formatDoughnutChartData(rows,sortType) {
         }
     }
     else {
+        var otherSum = 0;
         for(var i = 0; i < rows.length; i++) {
-            d.push({value : rows[i].duration, label: rows[i].domainName});
+            if(i < 5) {
+                d.push({value : rows[i].duration, label: rows[i].domainName});                
+            }
+            else {
+                otherSum += rows[i].duration;
+            }
+        }
+        if(otherSum > 0) {
+            d.push({value : otherSum, label : "other sites"});
         }
     }
     return d;
@@ -596,23 +626,29 @@ function formatBarChartData(rows,sortType) {
             values.push(rows[i].duration);
         }
     }
+    else if (sortType == "AgeGroup") {
+        for (var i = 0; i < rows.length; i++) {
+            lbls.push(rows[i].AgeGroup);
+            values.push(rows[i].duration);
+        }
+    }
     else {
         for(var i = 0; i < rows.length; i++) {
             lbls.push(rows[i].userID);
             values.push(rows[i].duration);
         } 
     }
-    var d = {labels : lbls, datasets : [{data: values, fillColor: "rgba(230,255,0,1)"}]};
+    var d = {labels : lbls, datasets : [{data: values, fillColor: "rgba(100,100,100,1)"}]};
     return d;
 }
 
-app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req,res) {
+app.post('/usage/update/left',bodyParser.urlencoded({extended : false}), function(req,res) {
     var sortType = req.body.sortType;
     var date = new Date(req.body.startTime);
     var chartType = req.body.chartType;
     var command = "";
     var inserts = [];
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     if(sortType == "category") {
         command = "select * from (select category, sum(TimeSpent) as duration from Categories as C, TimeSpent as T where C.userId = T.userId and C.userId = ?? and C.domainName = T.domainName and T.startTime > ?? group by category union select \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T1 where T1.userId = ?? and not exists(select * from Categories as C1 where T1.userId = C1.userId and T1.domainName = C1.domainName) group by category) as A";
         inserts = ['\'' + userId + '\'','\'' + sqlFormatDateTime(date) + '\'', '\'' + userId + '\''];
@@ -643,9 +679,84 @@ app.post('/usage/update',bodyParser.urlencoded({extended : false}), function(req
     });
 });
 
+function getNumberOfDays(then) {
+    var now = new Date();
+    var diff = now.getTime() - then.getTime();
+    return Math.floor(diff / (1000*60*60*24));
+}
+
+function versusTimeOneCategoryQuery(category,userId,numDays,numToView,date,res) {
+    var inDomainNameSet = "";
+    if (category == "all") {
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration limit ??";
+        var inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\'', numToView.toString()];
+        inDomainNameSet = msq.format(inDomainNameSet,inserts);
+    }
+    else if (category == "other") {
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and not exists (select * from Categories as C2 where T.domainName = C2.domainName and T.userID = C2.userID) group by T.domainName order by duration limit ??";
+        var inserts = ['\'' + userId + '\'', '\''+ sqlFormatDateTime(date) + '\'', numToView.toString()];
+        inDomainNameSet = msq.format(inDomainNameSet,inserts);
+    }
+    else {
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and C.domainName = T.domainName and C.category = ?? group by T.domainName order by duration limit ??";
+        var inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\'', '\'' + category + '\'', numToView.toString()];
+        inDomainNameSet = msq.format(inDomainNameSet, inserts);
+    }
+    inDomainNameSet = '(' + inDomainNameSet + ')';
+
+    var dates = [];
+    var currDate = new Date();
+    currDate.setUTCSeconds(0);
+    currDate.setUTCMinutes(0);
+    currDate.setUTCHours(0);
+    currDate = new Date(currDate.getTime() + 24*60*1000);
+    var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+    dates.push(shortDateStr(prevDate));
+
+    inserts = [];
+    var totalCommand = "select * from (";
+    for(var i = 0; i < numDays; i++) {
+        if(i > 0) {
+            totalCommand += " union ";
+        }
+        totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime > ?? group by domainName";
+        inserts.push('\'' + userId + '\'');
+        inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+        inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+        currDate = prevDate;
+        prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+        dates.unshift(shortDateStr(prevDate));
+    }
+    totalCommand += ") as Result, " + inDomainNameSet + " as DNames where Result.domainName = DNames.domainName order by Result.domainName;";
+    var sql = msq.format(totalCommand,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql, function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            console.log(rows);
+            formatLineChartData(rows,dates,userId,null,res);
+        }
+    });
+    
+}
+
+app.post('/usage/update/right',bodyParser.urlencoded({extended : false}), function(req,res) {
+    var category = req.body.category;
+    var date = new Date(req.body.startTime);
+    var numToView = req.body.numToView;
+    var numDays = getNumberOfDays(date);
+    var userId = getDisciplanCookie(req.headers.cookie);
+
+    versusTimeOneCategoryQuery(category,userId,numDays,numToView,date,res);
+});
+
 app.get('/get_settings', function(req, res) {
     console.log(req.headers.cookie);
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     console.log("Request for settings...");
     sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
         ,[userId]);
@@ -675,7 +786,7 @@ app.get('/login/', function(req, res) {
 });
 
 app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), function(req, res) {
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     console.log("In save: socket.id = " + users[userId]);
     // saveSettings(req)
     console.log(req.body)
@@ -897,7 +1008,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
 app.post('/user_settings/create_category', bodyParser.urlencoded({extended : false}), function(req, res) {
     console.log(req.params)
     console.log(req.body)
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     var categoryName = JSON.parse(req.body["category_name"])
     var timeAllowed = JSON.parse(req.body["time_allowed"])
     var type = JSON.parse(req.body["type"])
@@ -989,7 +1100,7 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
 app.post('/user_settings/delete_category', bodyParser.urlencoded({extended : false}), function(req, res) {
     console.log(req.params)
     console.log(req.body)
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
     var categoryName = JSON.parse(req.body["category_name"]) 
     async.series([
         function(callback) {
@@ -1064,100 +1175,9 @@ app.post('/user_settings/delete_category', bodyParser.urlencoded({extended : fal
     })
 })
 
-// app.post('/update_TR', function(req, res) {
-//     var user = req.headers.cookie.split("=")[1];
-//     var category = req.body.category;
-//     var TR = req.body.TR;
-
-//     var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
-//     var inserts = [TR, user, category];
-//     sql = msq.format(command,inserts);
-//     con.query(sql, function(err) {
-//         if(err){
-//             console.log("error: " + err);
-//             res.sendStatus(400);
-//         }
-//         else {
-//             console.log("command:\n" + sql + "\nsucceeded!");
-//             res.sendStatus(204);
-//         }
-//     });
-
-//     // TODO: What do we send back? - Settings - Jefe
-// });
-
-
-// app.post('/reset_allTR', function(req, res) {
-//     var userId = req.headers.cookie.split("=")[1];
-//     sql = msq.format("select * from Settings where userId = ? ;"
-//         ,[userId]);
-//     con.query(sql, function(err,rows) {
-//         if(err) {
-//             console.log("error: " + err);
-//             res.sendStatus(400);
-//         }
-//         else {
-//             recursiveQuery = function(rows, currRow, user) {
-//                 if(currRow >= rows.length){
-//                     res.sendStatus(200);
-//                     return;
-//                 }
-//                 category = rows[currRow].category;
-//                 timeAllowed = rows[currRow].timeAllowed;
-//                 var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
-//                 var inserts = [timeAllowed, userId, category];
-//                 sql = msq.format(command,inserts);
-//                 con.query(sql, function(err) {
-//                     if(err){
-//                         console.log("error: " + err);
-//                         res.sendStatus(400);
-//                         return;
-//                     }
-//                     else {
-//                         console.log("command:\n" + sql + "\nsucceeded!");
-//                         recursiveQuery(rows, currRow + 1, userId);
-//                     }
-//                 });
-//             };
-//             recursiveQuery(rows, 0, userId);
-//         }
-//     });
-// });
-
-// app.post('/add_page', function(req, res) {
-//     var userId = req.headers.cookie.split("=")[1];
-//     var page = req.body.page;
-//     var category = req.body.category;
-
-//     var command = "insert into Categories values(??,??,??)";
-//     var inserts = ["\'" + userId +"\'","\'" +  page + "\'","\'" + category + "\'"];
-//     sql = msq.format(command,inserts);
-//     sql = sql.replace(/`/g,"");
-//     con.query(sql, function(err) {
-//         if(err){
-//             console.log("error: " + err);
-//             res.sendStatus(400);
-//         }
-//         else {
-//             console.log("command:\n" + sql + "\nsucceeded!");
-//             sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-//                 ,[userId]);
-//             con.query(sql, function(err,rows) {
-//                 if(err) {
-//                     console.log("error: " + err);
-//                     res.sendStatus(400);
-//                 }
-//                 else {
-//                     res.send(rows);
-//                 }
-//             });
-//         }
-//     });
-// });
-
 app.get('/newtab_page', function(req, res){
     // Get user name from cookie
-    var userId = req.headers.cookie.split("=")[1];
+    var userId = getDisciplanCookie(req.headers.cookie);
 
     sql = msq.format("select * from Settings as S where S.userId = ? ORDER BY S.Category;"
         ,[userId]);
@@ -1167,15 +1187,287 @@ app.get('/newtab_page', function(req, res){
             res.sendStatus(400);
         }
         else {
-            // res.render('settings', {title: 'DisciPlan Settings', 
-            //      message: 'This is your settings page!',
-            //      rows: rows, 
-            //      current: '/user_settings',
-            //      setting_types: differentTypes
-            //     });
             console.log(rows);
         }
     });
 
 });
+
+app.get('/usage/compare', function(req,res){
+    var userId = getDisciplanCookie(req.headers.cookie);
+    res.render('usage_compare',{title : 'Comparing with Friends',
+        message : "Compare your usage with friends!"
+    });
+});
+
+
+function formatMultiUserBarChartData(usersArray,rows) {
+    var tmpD = {}
+    for(var i = 0; i < usersArray.length; i++) {
+        tmpD[usersArray[i]] = {};
+    }
+    var allCatsSet = new Set();
+    for (var i = 0; i < rows.length; i++) {
+        if (!allCatsSet.has(rows[i].category)) {
+            allCatsSet.add(rows[i].category);
+            for(var user in tmpD) {
+                if(tmpD.hasOwnProperty(user)) {
+                    tmpD[user][rows[i].category] = 0;
+                }
+            }
+        }
+    }
+    for (var i = 0; i < rows.length; i++) {
+        tmpD[rows[i].userID][rows[i].category] = rows[i].duration;
+    }
+    var allCats = Array.from(allCatsSet);
+    var dSets = [];
+    for (var i = 0; i < usersArray.length; i++) {
+        var dataPoints = [];
+        for(j = 0; j < allCats.length; j++) {
+            dataPoints.push(tmpD[usersArray[i]][allCats[j]]);
+        }
+        dSets.push({label : usersArray[i],data : dataPoints, fillColor : colorConstants[i%colorConstants.length]});
+    }
+    var d = {labels : allCats, datasets : dSets};
+    return d;
+}
+
+function formatMultiUserLineChart(usersArray,category,dates,rows) {
+    var usersData = {};
+    for (var i = 0; i < usersArray.length; i++) {
+        var user = usersArray[i];
+        var arr = [];
+        for (var j = 0; j < rows.length; j++) {
+            var row = rows[j];
+            if(user == row.userID) {
+                arr.push(row);
+            }
+        }
+        usersData[user] = arr;
+    }
+    var dSets = [];
+    var k = 0;
+    for(var user in usersData) {
+        var points = [];
+        var j = 0;
+        for(var i = 0; i < dates.length; i++) {
+            if( j < usersData[user].length && usersData[user][j].date == dates[i]) {
+                points.push(usersData[user][j].duration);
+                j++;
+            }
+            else {
+                points.push(0);
+            }
+        }
+        dSets.push({label : user, data : points, strokeColor : colorConstants[k%colorConstants.length],fillColor : "rgba(0,0,0,0)",pointColor : "rgba(0,0,0,0)", pointStrokeColor : "rgba(0,0,0,0)"});
+        k++;
+    }
+    return {labels : dates, datasets: dSets};
+}
+
+function queryTwoFriends(user1,user2,numDays,res) {
+    var date = new Date();
+    var startDate = new Date(date.getTime() - 14*24*60*60*1000); //default graph will show last two weeks.
+    var command1 = "select * from ((select T0.userID, \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T0 where (T0.userId = ?? or T0.userID = ??) and not exists(select * from Categories as C0 where T0.userId = C0.userId and T0.domainName = C0.domainName) group by userID, category) union (select T1.userID, C1.category, sum(T1.timeSpent) as duration from TimeSpent as T1, Categories as C1 where T1.userID = ?? or T1.userID = ?? and T1.userID = C1.userID and T1.domainName = C1.domainName and T1.startTime >= ?? group by T1.userID,C1.category)) as Result order by Result.userID;";
+    var inserts1 = ['\'' + user1 + '\'', '\'' + user2 + '\'','\'' + user1 + '\'', '\'' + user2 + '\'', '\'' + sqlFormatDateTime(startDate) + '\''];
+    var sql1 = msq.format(command1,inserts1);
+    sql1 = sql1.replace(/`/g,"");
+    con.query(sql1,function(err1,rows1) {
+        if(err1) {
+            console.log("error: " + err1);
+            res.sendStatus(400);
+        }
+        else {
+            var d1 = formatMultiUserBarChartData([user1,user2],rows1);
+            var dates = [];
+            var currDate = new Date();
+            currDate.setUTCSeconds(0);
+            currDate.setUTCMinutes(0);
+            currDate.setUTCHours(0);
+            currDate = new Date(currDate.getTime() + 24*60*1000);
+            var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+            dates.push(shortDateStr(prevDate));
+            var inserts2 = [];
+            var totalCommand = "select Result.date, Result.duration, Result.userID from (";
+            for (var i = 0; i < numDays; i++) {
+                if(i > 0) {
+                    totalCommand += "union ";
+                }
+                totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? group by userID ";
+                inserts2.push('\'' + user1 + '\'');
+                inserts2.push('\'' + user2 + '\'');
+                inserts2.push('\'' + sqlFormatDateTime(currDate) + '\'');
+                inserts2.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+                currDate = prevDate;
+                prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+                dates.unshift(shortDateStr(prevDate));
+            }
+            totalCommand += ") as Result order by Result.userID,Result.date;";
+            var sql2 = msq.format(totalCommand,inserts2);
+            sql2 = sql2.replace(/`/g,"");
+            con.query(sql2,function(err2,rows2) {
+                if(err2) {
+                    console.log("error: " + err2);
+                    res.sendStatus(400);
+                }
+                else {
+                    var d2 = formatMultiUserLineChart([user1,user2],"all",dates,rows2);
+                    var getCategories = "select distinct \'all\' as category from Categories union select distinct \'other\' as category from Categories union select C.category from Categories as C, users as U where U.userID = C.userID and ?? = U.userID and exists(select * from Categories as C2 where C2.category = C.category and C2.userID = ??);";
+                    var catInserts = ['\'' + user1 + '\'', '\'' + user2 + '\''];
+                    var catSql = msq.format(getCategories,catInserts);
+                    catSql = catSql.replace(/`/g,"");
+                    con.query(catSql,function(err3,rows3) {
+                        if(err3) {
+                            console.log("error: " + err3);
+                            res.sendStatus(400);
+                        }
+                        else {
+                            var cats = [];
+                            for(var i = 0; i < rows3.length; i++) {
+                                cats.push(rows3[i].category);
+                            }  
+                           var all = {data1 : d1,data2 : d2,categories : cats};
+                           res.send(JSON.stringify(all));  
+                        }
+
+                   });
+
+                }
+            });
+        }
+    });
+}
+
+app.post('/usage/compare/graphs_update/right',bodyParser.urlencoded({extended : false}), function(req,res) {
+    var user1 = getDisciplanCookie(req.headers.cookie);
+    var user2 = req.body.otherUser;
+    console.log("--------------")
+    console.log(user2);
+    var numDays = req.body.numDays;
+    numDays = 14;
+    var category = req.body.category;
+    console.log(category);
+    var command = "";
+    var inserts = [];
+
+    var dates = [];
+    var currDate = new Date();
+    currDate.setUTCSeconds(0);
+    currDate.setUTCMinutes(0);
+    currDate.setUTCHours(0);
+    currDate = new Date(currDate.getTime() + 24*60*1000);
+    var prevDate = new Date(currDate.getTime() - 24*60*60*1000);
+    dates.push(shortDateStr(prevDate));
+    var inserts = [];
+    var totalCommand = "select Result.date, Result.duration, Result.userID from (";
+
+
+    if(category = "other") {
+        for (var i = 0; i < numDays; i++) {
+            if(i > 0) {
+                totalCommand += " union ";
+            }
+            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? and not exists(select * from Categories as C where C.userID = T" + i.toString() + ".userID and C.domainName = T" + i.toString() + ".domainName) group by userID";
+            inserts.push('\'' + user1 + '\'');
+            inserts.push('\'' + user2 + '\'');
+            inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+            inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+            currDate = prevDate;
+            prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+            dates.unshift(shortDateStr(prevDate));
+        }
+        totalCommand += ") as Result order by Result.userID,Result.date;";
+    }
+    else if (category = "all") {
+        for (var i = 0; i < numDays; i++) {
+            if(i > 0) {
+                totalCommand += " union ";
+            }
+            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? group by userID";
+            inserts.push('\'' + user1 + '\'');
+            inserts.push('\'' + user2 + '\'');
+            inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+            inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+            currDate = prevDate;
+            prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+            dates.unshift(shortDateStr(prevDate));
+        }
+        totalCommand += ") as Result order by Result.userID,Result.date;";
+    }
+    else {
+        for (var i = 0; i < numDays; i++) {
+            if(i > 0) {
+                totalCommand += " union ";
+            }
+            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + ", Categories as C" + i.toString() + " where (T" + i.toString() + ".userID = ?? or T " + i.toString() + ".userID = ??) and startTime < ?? and startTime > ?? and C" + i.toString() + ".userID = T" + i.toString() + ".userID and C" + i.toString() + ".category = ?? and C" + i.toString() + ".domainName = T" + i.toString() + ".domainName group by userID";
+            inserts.push('\'' + user1 + '\'');
+            inserts.push('\'' + user2 + '\'');
+            inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
+            inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
+            inserts.push('\'' + category + '\'');
+            currDate = prevDate;
+            prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
+            dates.unshift(shortDateStr(prevDate));
+        }
+        totalCommand += ") as Result order by Result.userID,result.date;";
+    }
+    var sql = msq.format(totalCommand,inserts);
+    sql = sql.replace(/`/g,"");
+    console.log(sql);
+    con.query(sql,function(err,rows) {
+        if(err) {
+            console.log("error: " + err);
+        }
+        else {
+            var d = formatMultiUserLineChart([user1,user2],category,dates,rows);
+            res.send(JSON.stringify(d));
+        }
+    })
+
+
+});
+
+app.post('/usage/compare/graphs_update', bodyParser.urlencoded({extended : false}), function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    var friendName = req.body.friendName;
+    var firstAndLast = friendName.split(" ");
+    var command = "select U.userID from Users as U, Friends as F where F.user2 = ?? and F.user1 = U.userID and U.firstName = ?? and U.lastName = ??;";
+    var inserts = [ '\'' + userId + '\'', '\'' + firstAndLast[0] + '\'', '\'' + firstAndLast[1] + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql,function(err,rows) {
+        if(err) {
+            console.log("error the first: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            if(rows.length == 0) {
+                console.log("error: no friends of " + userId + " with name " + friendName);
+                res.sendStatus(400);
+            }
+            else {
+                queryTwoFriends(userId,rows[0].userID,14,res);
+            }
+        }
+    });
+});
+
+app.get('usage/compare/friends_update', bodyParser.urlencoded({extended : false}), function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    var prefixFirstOrLast = req.body.prefix;
+    var command = "select U.firstName, U.lastName, U.userId from Users as U, Friends as F where F.user1 = ?? and (U.firstName like ?? or U.lastName like ??) and U.userID = F.user2;";
+    var inserts = ['\'' + userId + '\'', '\'' + prefixFirstOrLast + '%\'', '\'' + prefixFirstOrLast + '%\''];
+    var sql = msq.format(command,inserts);
+    con.query(sql,function(err,rows){
+        if(err) {
+            console.log("error: " + err);
+            res.sendStatus(400);
+        }
+        else {
+            res.send(JSON.stringify(rows));
+        }
+
+    });
+})
 

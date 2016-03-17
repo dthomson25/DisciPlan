@@ -51,6 +51,14 @@ CREATE TABLE PremiumUserDomains (
 	FOREIGN KEY (userID) REFERENCES Users(userID)
 );
 
+CREATE TABLE Friends (
+	user1 CHAR(64) NOT NULL,
+	user2 CHAR(64) NOT NULL,
+	PRIMARY KEY (user1, user2),
+	FOREIGN KEY (user1) REFERENCES Users(userID),
+	FOREIGN KEY (user2) REFERENCES Users(userID)
+);
+
 CREATE VIEW AgeGroupView AS
 SELECT T1.domainName, sum(T1.timeSpent) AS duration, "Under 18" AS AgeGroup
 FROM TimeSpent AS T1, Users as U1
@@ -77,6 +85,13 @@ FROM TimeSpent AS T5, Users as U5
 WHERE T5.userID = U5.userID AND DATE_ADD(U5.dOB, INTERVAL 65 YEAR) <= NOW()
 GROUP BY T5.domainName;
 
-
-
+delimiter $$
+CREATE TRIGGER nonZeroTimeSpent BEFORE INSERT ON TimeSpent
+FOR EACH ROW
+BEGIN
+IF new.timeSpent = 0 THEN
+signal sqlstate '45000';
+end if;
+end;$$
+delimiter ;
 
