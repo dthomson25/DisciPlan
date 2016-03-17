@@ -1,5 +1,7 @@
 
 var settings_JSON = null;
+var prev_nuclear_types = [];
+var reset_interval
 
 
 // Set up persistent connection to server for updates
@@ -23,12 +25,14 @@ socket.on('settings object', function(settings) {
     console.log(settings);
     settings_JSON = settings;
     startResetTimeout();
+    reset_interval = settings_JSON[0].resetInterval
   }
 });
 
 socket.on('settings saved', function(settings) {
   if(settings){
     console.log(settings);
+    savePrevNuclearTypes(settings);
     settings_JSON = settings;
     startResetTimeout();
     socket.emit('get time remaining');
@@ -36,6 +40,8 @@ socket.on('settings saved', function(settings) {
 })
 
 socket.on('all RT reset', function(settings) {
+  // TODO clear prev_nuclear_types
+  prev_nuclear_types = [];
   settings_JSON = settings;
   socket.emit('get time remaining');
 });
@@ -46,6 +52,23 @@ function set_socket_username_get_settings(){
   // For new tab page
   socket.emit('get time remaining');
   socket.emit('get top unres sites');
+}
+
+function savePrevNuclearTypes(new_settings){
+  for(i = 0; i < new_settings.length; i++){
+    var row = new_settings[i];
+    console.log(row);
+    if(row.type == "Nuclear"){
+      for(index = 0; index < settings_JSON.length; index++){
+        var old_row = settings_JSON[index];
+        if(old_row.domainName == row.domainName && old_row.type != "Nuclear"){
+          var old_cat = old_row.category;
+          var old_type = old_row.type;
+          prev_nuclear_types.push([old_cat, old_type]);
+        }
+      }
+    }
+  }
 }
 
 
@@ -120,7 +143,8 @@ var resetTime = 0
 
 function resetAllTR() {
   console.log("Resetting all time remaining request");
-  socket.emit('Reset_allTR');
+  socket.emit('Reset_allTR', prev_nuclear_types);
+  // TODO send prev_nuclear_types
 
 
 
@@ -138,7 +162,9 @@ function resetAllTR() {
 function startInterval() {
   if(resetIntervalId)
     window.clearInterval(resetIntervalId);
-  var interval = 24*60*60*1000; // TODO get this from settings
+  //var interval = 24*60*60*1000; // TODO get this from settings
+  //var interval = reset_interval*1000;
+  var interval = 30 * 1000;
   resetIntervalId = setInterval(resetAllTR, interval);
   resetAllTR();
 
@@ -247,10 +273,13 @@ function handleTimeUp() {
     redirectToHome();
   if(currType == "Notifications")
     notifyTimeUp();
+  if(currType == "Nuclear")
+    redirectToHome();
   // TODO add nuclear option...
   //if(currType == "Nuclear")
   //nuclearOption()
 }
+
 
 function checkIfRestricted(url, alreadyHostName) {
   var urlHostName = url;
@@ -286,6 +315,8 @@ function startTimeout() {
     var diff_ms = (Date.parse(endTime) - Date.parse(startTime));   
     if(diff_ms < 0)
       diff_ms = 0; 
+    if(currType == "Nuclear")
+      diff_ms = 0;
     timeoutId = window.setTimeout(handleTimeUp, diff_ms);
   }
 }

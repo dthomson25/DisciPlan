@@ -123,7 +123,7 @@ io.on('connection', function(socket) {
     socket.on('get top unres sites', function() {
         var userId = socket.username;
         var socketId = users[userId];
-         sql = msq.format("select domainName, SUM(timeSpent) as TotalTime from Timespent T where domainName not in (Select C.domainName from Categories C where userID = ?) group by domainName order by totalTime desc limit 8;"
+         sql = msq.format("select domainName, SUM(timeSpent) as TotalTime from Timespent T where domainName not in (Select C.domainName from Categories C where userID = ?) and domainName != \'newtab\' group by domainName order by totalTime desc limit 8;"
             ,[userId]);
         con.query(sql, function(err,rows) {
             if(err) {
@@ -145,11 +145,11 @@ io.on('connection', function(socket) {
 
 
 
-    socket.on('Reset_allTR', function() {
+    socket.on('Reset_allTR', function(prev_nuclear_types) {
         var userId = socket.username;
         var socketId = users[userId];
         console.log("Reset all time remaining from : " + userId);
-
+        console.log(prev_nuclear_types)
 
 //
         // Update time remaining for all categories then send new setting back
@@ -165,42 +165,69 @@ io.on('connection', function(socket) {
             else {
                 recursiveQuery = function(rows, currRow, user) {
                     if(currRow >= rows.length){
-                        // If all of the time remainings are updated send settings back.
-                        sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-                            ,[userId]);
-                        con.query(sql, function(err,rows) {
-                            if(err) {
+                        resetTypeQuery = function(index){
+                            if(index < prev_nuclear_types.length){
+                                category = prev_nuclear_types[index][0];
+                                prevType = prev_nuclear_types[index][1];
+                                var command = "update Settings SET type = ? WHERE userId = ? AND category = ?;";
+                                var inserts = [prevType, userId, category];
+                                sql = msq.format(command,inserts);
+                                con.query(sql, function(err) {
+                                    if(err){
+                                        console.log("error: " + err);
+                                        if (io.sockets.connected[socketId]){
+                                            io.to(socketId).emit("error", err);
+                                        }
+                                        return;
+                                    }
+                                    else {
+                                        console.log("command:\n" + sql + "\nsucceeded!");
+                                        resetTypeQuery(index + 1);
+                                    }
+                                });
+                            }
+                            else{
+                                // If all of the time remainings are updated send settings back.
+                            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                                ,[userId]);
+                            con.query(sql, function(err,rows) {
+                                if(err) {
+                                    console.log("error: " + err);
+                                    if (io.sockets.connected[socketId]){
+                                        io.to(socketId).emit("error", err);
+                                    }
+                                }
+                                else {
+                                    if (io.sockets.connected[socketId]){
+                                        io.to(socketId).emit("all RT reset", rows);
+                                    }
+                                }
+                            });
+                            return;
+                            }
+                        }
+                        resetTypeQuery(0);
+                    }
+                    else{
+                        category = rows[currRow].category;
+                        timeAllowed = rows[currRow].timeAllowed;
+                        var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+                        var inserts = [timeAllowed, userId, category];
+                        sql = msq.format(command,inserts);
+                        con.query(sql, function(err) {
+                            if(err){
                                 console.log("error: " + err);
                                 if (io.sockets.connected[socketId]){
                                     io.to(socketId).emit("error", err);
                                 }
+                                return;
                             }
                             else {
-                                if (io.sockets.connected[socketId]){
-                                    io.to(socketId).emit("all RT reset", rows);
-                                }
+                                console.log("command:\n" + sql + "\nsucceeded!");
+                                recursiveQuery(rows, currRow + 1, userId);
                             }
                         });
-                        return;
-                    }
-                    category = rows[currRow].category;
-                    timeAllowed = rows[currRow].timeAllowed;
-                    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
-                    var inserts = [timeAllowed, userId, category];
-                    sql = msq.format(command,inserts);
-                    con.query(sql, function(err) {
-                        if(err){
-                            console.log("error: " + err);
-                            if (io.sockets.connected[socketId]){
-                                io.to(socketId).emit("error", err);
-                            }
-                            return;
-                        }
-                        else {
-                            console.log("command:\n" + sql + "\nsucceeded!");
-                            recursiveQuery(rows, currRow + 1, userId);
-                        }
-                    });
+                    } 
                 };
                 recursiveQuery(rows, 0, userId);
             }

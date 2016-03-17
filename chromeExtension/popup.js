@@ -97,12 +97,6 @@ function set_time(){
   //new Chart(document.getElementById("timeRemainingGraph").getContext("2d")).HorizontalStackedBar(barData, options);
 
   // End chart
-
-
-
-
-
-
     
 }
 
