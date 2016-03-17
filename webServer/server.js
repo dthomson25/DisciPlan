@@ -872,28 +872,17 @@ function createDefaultSettings(userId) {
 
 app.post('/user_settings/nuke_all', function(req,res) {
     var userId = getDisciplanCookie(req.headers.cookie);
-    console.log("test")
-    async.series([
-        function(callback) {
-            var command = "UPDATE Settings Set type = 'Nuclear' where userId = ? and type != 'Nuclear'"
-            var inserts = [userId]
-            sql = msq.format(command,inserts);
-            console.log("sql1")
-            console.log(sql)
-            con.query(sql, function(err) {
-                if (err){
-                    return err
-                }
-                callback()
-            })
-        },
-        function(callback) {
-            // send new settings to background page
+    var command = "UPDATE Settings Set type = 'Nuclear' where userId = ? and type != 'Nuclear'"
+    var inserts = [userId]
+    sql = msq.format(command,inserts);
+    con.query(sql, function(err) {
+        if (err){
+            res.status(400).send(err)
+        }
+        else{
             var socketId = users[userId];
             sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
                 ,[userId]);
-            console.log("sql2")
-            console.log(sql)
             con.query(sql, function(err,rows) {
                 if(err) {
                     console.log("error: " + err);
@@ -909,17 +898,10 @@ app.post('/user_settings/nuke_all', function(req,res) {
                         io.to(socketId).emit("settings saved", rows);
                     }
                 }
-                callback();
             });
-        }],
-        function(err) {
-            console.log(err)
-            if (err)  {
-                res.status(400).send(err)
-            }
-            res.sendStatus(204)
-        })
-
+        }
+        res.sendStatus(204)
+    })
 });
 
 
@@ -932,6 +914,26 @@ app.post('/user_settings/un_nuke_all', function(req,res) {
     con.query(sql, function(err) {
         if (err){
             res.status(400).send(err)
+        }
+        else{
+            var socketId = users[userId];
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("error", err);
+                    }
+                    return err;
+                }
+                else {
+                    console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("settings saved", rows);
+                    }
+                }
+            });
         }
         res.sendStatus(204)
     })

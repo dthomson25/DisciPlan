@@ -33,6 +33,8 @@ socket.on('settings saved', function(settings) {
   if(settings){
     console.log(settings);
     savePrevNuclearTypes(settings);
+    console.log(prev_nuclear_types);
+    console.log("AFTER");
     settings_JSON = settings;
     startResetTimeout();
     socket.emit('get time remaining');
@@ -57,7 +59,6 @@ function set_socket_username_get_settings(){
 function savePrevNuclearTypes(new_settings){
   for(i = 0; i < new_settings.length; i++){
     var row = new_settings[i];
-    console.log(row);
     if(row.type == "Nuclear"){
       for(index = 0; index < settings_JSON.length; index++){
         var old_row = settings_JSON[index];

@@ -17,8 +17,7 @@
       ["Our greatest weakness lies in giving up. The most certain way to succeed is always to try just one more time.", "-Thomas A. Edison"],
       ["With the new day comes new strength and new thoughts.", "-Eleanor Roosevelt"],
       ["If you can dream it, you can do it.", "-Walt Disney"],
-      ["Problems are not stop signs, they are guidelines.", "-Robert H. Schuller"],
-      ["Fuck you Danny.", "-Jeff"]
+      ["Problems are not stop signs, they are guidelines.", "-Robert H. Schuller"]
    ];
    var quotesLength = motivationalQuotes.length;
 
@@ -67,8 +66,10 @@
                {
                   //fillColor : fillRem,
                   //strokeColor : strokeRem,
-                  fillColor: "rgba(51,153,255,.9)",
+                  fillColor: "rgba(51,153,255,.7)",
                   strokeColor: "rgba(51,153,255,1)",
+                  //fillColor: "rgba(171,220,251,.7)",
+                  //strokeColor: "rgba(171,220,251,1)",
                   data : dataRemaining,
                   title : "Time Remaining"
                },
@@ -90,6 +91,8 @@
                         annotateLabel: "<%=v3+' seconds ('+v6+'%)'%>",
                         legend: true,
                         legendPosY: 0,
+                        scaleFontSize: 20,
+                        scaleFontColor: "white"
             };
             new Chart(document.getElementById("timeRemainingCanvas").getContext("2d")).HorizontalStackedBar(barData, options);
             // TODO on right of chart add countdown until new interval -> No
