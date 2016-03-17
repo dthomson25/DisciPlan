@@ -879,6 +879,26 @@ app.post('/user_settings/nuke_all', function(req,res) {
         if (err){
             res.status(400).send(err)
         }
+        else{
+            var socketId = users[userId];
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("error", err);
+                    }
+                    return err;
+                }
+                else {
+                    console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("settings saved", rows);
+                    }
+                }
+            });
+        }
         res.sendStatus(204)
     })
 });
@@ -893,6 +913,26 @@ app.post('/user_settings/un_nuke_all', function(req,res) {
     con.query(sql, function(err) {
         if (err){
             res.status(400).send(err)
+        }
+        else{
+            var socketId = users[userId];
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("error", err);
+                    }
+                    return err;
+                }
+                else {
+                    console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("settings saved", rows);
+                    }
+                }
+            });
         }
         res.sendStatus(204)
     })

@@ -17,8 +17,7 @@
       ["Our greatest weakness lies in giving up. The most certain way to succeed is always to try just one more time.", "-Thomas A. Edison"],
       ["With the new day comes new strength and new thoughts.", "-Eleanor Roosevelt"],
       ["If you can dream it, you can do it.", "-Walt Disney"],
-      ["Problems are not stop signs, they are guidelines.", "-Robert H. Schuller"],
-      ["Fuck you Danny.", "-Jeff"]
+      ["Problems are not stop signs, they are guidelines.", "-Robert H. Schuller"]
    ];
    var quotesLength = motivationalQuotes.length;
 
@@ -48,8 +47,8 @@
                else{
                   dataRemaining.push(categories[i].timeRemaining);
                   dataUsed.push(categories[i].timeAllowed - categories[i].timeRemaining);
-                  fillSpent.push("rgba(51,153,255,0.2)");
-                  strokeSpent.push("rgba(51,153,255,1)")
+                  fillSpent.push("rgba(171,220,251,0.2)");
+                  strokeSpent.push("rgba(171,220,251,1)")
                }
                if(categories[i].type == "Nuclear"){
                   fillRem.push("rgba(255,51,51,.9)");
@@ -67,8 +66,10 @@
                {
                   //fillColor : fillRem,
                   //strokeColor : strokeRem,
-                  fillColor: "rgba(51,153,255,.9)",
-                  strokeColor: "rgba(51,153,255,1)",
+                  // fillColor: "rgba(51,153,255,.9)",
+                  // strokeColor: "rgba(51,153,255,1)",
+                  fillColor: "rgba(171,220,251,.9)",
+                  strokeColor: "rgba(171,220,251,1)",
                   data : dataRemaining,
                   title : "Time Remaining"
                },
@@ -86,10 +87,12 @@
 
             options = { "annotateDisplay" : true, 
                         "annotateBorderRadius": '5px',
-                        "showYLabels": 2, 
+                        "showYLabels": 0, 
                         annotateLabel: "<%=v3+' seconds ('+v6+'%)'%>",
                         legend: true,
                         legendPosY: 0,
+                        scaleFontSize: 16,
+                        scaleFontColor: "black"
             };
             new Chart(document.getElementById("timeRemainingCanvas").getContext("2d")).HorizontalStackedBar(barData, options);
             // TODO on right of chart add countdown until new interval -> No
