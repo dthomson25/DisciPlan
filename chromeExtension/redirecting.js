@@ -33,9 +33,6 @@ socket.on('settings saved', function(settings) {
   if(settings){
     console.log(settings);
     savePrevNuclearTypes(settings);
-    console.log("Settings SAVED..")
-    console.log(prev_nuclear_types);
-    console.log("BELOW")
     settings_JSON = settings;
     startResetTimeout();
     socket.emit('get time remaining');
@@ -166,7 +163,8 @@ function startInterval() {
   if(resetIntervalId)
     window.clearInterval(resetIntervalId);
   //var interval = 24*60*60*1000; // TODO get this from settings
-  var interval = reset_interval*1000;
+  //var interval = reset_interval*1000;
+  var interval = 30 * 1000;
   resetIntervalId = setInterval(resetAllTR, interval);
   resetAllTR();
 
