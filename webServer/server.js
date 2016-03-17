@@ -49,7 +49,8 @@ http.listen(3000, function () {
 function getDisciplanCookie(cookies) {
     var re = new RegExp("disciplan=([a-zA-z0-9]*)");
     var matches = re.exec(cookies);
-    if(matches.length > 1) {
+    if (matches == null) return null;
+    if (matches.length > 1) {
         return re.exec(cookies)[1];
     }
     else {
@@ -366,10 +367,25 @@ app.get('/user_settings', function(req, res) {
         })
 });
 
+app.get('/user_login', function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId != null)
+        res.render('login_page', {title: "Login Page",
+            message: "You're already logged in",
+            user_id: userId});
+    else
+        res.render('login_page', {title: "Login Page",
+            message: "Login or register",
+            user_id: "null"});
+});
+
+
 app.get('/friends', function(req, res) {
-
-
-
+    var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) res.render('login_page', {title: "Login Page"});
+    res.render('friends', {title: "Friend Page",
+        message: 'This is dumb'
+        });
 });
 
 

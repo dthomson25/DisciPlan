@@ -1,0 +1,16 @@
+extends navbar_fixed_top
+
+block content
+	h1.text-center= message
+
+	div.loginbox
+		form(name="login", action="/login", method="get")
+			br
+			text_area Username:
+			br
+			input(type="text", name="user")
+			br
+			text_area Password:
+			br
+			input(type="password", name="pass")
+			input(type="submit", value="login")

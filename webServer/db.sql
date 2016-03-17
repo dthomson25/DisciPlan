@@ -54,11 +54,11 @@ CREATE TABLE PremiumUserDomains (
 );
 
 CREATE TABLE Friends (
-	userID1 CHAR(64) NOT NULL,
-	userID2 CHAR(64) NOT NULL,
-	PRIMARY KEY (userID1, userID2),
-	FOREIGN KEY (userID1) REFERENCES Users(userID),
-	FOREIGN KEY (userID2) REFERENCES Users(userID)
+	user1 CHAR(64) NOT NULL,
+	user2 CHAR(64) NOT NULL,
+	PRIMARY KEY (user1, user2),
+	FOREIGN KEY (user1) REFERENCES Users(userID),
+	FOREIGN KEY (user2) REFERENCES Users(userID)
 );
 
 CREATE VIEW AgeGroupView AS
