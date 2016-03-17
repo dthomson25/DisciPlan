@@ -1017,7 +1017,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
                 sql = msq.format(command,inserts);
                 con.query(sql, function(err) {
                     console.log("error possible")
-                    if (err){
+                    if (err){                        
                         callback(err)
                         return
                     } 
@@ -1069,7 +1069,8 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
                 })
                 }, function(err) {
                     if (err){
-                        return err;
+                        callback(err)
+                        return
                     } 
                     callback()
 
@@ -1140,7 +1141,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
         if (err)  {
             var message = "Unknown Error"
             if (err.code == "ER_DUP_ENTRY")
-                message = "Duplicate entry"
+                message = "Url: " + err.message.split("\'")[1].split('-')[1] + " is a duplicate url. Urls can only be restricted once.~"+categoryName
             res.status(400).send(message);
             return
         }
@@ -1184,6 +1185,35 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
     var resetInterval = JSON.parse(req.body["reset_interval"])
     var domainName = JSON.parse(req.body["domain_names"])
     async.series([
+        function(callback) {
+            async.forEach(domainName, function(url, callback) { 
+                var command = "SELECT * FROM Categories where userId = ? and domainName = ?"
+                var inserts = [userId,url]
+                sql = msq.format(command,inserts);
+                console.log(sql)
+                con.query(sql, function(err,rows) {
+                    console.log(rows)
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    if (rows.length == 0) {
+                        callback()
+                        return
+                    }
+                    var newErr = {}
+                    newErr.code = "ER_DUP_ENTRY"
+                    newErr.message = "Url: " + url + " is a duplicate url. Urls can't be in multiple categories.~"+categoryName
+                    callback(newErr)
+                })
+                }, function(err) {
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+            })
+        },
         function(callback) {
             var command = "INSERT INTO Settings (userID,category,type,timeAllowed,timeRemaining,resetInterval) VALUES(?,?,?,?,?,?)"
             var inserts = [userId, categoryName, type,
@@ -1253,7 +1283,9 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
         if (err)  {
             var message = "Unknown Error"
             if (err.code == "ER_DUP_ENTRY")
-                message = "Duplicate entry"
+                message = err.message
+            console.log(message)
+            console.log("sending it")
             res.status(400).send(message);
             return
         }
