@@ -785,8 +785,68 @@ app.get('/login/', function(req, res) {
     });
 });
 
+function createDefaultSettings(userId) {
+    async.series([
+        function(callback) {
+            var command = "INSERT INTO Settings (userID,category,type,timeAllowed,timeRemaining,resetInterval) VALUES(?,?,?,?,?,?)"
+            var inserts = [userId, "Social Media", "Redirect","1800","1800","86400"]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql, function(err) {
+                if (err){
+                     callback(err);
+                     return
+                }
+                console.log("New Setting!")
+                callback()
+            })
+        },
+        function(callback) {
+            var command = "INSERT INTO Categories (userID,domainName,category) VALUES(?,?,?)"
+            var inserts = [userId,"www.facebook.com","Social Media"]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql,function(err) {
+                if (err){
+                    console.log(err)
+                    callback(err)
+                    return
+                } 
+                console.log("New Category")
+                callback()
+
+            })
+        },
+        function(callback) {
+            var command = "INSERT INTO Categories (userID,domainName,category) VALUES(?,?,?)"
+            var inserts = [userId,"www.linkedin.com","Social Media"]
+            sql = msq.format(command,inserts);
+            console.log(sql)
+            con.query(sql,function(err) {
+                if (err){
+                    console.log(err)
+                    callback(err)
+                    return
+                } 
+                console.log("New Category")
+                callback()
+
+            })
+        },
+    ], function(err) {
+        console.log(err)
+        if (err)  {
+            return err
+        }
+        return
+    })
+
+}
+
 app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), function(req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
+    defaultSettings(userId)
+
     console.log("In save: socket.id = " + users[userId]);
     // saveSettings(req)
     console.log(req.body)
@@ -1001,8 +1061,6 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
     //         }
     //     }
     // });
-
-
 });
 
 app.post('/user_settings/create_category', bodyParser.urlencoded({extended : false}), function(req, res) {
