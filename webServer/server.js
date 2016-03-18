@@ -705,7 +705,7 @@ app.post('/usage_premium/compare',bodyParser.urlencoded({extended : false}), fun
         m2: "Log in or register a new account via your chrome extension."});
         return;
     }
-    command = "select * from AgeGroupView as A where A.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) or A.domainName = ?? order by domainName;";
+    command = "select * from AgeGroupView as A where A.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) or A.domainName = ?? order by domainName, AgeGroup;";
     inserts = ['\'' + userId + '\'','\'' + dName + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
