@@ -49,8 +49,8 @@ var categoryHTML = "<div class=\"input-group\">\
   </div><!-- /input-group -->"
 var plusButtonHTML = "<button class=\'btn btn-default add-url\', type='button'>+</button>"
 
-var containerHTML = "<div class=\"col-md-6\"><div class=\"jumbotron categories new-category\">" + deleteCategoryBtnHTML + titleHTML + 
-  "<br>" + timeAllowedHTML + "<br>"+ timeRemainingHTML+ "<br>" + resetIntervalHTML + typeHTML + plusButtonHTML + "</div></div>"
+var containerHTML = "<div class=\"jumbotron categories new-category\">" + deleteCategoryBtnHTML + titleHTML + 
+  "<br>" + timeAllowedHTML + "<br>"+ timeRemainingHTML+ "<br>" + resetIntervalHTML + typeHTML + plusButtonHTML + "</div>"
 
 
 $('.main').on("click", ".editH2",function() {
@@ -445,7 +445,7 @@ $(".main").on("click", ".add-url",function (argument) {
 });
 
 $(".addCategory").click( function(argument) {
-  $(".row").append(containerHTML)
+  $(".main").append(containerHTML)
   if(first) {
     $('.new-category').on("change",".allowed",function() {
       var changedInput
