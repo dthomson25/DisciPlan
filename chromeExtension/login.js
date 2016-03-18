@@ -65,9 +65,7 @@ function logout() {
 	var login_content = document.getElementById("login_content")
 	login_content.style.display = "block"
 	var verified_content = document.getElementById("verified_content")
-	verified_content.style.display = "none"
-	chrome.cookies.set({url: "http://localhost", name: "disciplan", value: username, domain: null});
-	
+	verified_content.style.display = "none"	
 }
 
 window.onload = function() {
