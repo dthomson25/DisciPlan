@@ -340,7 +340,7 @@ app.get('/user_settings', function(req, res) {
         function(callback) {
             var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
                 ,[userId]);
-            console.log(sql)
+            // console.log(sql)
             con.query(sql, function(err,rows) {
                 if (err){
                      callback(err);
@@ -358,7 +358,7 @@ app.get('/user_settings', function(req, res) {
         function(callback) {
             var sql = msq.format("select userID, category, type, resetInterval,timeAllowed from settings S where S.category not in (select C.category from categories C);"
                 ,[userId]);
-            console.log(sql)
+            // console.log(sql)
             con.query(sql, function(err,rows) {
                 console.log(rows)
                 if (err){
@@ -1352,6 +1352,10 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
     var domainName = JSON.parse(req.body["domain_names"])
     async.series([
         function(callback) {
+            if (domainName.length == 0) {
+                callback()
+                return
+            }
             async.forEach(domainName, function(url, callback) { 
                 var command = "SELECT * FROM Categories where userId = ? and domainName = ?"
                 var inserts = [userId,url]
@@ -1397,7 +1401,10 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
             })
         },
         function(callback) {
-            console.log("second callback")
+            if (domainName.length == 0) {
+                callback()
+                return
+            }
             async.forEach(domainName, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
                 var command = "INSERT INTO Categories (userID,domainName,category) VALUES(?,?,?)"
                 var inserts = [userId,url,categoryName]
@@ -1425,6 +1432,8 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
             var socketId = users[userId];
             sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
                 ,[userId]);
+            console.log("sql query")
+            console.log(sql)
             con.query(sql, function(err,rows) {
                 if(err) {
                     console.log("error: " + err);
