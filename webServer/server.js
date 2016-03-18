@@ -749,7 +749,6 @@ app.get('/followUsers/', function(req, res) {
     }
     sqlstring = sqlstring.slice(0, sqlstring.length-2);
     sqlstring += ";"
-    console.log(sqlstring)
     sql = msq.format(sqlstring, toFollow);
     con.query(sql, function(err, rows) {
         if (err) {
