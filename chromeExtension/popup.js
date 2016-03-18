@@ -256,6 +256,13 @@ document.addEventListener('DOMContentLoaded', function() {
     window.close();
   });
 
+  var resetButton = document.getElementById('reset_int_btn');
+  resetButton.addEventListener('click', function() {
+    chrome.runtime.sendMessage({req: "reset_interval"}, function(response){
+
+    });
+  });
+
   var pageDiv = document.getElementById('currentPage');
   chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
     var url = tabs[0].url;
