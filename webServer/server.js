@@ -492,7 +492,7 @@ app.get('/register/', function(req, res) {
             } else {    // Insert the new user
                 /** TODO: Change this at some point to getting an actual birthday **/
                 var sqlDate = sqlFormatDateTime(new Date(req.query.birthday));
-                sql = msq.format("INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, 0);",
+                sql = msq.format("INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, 1);",
                     [req.query.userId, req.query.email, req.query.first_name,
                       req.query.last_name, req.query.password, sqlDate]);
                 con.query(sql, function(err,rows) {
