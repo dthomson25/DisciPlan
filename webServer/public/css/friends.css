@@ -18,7 +18,23 @@
 }
 
 #searchresults {
+	position: relative;
+	left: 50%;
+	top: -170px;
+	height: 300px;
+	width: 600px;
+	border-style: solid;
+	transform: translate(-50%, 80%);
+}
+
+.row {
+	position: absolute;
+	left: 10%;
+}
+
+#followButton {
 	position: absolute;
 	left: 50%;
-	transform: translate(-50%, 80%);
+	bottom: 0;
+	transform: translate(-50%, 0);
 }

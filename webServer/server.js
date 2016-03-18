@@ -725,7 +725,8 @@ app.get('/get_settings', function(req, res) {
 });
 
 app.get('/findUsers/', function(req, res) {
-    sql = msq.format("select * from Users WHERE LOWER(userId) LIKE ?;", ["%" + req.query.userId.toLowerCase() + "%"]);
+    var userid = getDisciplanCookie(req.headers.cookie)
+    sql = msq.format("select * from Users WHERE LOWER(userID) LIKE ? AND userID != ? AND userID NOT IN (select user2 from Friends where user1 = ?);", ["%" + req.query.userId.toLowerCase() + "%", userid, userid]);
     con.query(sql, function(err, rows) {
         if (err) {
             console.log("error" + err)
@@ -736,11 +737,38 @@ app.get('/findUsers/', function(req, res) {
     });
 });
 
+
+app.get('/followUsers/', function(req, res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    sqlstring = "INSERT into Friends VALUES "
+    var toFollow = []
+    for (var i in req.query) {
+        sqlstring += "(?, ?), "
+        toFollow.push(userId)
+        toFollow.push(req.query[i])
+    }
+    sqlstring = sqlstring.slice(0, sqlstring.length-2);
+    sqlstring += ";"
+    console.log(sqlstring)
+    sql = msq.format(sqlstring, toFollow);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log ("error " + err)
+            res.sendStatus(400);
+        } else {
+            res.sendStatus(200)
+        }
+
+    });
+
+});
+
+
 app.get('/login/', function(req, res) {
     sql = msq.format("select * from Users where userId = ? and password = ?;",[req.query.userId, req.query.password]);
     con.query(sql, function(err, rows) {
         if (err) {
-            console.log ("error" + err)
+            console.log ("error " + err)
             res.sendStatus(400)
         } else {
             res.send(rows)
