@@ -9,15 +9,15 @@ var titleHTML = "<label for=\"category\" class=\"control-label editH2\">\
   </label>"
 var timeAllowedHTML = "<label for=\"alllowedTime\" class=\"control-label\">Allowed Time:</label>\
   <div class=\"input-group timeAllowed\">\
-  <input type=\"number\" placeholder=\"0\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time allowed hours\">\
+  <input type=\"number\" placeholder=\"0\" value=\"0\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time allowed hours\">\
   <span class=\"input-group-addon\"> hours</span>\
-  <input type=\"number\" placeholder=\"15\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time allowed minutes\">\
+  <input type=\"number\" placeholder=\"15\" value=\"15\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time allowed minutes\">\
   <span class=\"input-group-addon\"> minutes</span></div>"  
 var timeRemainingHTML = "<label for=\"remainingTime\" class=\"control-label\">Remaining Time:</label>\
   <div class=\"input-group timeRemaining\">\
-  <input type=\"number\" disabled=\"\" placeholder=\"0\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time hours\">\
+  <input type=\"number\" disabled=\"\" placeholder=\"0\" value=\"0\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time hours\">\
   <span class=\"input-group-addon\"> hours</span>\
-  <input type=\"number\" disabled=\"\" placeholder=\"15\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time minutes\">\
+  <input type=\"number\" disabled=\"\" placeholder=\"15\" value=\"15\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time minutes\">\
   <span class=\"input-group-addon\"> minutes</span></div>"  
 var typeHTML = "<div class=\"form-group\">\
   <label for=\"sel1\">Type:\
@@ -48,7 +48,7 @@ var categoryHTML = "<div class=\"input-group\">\
 var plusButtonHTML = "<button class=\'btn btn-default add-url\', type='button'>+</button>"
 
 var containerHTML = "<div class=\"jumbotron categories new-category\">" + deleteCategoryBtnHTML + titleHTML + 
-  "<br>" + timeAllowedHTML + "<br>"+ timeRemainingHTML+ "<br>" + resetIntervalHTML + typeHTML + categoryHTML + plusButtonHTML + "</div>"
+  "<br>" + timeAllowedHTML + "<br>"+ timeRemainingHTML+ "<br>" + resetIntervalHTML + typeHTML + plusButtonHTML + "</div>"
 
 
 $('.main').on("click", ".editH2",function() {
@@ -86,9 +86,6 @@ function savedEditedCategory(editedCategory) {
 
   var newTime = calculateTime(editedCategory)
   editedCategory.find(".time").each(function(index) {
-    console.log($(this).val())
-    console.log($(this).val() == undefined)
-    console.log($(this).val() == "")
     if($(this).val() == "") {
       $(this)[0].placeholder = 0
     } else {
@@ -231,7 +228,6 @@ function findChangedResetInterval(category) {
   return []
 }
 
-
 function lockedCategory(category) {
   category.find(".editH2").removeClass("editH2")
   category.find(".timeAllowed").children()[0].disabled = true
@@ -245,7 +241,6 @@ function lockedCategory(category) {
     $(this).find(".delete-url").remove()
 
   })
-
 }
 
 function sendSaveRequest(listOfDbChanges) {
@@ -264,8 +259,10 @@ function sendSaveRequest(listOfDbChanges) {
               }
           }
           else {
-              console.log("ERROR: status " + xhr.responseText);
-
+            var category = xhr.responseText.split('~')
+            var editedCategory = $(".edited-category").find("h2").
+              filter(':contains(' + category[1] + ')').closest(".edited-category")
+            editedCategory.notify(category[0],"error")
           }
       }
   })
@@ -292,7 +289,10 @@ function sendCreateCategoryRequest(newCategory) {
               savedEditedCategory(editedCategory) 
           }
           else {
-
+            var category = xhr.responseText.split('~')
+            var editedCategory = $(".edited-category").find("h2").
+              filter(':contains(' + category[1] + ')').closest(".edited-category")
+            editedCategory.notify(category[0],"error")
           }
       }
   })
@@ -307,18 +307,20 @@ function sendCreateCategoryRequest(newCategory) {
 
 function checkRemainingTime(changedTime,category) {
   if (changedTime == []) {
-    return
+    return false
   }
   var newTime = changedTime[1]
+  if (newTime == 0) {
+    return true
+  }
   var remainingTime = calculateRemainingTime(category)
   if (newTime < remainingTime) {
     var remainingTimeHtml = category.find(".timeRemaining input")
     remainingTimeHtml[0].value = Math.floor(parseInt(newTime)/3600)
     remainingTimeHtml[1].value = Math.floor(parseInt(newTime)/60)%60
   }
-
+  return false
 }
-
 
 function checkResetWithTime(changedResetInterval,changedTime,category) {
   if (changedResetInterval ==[] && changedTime ==[]) {
@@ -344,12 +346,25 @@ $(".main").on("click",".save",function() {
     newCategory = []
     newCategory.push(category.find("h2").text())
     newCategory.push(calculateTime(category))
+    if(calculateTime(category) == 0) {
+      category.notify("Allowed Time can't be 0.","error")
+      return
+    }
     newCategory.push(category.find(".type").val())
     newCategory.push(category.find(".reset-interval").val())
     urls = []
+    var quit = false
     category.find(".new-url").each(function() {
+      if($(this).val().length == 0) {
+        quit = true
+        return
+      }
       urls.push($(this).val())
     })
+    if (quit) {
+      category.notify("A url cannot be left blank.","error")
+      return
+    }
     newCategory.push(urls)
     console.log(newCategory)
     sendCreateCategoryRequest(newCategory)
@@ -372,7 +387,10 @@ $(".main").on("click",".save",function() {
   }
   changedCategory = findChangedCategory(category)
   changedTime= findChangedTime(category)
-  checkRemainingTime(changedTime,category)
+  if(checkRemainingTime(changedTime,category)) {
+    category.notify("Allowed Time cannot be 0.","error")
+    return
+  }
   changedType = findChangedType(category)
   changedResetInterval = findChangedResetInterval(category)
   if(checkResetWithTime(changedResetInterval,changedTime,category)) {
