@@ -1,7 +1,7 @@
 body {
     margin-left: 2%;
-    background-color: #C9C9C9;
-    color: #000000;
+    background-color: #2F8DDF;
+    color: #BABABA;
 }
 
 h1 {
@@ -44,7 +44,7 @@ h1 {
     margin-left: 5px;
     font-size: 20px;
     width: 125px;
-    background-color: #C9C9C9;
+    background-color: #2F8DDF;
     border-width: 2px;
     border-color: white;
 }
@@ -53,16 +53,7 @@ h1 {
     margin-left: 5px;
     font-size: 20px;
     width: 125px;
-    background-color: #D0D0D0;
-    border-width: 2px;
-    border-color: white;
-}
-
-#catSubmit {
-    margin-left: 5px;
-    font-size: 12px;
-    width: 50px;
-    background-color: #D0D0D0;
+    background-color: #2F8DDF;
     border-width: 2px;
     border-color: white;
 }
