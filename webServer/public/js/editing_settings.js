@@ -199,6 +199,11 @@ function calculateRemainingTime(category) {
   }  else {
     time += parseInt(allowedTime[1].value) * 60 
   }
+  if (allowedTime[2].value == "") {
+    time += parseInt(allowedTime[2].placeholder)
+  }  else {
+    time += parseInt(allowedTime[2].value) 
+  }
   return time
 }
 

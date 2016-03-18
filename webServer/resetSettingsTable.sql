@@ -22,14 +22,45 @@ CREATE TABLE Settings (
 	FOREIGN KEY (userID) REFERENCES Users(userID)
 );
 
-
-
 INSERT INTO Categories VALUES ("danthom","www.facebook.com","Social");
 INSERT INTO Categories VALUES ("danthom","www.instagram.com","Social");
 INSERT INTO Categories VALUES ("danthom","espn.go.com","Sports");
 INSERT INTO Categories VALUES ("danthom","www.foxsports.com","Sports");
 INSERT INTO Categories VALUES ("danthom","www.cnn.com","Entertainment");
 INSERT INTO Categories VALUES ("danthom","www.usatoday.com","Entertainment");
+
+INSERT INTO Categories VALUES ("jeff1731","www.facebook.com","Social");
+INSERT INTO Categories VALUES ("jeff1731","www.instagram.com","Social");
+INSERT INTO Categories VALUES ("jeff1731","espn.go.com","Sports");
+INSERT INTO Categories VALUES ("jeff1731","www.foxsports.com","Sports");
+INSERT INTO Categories VALUES ("jeff1731","www.cnn.com","Entertainment");
+INSERT INTO Categories VALUES ("jeff1731","www.usatoday.com","Entertainment");
+
+INSERT INTO Categories VALUES ("jross3","www.facebook.com","Social");
+INSERT INTO Categories VALUES ("jross3","www.instagram.com","Social");
+INSERT INTO Categories VALUES ("jross3","espn.go.com","Sports");
+INSERT INTO Categories VALUES ("jross3","www.foxsports.com","Sports");
+INSERT INTO Categories VALUES ("jross3","www.cnn.com","Entertainment");
+INSERT INTO Categories VALUES ("jross3","www.usatoday.com","Entertainment");
+
+INSERT INTO Categories VALUES ("adamii","www.facebook.com","Social");
+INSERT INTO Categories VALUES ("adamii","www.instagram.com","Social");
+INSERT INTO Categories VALUES ("adamii","espn.go.com","Sports");
+INSERT INTO Categories VALUES ("adamii","www.foxsports.com","Sports");
+INSERT INTO Categories VALUES ("adamii","www.cnn.com","Entertainment");
+INSERT INTO Categories VALUES ("adamii","www.usatoday.com","Entertainment");
+
+INSERT INTO Settings VALUES ("jross3","Social","Redirect","120","10","86400");
+INSERT INTO Settings VALUES ("jross3","Sports","Notifications","120","10","86400");
+INSERT INTO Settings VALUES ("jross3","Entertainment","Redirect","600","500","86400");
+
+INSERT INTO Settings VALUES ("jeff1731","Social","Redirect","120","10","86400");
+INSERT INTO Settings VALUES ("jeff1731","Sports","Notifications","120","10","86400");
+INSERT INTO Settings VALUES ("jeff1731","Entertainment","Redirect","600","500","86400");
+
+INSERT INTO Settings VALUES ("adamii","Social","Redirect","120","10","86400");
+INSERT INTO Settings VALUES ("adamii","Sports","Notifications","120","10","86400");
+INSERT INTO Settings VALUES ("adamii","Entertainment","Redirect","600","500","86400");
 
 INSERT INTO Settings VALUES ("danthom","Social","Redirect","120","10","86400");
 INSERT INTO Settings VALUES ("danthom","Sports","Notifications","120","10","86400");
