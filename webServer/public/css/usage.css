@@ -13,6 +13,10 @@ h1 {
     margin: 2px; 
 }
 
+#testDiv {
+    text-align: center;
+}
+
 .rounded { 
     border-radius:10px; 
     -moz-border-radius:10px; 
