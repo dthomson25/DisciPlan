@@ -137,7 +137,7 @@ body
 									chart = new Chart(ctx).Doughnut(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> minutes"});
 								}
 								else {
-									chart = new Chart(ctx).Bar(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> minutes"});
+									chart = new Chart(ctx).Bar(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> minutes",scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' minutes';}});
 								}
 				            }
 				            else {
