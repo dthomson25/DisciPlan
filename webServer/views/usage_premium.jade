@@ -6,29 +6,93 @@ body
 
 
 		h1= message
-		div(id="graphContainer")
-			canvas(id="myChart")
-		div(style="text-align : center;") scroll over the chart to view more info!
+		div(class="row")
+			div(class="col-md-4")
+				h2(id="blurb1") your site's visitors by age
+				div(id="graphContainer1")
+					canvas(id="myChart1")
+			div(class="col-md-3")
+				div(id="legend1",class="chart-legend")
+			div(class="col-md-5")
+				h2(id="blurb2") your site's recent traffic
+				div(id="graphContainer2")
+					canvas(id="myChart2")
+		div(class="row")
+			div(class="col-md-5") 
+				input(type="text",id="domainName",placeholder="enter domain name",class="search rounded")
+
+
 
 		script(src="/js/Chart.js")
 		script(src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js')
 		script(src="//code.jquery.com/ui/1.11.4/jquery-ui.js")
 		script.
 			var createChart = null;
+			var compareDomains = null;
 			$(document).ready(function() {
 
 				var $j = jQuery.noConflict();
-				$("#datepicker").datepicker({
-					changeMonth: true,
-					changeYear: true});
-				$("#datepicker").datepicker({dateFormat: 'yyyy-mm-dd'});
 
-				var canvas = document.getElementById("myChart");
-				var ctx = canvas.getContext("2d");
-				ctx.canvas.width = 300;
-				ctx.canvas.height = 300;
+				var canvas1 = document.getElementById("myChart1");
+				var ctx1 = canvas1.getContext("2d");
+				ctx1.canvas.width = 400;
+				ctx1.canvas.height = 400;
 				var d = !{data};
-				var chart = new Chart(ctx).Bar(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
+				var chart1 = new Chart(ctx1).Bar(d.d1,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
+
+				var canvas2 = document.getElementById("myChart2");
+				var ctx2 = canvas2.getContext("2d");
+				ctx2.canvas.width = 400;
+				ctx2.canvas.height = 400;
+				var chart2 = new Chart(ctx2).Line(d.d2,{showTooltips : false});
+
+				function updateChart1(data) {
+					$("#myChart1").remove();
+					$("#graphContainer1").append('<canvas id="myChart1"></canvas>');
+					canvas = document.getElementById("myChart1");
+					ctx = canvas.getContext("2d");
+					ctx.canvas.width = 400;
+					ctx.canvas.height = 400;
+					var chart = new Chart(ctx).Bar(data,{legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].fillColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips : false});
+					document.getElementById("legend1").innerHTML = chart.generateLegend();
+					var blurb = document.getElementById("blurb1");
+					blurb.innerHTML = "comparing visitor ages"
+				}
+				function updateChart2(data) {
+					$("#myChart2").remove();
+					$("#graphContainer2").append('<canvas id="myChart2"></canvas>');
+					canvas = document.getElementById("myChart2");
+					ctx = canvas.getContext("2d");
+					ctx.canvas.width = 400;
+					ctx.canvas.height = 400;
+					var chart = new Chart(ctx).Line(data,{showTooltips : false});
+					var blurb = document.getElementById("blurb2");
+					blurb.innerHTML = "comparing recent traffic"
+				}
+
+				$("#domainName").bind("keyup",function(e) {
+					if(e.which == 13) {
+						var dName = document.getElementById("domainName").value;
+
+						var xhr = new XMLHttpRequest();
+						xhr.addEventListener("readystatechange",function() {
+					        if (xhr.readyState === 4) {
+					            if (xhr.status === 200) {
+					            	var data = JSON.parse(xhr.responseText);
+					            	updateChart1(data.data1);
+					            	updateChart2(data.data2);
+								}
+							}
+						});
+
+						var form = "domainName=" + dName;
+						xhr.open('POST','http://localhost:3000/usage_premium/compare'
+						,true);
+						xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+						xhr.send(form);
+					}
+				});
 			});
 
 		link(rel='stylesheet', href='/css/usage.css')
