@@ -63,7 +63,7 @@ body
 					ctx1.canvas.width = 300;
 					ctx1.canvas.height = 300;
 					console.log(data);
-					var chart1 = new Chart(ctx1).Bar(data,{legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].fillColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips : false});
+					var chart1 = new Chart(ctx1).Bar(data,{legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].fillColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips : false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' minutes';}});
 					document.getElementById("legend1").innerHTML = chart1.generateLegend();
 				}
 
@@ -75,7 +75,7 @@ body
 					ctx2.canvas.width = 300;
 					ctx2.canvas.height = 300;		
 					console.log(data);
-					var chart2 = new Chart(ctx2).Line(data, {showTooltips : false});
+					var chart2 = new Chart(ctx2).Line(data, {showTooltips : false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' minutes';}});
 
 					if(cats) {
 						var chooseCat = document.getElementById("catToShow");
