@@ -24,6 +24,7 @@ html(lang='en')
         // Collect the nav links, forms, and other content for toggling
         #bs-example-navbar-collapse-1.collapse.navbar-collapse
           ul.nav.navbar-nav
+          
             if current == '/' || current == '/usage/view'
                 li.active
                     a(href='/usage/view') Usage
@@ -31,6 +32,7 @@ html(lang='en')
             else
                 li
                     a(href='/usage/view') Usage
+
             if current == '/friends'
                 li.active
                     a(href='/') Following
@@ -38,9 +40,10 @@ html(lang='en')
             else
                 li
                     a(href='/friends') Following
+
             if current == '/user_settings'
                 li.active
-                    a(href='/') Settings
+                    a(href='/user_settings') Settings
                         span.sr-only (current)
             else
                 li
