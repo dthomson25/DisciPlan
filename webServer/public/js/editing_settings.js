@@ -20,7 +20,7 @@ var timeRemainingHTML = "<label for=\"remainingTime\" class=\"control-label\">Re
   <input type=\"number\" disabled=\"\" placeholder=\"15\" value=\"15\" min=\"0\" max=\"59\" aria-describedby=\"sizing-addon2\" class=\"form-control time minutes\">\
   <span class=\"input-group-addon\"> minutes</span>\
   <input type=\"number\" disabled=\"\" placeholder=\"0\" value=\"0\" min=\"0\" max=\"59\" aria-describedby=\"sizing-addon2\" class=\"form-control time seconds\">\
-  <span class=\"input-group-addon\"> minutes</span></div>"  
+  <span class=\"input-group-addon\"> seconds</span></div>"  
 var typeHTML = "<div class=\"form-group\">\
   <label for=\"sel1\">Type:\
   <select id=\"sel1\" class=\"form-control type\">\
