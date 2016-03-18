@@ -45,6 +45,8 @@ http.listen(3000, function () {
 function getDisciplanCookie(cookies) {
     var re = new RegExp("disciplan=([a-zA-z0-9]*)");
     var matches = re.exec(cookies);
+    if (matches == null)
+        return null
     if(matches.length > 1) {
         return re.exec(cookies)[1];
     }
@@ -356,6 +358,7 @@ app.get('/user_settings', function(req, res) {
     if (userId == null) {
         res.render('login_page', {message: "You don't seem to be logged in!",
             m2: "Log in or register a new account via your chrome extension."})
+        return
     }
     console.log('Get to /user_settings for user: ' + userId)
     rowsToShow = []
@@ -443,6 +446,7 @@ app.get('/followUsers/', function(req, res) {
     if (userId == null) {
         res.render('login_page', {message: "You don't seem to be logged in!",
             m2: "Log in or register a new account via your chrome extension."})
+        return;
     }
     sqlstring = "INSERT into Friends VALUES "
     var toFollow = []
@@ -856,6 +860,11 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
 //Graph page
 app.get('/usage/view', function(req,res) {
     var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {message: "You don't seem to be logged in!",
+            m2: "Log in or register a new account via your chrome extension."})
+        return;
+    }
     console.log(userId);
     var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName order by duration desc;";
     var inserts = ['\'' + userId + '\''];
