@@ -1,16 +1,4 @@
-if (!chrome.cookies) {
-  chrome.cookies = chrome.experimental.cookies;
-}
-
-function getCookie(domain, cookie_name, callback) {
-	chrome.cookies.get({"url": domain, "name": cookie_name}, function(cookie) {
-		if (callback) {
-			callback(cookie)
-		}
-	});
-}
-
-function login() {
+function my_login() {
 	var username = document.getElementById("username").value
 	var password = document.getElementById("password").value
 
@@ -53,30 +41,7 @@ function login() {
 	return false;
 }
 
-function logout() {
-	chrome.cookies.remove({url: "http://localhost", name: "disciplan"})
-}
-
 window.onload = function() {
-	
-	// chrome.cookies.remove({url: "http://localhost", name: "disciplan"})
-	// Attempt to get a cookie
-	getCookie("http://localhost", "disciplan", function(cookie) {
-		if (cookie == null) {
-			// Display login screen and stuff...
-			var verified_content = document.getElementById("verified_content")
-			verified_content.style.display = "none"
-			// chrome.cookies.set({url: "http://localhost", name: "disciplan", value: "testing 123", domain: null})
-		} else {
-			var login_content = document.getElementById("login_content")
-			login_content.style.display = "none"
-		}
-	});
-
 	var login_button = document.getElementById("login_button")
 	login_button.onclick = function() { login() };
-
-	var logout_button = document.getElementById("logout_button")
-	logout_button.onclick = function() { logout() };
 }
-
