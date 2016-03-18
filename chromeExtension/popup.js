@@ -40,12 +40,21 @@ function set_time(){
 
   var clock = document.getElementById('restrictedPageDiv');
   clock.setAttribute('style', 'display: initial');
-  var hoursSpan = clock.querySelector('.hours');
-  var minutesSpan = clock.querySelector('.minutes');
-  var secondsSpan = clock.querySelector('.seconds');
-  hoursSpan.innerHTML = hours;
-  minutesSpan.innerHTML = minutes;
-  secondsSpan.innerHTML = seconds;
+  // var hoursSpan = clock.querySelector('.hours');
+  // var minutesSpan = clock.querySelector('.minutes');
+  // var secondsSpan = clock.querySelector('.seconds');
+  minutesString = minutes;
+  secondsString = seconds;
+  if(minutes < 10)
+    minutesString = "0" + minutes;
+  if(seconds < 10)
+    secondsString = "0" + seconds;
+
+  var timeCounter = document.getElementById('timeCounter');
+  timeCounter.innerHTML = hours + ":" + minutesString + ":" + secondsString;
+  // hoursSpan.innerHTML = hours;
+  // minutesSpan.innerHTML = minutes;
+  // secondsSpan.innerHTML = seconds;
 
   // Chart
   var tUsed = Math.floor(timeAllowed - seconds_remaining);
@@ -64,14 +73,16 @@ function set_time(){
 
   var datasets = [ 
      {
-        fillColor : "rgba(51,153,255,.9)",
-        strokeColor : "rgba(51,153,255,1)",
+        // fillColor : "rgba(51,153,255,.9)",
+        // strokeColor : "rgba(51,153,255,1)",
+        fillColor : "rgba(37,189,211,.9)",
+        strokeColor : "rgba(37,189,211,1)",
         data : dataRemaining,
         title : "Time Remaining"
      },
      {
-        fillColor : "rgba(51,153,255,0.2)",
-        strokeColor : "rgba(51,153,255,1)",
+        fillColor : "rgba(37,189,211,0.2)",
+        strokeColor : "rgba(37,189,211,1)",
         data : dataUsed,
         title : "Time Spent"
      }
@@ -104,16 +115,42 @@ function set_time(){
 
 
 function addCategoriesToDropdown(categories) {
+  // var addPageDiv = document.getElementById('addCurrentPageDiv');
+  // addPageDiv.setAttribute('style', 'display: initial');
+  // var dropdown = document.getElementById('category_dropdown');
+  // for(i = 0; i < categories.length; i++){
+  //   var li = document.createElement("LI");
+  //   var a = document.createElement("A");
+  //   a.setAttribute("id", categories[i]);
+  //   a.innerHTML = categories[i];
+  //   console.log("Added event listener: " + i);
+  //   a.addEventListener('click', function(){
+  //     var category = this.id;
+  //     var currPage = document.getElementById('currentPage').innerText;
+  //     var update = JSON.stringify({page:currPage, category:category});
+  //     chrome.runtime.sendMessage({req: "update", update:update}, function(response) { start_timer(); });
+
+  //   });
+
+  //   li.appendChild(a);
+  //   dropdown.appendChild(li);
+
+  // }
+
+
   var addPageDiv = document.getElementById('addCurrentPageDiv');
   addPageDiv.setAttribute('style', 'display: initial');
-  var dropdown = document.getElementById('category_dropdown');
+  var addPageButtons = document.getElementById('addPageButtons');
+
+  //var dropdown = document.getElementById('category_dropdown');
   for(i = 0; i < categories.length; i++){
-    var li = document.createElement("LI");
-    var a = document.createElement("A");
-    a.setAttribute("id", categories[i]);
-    a.innerHTML = categories[i];
-    console.log("Added event listener: " + i);
-    a.addEventListener('click', function(){
+    var addDiv = document.createElement("button");
+    addDiv.setAttribute("class", "btn btn-default page-btn");
+    addDiv.setAttribute("id", categories[i]);
+    addDiv.innerHTML = categories[i];
+
+    addDiv.addEventListener('click', function(){
+      console.log(this.id);
       var category = this.id;
       var currPage = document.getElementById('currentPage').innerText;
       var update = JSON.stringify({page:currPage, category:category});
@@ -121,8 +158,13 @@ function addCategoriesToDropdown(categories) {
 
     });
 
-    li.appendChild(a);
-    dropdown.appendChild(li);
+
+    //textDiv.setAttribute("class", "col-xs-4");
+    //textDiv.innerHTML = categories[i];
+    //addDiv.appendChild(textDiv);
+    var br = document.createElement("br");
+    addPageButtons.appendChild(addDiv);
+    addPageButtons.appendChild(br);
 
   }
 }
@@ -162,8 +204,8 @@ function start_timer(){
                     "yAxisLeft": false,
                     "showYAxisMin": true,
                     "graphMin": 0,
-                    "annotateRelocate": true
-
+                    "annotateRelocate": true,
+                    "graphTitle" : response.category
       };
       var barData = {
         labels: [],
@@ -185,9 +227,6 @@ function start_timer(){
 
 
       setTimeInt = setInterval(set_time, 1000);
-      category = response.category;
-      var categoryDiv = document.getElementById('currentCategory');
-      categoryDiv.innerHTML = category;
     }
     // If it is not on the list hide the count down div and add the add page dropdown
     else{
@@ -204,6 +243,21 @@ function start_timer(){
 document.addEventListener('DOMContentLoaded', function() {
 
   start_timer();
+
+  $('h1').hover(function() {
+     $(this).css('cursor','pointer');
+  }, function() {
+      $(this).css('cursor','auto');
+  });
+
+  var disciplanHome = document.getElementById('disciplanHome');
+  disciplanHome.addEventListener('click', function(){
+    chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
+      console.log(tabs[0]);
+      chrome.tabs.update(tabs[0].id, {url: "localhost:3000"});
+    });
+    window.close();
+  });
 
   var pageDiv = document.getElementById('currentPage');
   chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
