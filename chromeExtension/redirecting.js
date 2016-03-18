@@ -27,7 +27,9 @@
       console.log(settings);
       settings_JSON = settings;
       startResetTimeout();
-      //reset_time = settings_JSON[0].resetInterval
+      reset_interval = settings_JSON[0].resetInterval;
+      socket.emit('get time remaining');
+
     }
   });
 
@@ -45,7 +47,9 @@
 
   socket.on('all RT reset', function(settings) {
     prev_nuclear_types = [];
+    console.log(settings);
     settings_JSON = settings;
+    socket.emit('get time remaining');
   });
 
   function set_socket_username_get_settings(){
@@ -117,8 +121,9 @@
     if(resetIntervalId)
       window.clearInterval(resetIntervalId);
     //var interval = 24*60*60*1000; // TODO get this from settings
-    //var interval = reset_interval*1000;
-    var interval = 3000 * 1000;
+    var interval = reset_interval*1000;
+    console.log(interval);
+    //var interval = 3000 * 1000;
     resetIntervalId = setInterval(resetAllTR, interval);
     resetAllTR();
 
@@ -129,8 +134,8 @@
       window.clearTimeout(resetTimeoutId);
     var oldResetTime = resetTime;
     resetTime = 0; // TODO get from settings when it is there
-    if(resetTime == oldResetTime)
-      return;
+    //if(resetTime == oldResetTime)
+    //  return;
 
     var currDate = new Date();
     var resetDate = new Date();
@@ -360,6 +365,9 @@
       username = null;
       window.clearTimeout(timeoutId);
       window.clearTimeout(resetTimeoutId);
+    }
+    if(request.req == "reset_interval"){
+      startResetTimeout();
     }
   }
 
