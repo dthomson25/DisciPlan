@@ -13,12 +13,13 @@ body {
 	position: absolute;
 	left: 50%;
 	transform: translate(-50%, 50%);
-
+	top: 20%;
 }
 
 #textbar {
 	width: 500px;
 	text-align: center;
+	top: 50%;
 }
 
 #searchresults {
@@ -27,14 +28,13 @@ body {
 	top: -170px;
 	height: 300px;
 	width: 600px;
-	border-style: solid;
 	transform: translate(-50%, 80%);
 	overflow: scroll;
 }
 
 .row {
 	position: absolute;
-	left: 10%;
+	left: 50%;
 }
 
 #followButton {
