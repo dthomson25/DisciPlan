@@ -10,7 +10,7 @@ body
 			div(class="col-md-2")
 				h2 Compare with:
 				input(type="text",id="friendName")
-				input(id="friendNameSubmit",type="submit", value="Compare!", onclick="createCharts()")
+				div(id="suggestedFriends")
 			div(class="col-md-3")
 				div(id="graphContainer1")
 					canvas(id="chart1")
@@ -39,6 +39,8 @@ body
 		script.
 			var createCharts = null;
 			var requestChart2Change = null;
+			var queryFriends = null;
+			var fillName = null;
 			$(document).ready(function(){
 				var $j = jQuery.noConflict();
 
@@ -88,6 +90,29 @@ body
 					}
 				}
 
+				fillName = function(name) {
+					var friendNameBox = document.getElementById("friendName");
+					friendNameBox.value = name;
+					document.getElementById("suggestedFriends").innerHTML = "";
+					var xhr = new XMLHttpRequest();
+					xhr.addEventListener("readystatechange",function() {
+				        if (xhr.readyState === 4) {
+				            if (xhr.status === 200) {
+				            	var d = JSON.parse(xhr.responseText);
+				            	updateChart1(d.data1);
+				            	updateChart2(d.data2,d.categories);
+							}
+						}
+					});
+
+					var form = "friendName=" + name;
+					xhr.open('POST','http://localhost:3000/usage/compare/graphs_update'
+					,true);
+					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+					xhr.send(form);
+				}
+
 				requestChart2Change = function() {
 					var userId = getDisciplanCookie(document.cookie);
 					var otherUser = "";
@@ -118,28 +143,55 @@ body
 					xhr.send(form);
 				}
 
-				createCharts = function() {
-					var friendName = document.getElementById("friendName");
-					friendName = friendName.value;
-
-					var xhr = new XMLHttpRequest();
-					xhr.addEventListener("readystatechange",function() {
-				        if (xhr.readyState === 4) {
-				            if (xhr.status === 200) {
-				            	var d = JSON.parse(xhr.responseText);
-				            	updateChart1(d.data1);
-				            	updateChart2(d.data2,d.categories);
+				$("#friendName").bind("keyup",function(e) {
+					var ch = String.fromCharCode(e.which);
+					if (/[a-z\d]/i.test(ch)) {
+						var friendNameSubstr = document.getElementById("friendName").value;
+						var xhr = new XMLHttpRequest();
+						xhr.addEventListener("readystatechange",function() {
+					        if (xhr.readyState === 4) {
+					            if (xhr.status === 200) {
+					            	var friends = JSON.parse(xhr.responseText);
+					            	var container = document.getElementById("suggestedFriends");
+					            	container.innerHTML = "";
+					            	for (var i = 0; i < friends.length; i++) {
+					            		var s = '<div onClick="fillName(\'' + friends[i].firstName + ' ' + friends[i].lastName + '\')">' + friends[i].firstName + ' ' + friends[i].lastName + '</div>';
+					            		container.innerHTML += s;
+					            	}
+								}
 							}
-						}
-					});
+						});
 
-					var form = "friendName=" + friendName;
-					xhr.open('POST','http://localhost:3000/usage/compare/graphs_update'
-					,true);
-					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+						var form = "prefix=" + friendNameSubstr;
+						xhr.open('POST','http://localhost:3000/usage/compare/friends_update'
+						,true);
+						xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
-					xhr.send(form);
-				}
+						xhr.send(form);
+					}
+					else if (e.which == 13) {
+						var friendName = document.getElementById("friendName");
+						friendName = friendName.value;
+
+						var xhr = new XMLHttpRequest();
+						xhr.addEventListener("readystatechange",function() {
+					        if (xhr.readyState === 4) {
+					            if (xhr.status === 200) {
+					            	var d = JSON.parse(xhr.responseText);
+					            	updateChart1(d.data1);
+					            	updateChart2(d.data2,d.categories);
+								}
+							}
+						});
+
+						var form = "friendName=" + friendName;
+						xhr.open('POST','http://localhost:3000/usage/compare/graphs_update'
+						,true);
+						xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+						xhr.send(form);
+					}
+				});
 			});
 
 
