@@ -87,6 +87,13 @@ FROM TimeSpent AS T5, Users as U5
 WHERE T5.userID = U5.userID AND DATE_ADD(U5.dOB, INTERVAL 65 YEAR) <= NOW()
 GROUP BY T5.domainName;
 
-
-
+delimiter $$
+CREATE TRIGGER nonZeroTimeSpent BEFORE INSERT ON TimeSpent
+FOR EACH ROW
+BEGIN
+IF new.timeSpent = 0 THEN
+signal sqlstate '45000';
+end if;
+end;$$
+delimiter ;
 
