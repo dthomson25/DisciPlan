@@ -26,7 +26,7 @@
       console.log("Received settings object from socket...");
       console.log(settings);
       settings_JSON = settings;
-      startResetTimeout();
+      //startResetTimeout();
       reset_interval = settings_JSON[0].resetInterval;
       socket.emit('get time remaining');
 
