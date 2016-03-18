@@ -369,9 +369,9 @@ app.get('/user_settings', function(req, res) {
     rowsToShow = []
     async.series([
         function(callback) {
-            var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-                ,[userId]);
-            // console.log(sql)
+            var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and C.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId,userId]);
+            console.log(sql)
             con.query(sql, function(err,rows) {
                 if (err){
                      callback(err);
@@ -387,9 +387,9 @@ app.get('/user_settings', function(req, res) {
             })
         }, 
         function(callback) {
-            var sql = msq.format("select userID, category, type, resetInterval,timeAllowed from settings S where S.category not in (select C.category from categories C);"
+            var sql = msq.format("select userID, category, type, resetInterval,timeAllowed from settings S where S.category not in (select C.category from categories C) and userId= ?;"
                 ,[userId]);
-            // console.log(sql)
+            console.log(sql)
             con.query(sql, function(err,rows) {
                 console.log(rows)
                 if (err){
