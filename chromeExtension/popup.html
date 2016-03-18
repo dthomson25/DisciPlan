@@ -24,27 +24,22 @@
 
       <div id="restrictedPageDiv">
         <p>Current Category: <span id="currentCategory"></span></p>
-        <div id="countdown">
-          <div>
-            <span class="hours">0</span>
-            <div class="smalltext">Hours</div>
-          </div>
-          <div>
-            <span class="minutes">0</span>
-              <div class="smalltext">Minutes</div>
-              </div>
-          <div>
-              <span class="seconds">0</span>
-              <div class="smalltext">Seconds</div>
-          </div>
-          <canvas id="timeRemainingGraph" height="100" width="300">
-
-          </canvas>
+        <div>
+          <span class="hours">0</span>
+          <div class="smalltext">Hours</div>
         </div>
-        <div id="timeUp" style="display:none">
-          Time is up!
-        </div>
+      <div>
+        <span class="minutes">0</span>
+          <div class="smalltext">Minutes</div>
+          </div>
+      <div>
+          <span class="seconds">0</span>
+          <div class="smalltext">Seconds</div>
       </div>
+      </div>
+      
+      <button type="button" id="logout_button">logout</button>
+
     </div><!-- verified content (logged in) div -->
 
     <div id="login_content">
@@ -53,14 +48,13 @@
         Username:
         <br><input type="text" id="username" name="username"><br>
         Password:
-        <br><input type="text" id="password" name="password"><br>
+        <br><input type="password" id="password" name="password"><br>
         <button type="button" id="login_button">login</button>
         <a href="register.html">Register a new account</a>
       </form>
     </div>
 
-
-    <script src="public/js/ChartNew.js"></script>
+    
     <script src="popup.js"></script>
     <script src="login.js"></script>
     <script src='/public/js/jquery-1.12.0.min.js'></script>

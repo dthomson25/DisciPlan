@@ -11,18 +11,11 @@ block content
 					h2.text-info= rows[n]["category"]
 					input.form-control(type="hidden", value= rows[n]["category"])
 				br
-				label.control-label(for="allowedTime") Allowed Time:
+				label.control-label(for="remainingTime") Allowed Time:
 					div.input-group.timeAllowed
-						input.form-control.time(type="number",placeholder=(Math.floor(parseInt(rows[n]["timeAllowed"])/3600)).toString(),value=(Math.floor(parseInt(rows[n]["timeAllowed"])/3600)).toString(), min="0", aria-describedby="sizing-addon2")
+						input.form-control.time(type="number",placeholder=(Math.floor(parseInt(rows[n]["timeAllowed"])/3600)).toString(), min="0", aria-describedby="sizing-addon2")
 						span.input-group-addon  hours
-						input.form-control.time(type="number",placeholder=(Math.floor(parseInt(rows[n]["timeAllowed"])/60)%60).toString(), value=(Math.floor(parseInt(rows[n]["timeAllowed"])/60)%60).toString(), min="0", aria-describedby="sizing-addon2")
-						span.input-group-addon  minutes
-				br
-				label.control-label(for="timeRemaining") Remaining Time:
-					div.input-group.timeRemaining
-						input.form-control.time(type="number", disabled="",value=(Math.floor(parseInt(rows[n]["timeRemaining"])/3600)).toString(), min="0", aria-describedby="sizing-addon2")
-						span.input-group-addon  hours
-						input.form-control.time(type="number",disabled="", min="0", value=(Math.floor(parseInt(rows[n]["timeRemaining"])/60)%60).toString(), aria-describedby="sizing-addon2")
+						input.form-control.time(type="number",placeholder=(Math.floor(parseInt(rows[n]["timeAllowed"])/60)%60).toString(), min="0", aria-describedby="sizing-addon2")
 						span.input-group-addon  minutes
 				div.form-group
 					label(for="sel1") Reset Interval:
