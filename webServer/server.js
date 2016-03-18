@@ -326,6 +326,10 @@ app.get('/', function (req, res) {
 
 app.get('/user_settings', function(req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {message: "You don't seem to be logged in!",
+            m2: "Log in or register a new account via your chrome extension."})
+    }
     console.log('Get to /user_settings for user: ' + userId)
     rowsToShow = []
     async.series([
@@ -392,6 +396,78 @@ app.get('/user_login', function(req,res) {
         res.render('login_page', {title: "Login Page",
             message: "You don't seem to be logged in!\nLog in or register a new account via your chrome extension.",
             user_id: "null"});
+});
+
+app.get('/findUsers/', function(req, res) {
+    var userid = getDisciplanCookie(req.headers.cookie)
+    sql = msq.format("select * from Users WHERE LOWER(userID) LIKE ? AND userID != ? AND userID NOT IN (select user2 from Friends where user1 = ?);", ["%" + req.query.userId.toLowerCase() + "%", userid, userid]);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log("error" + err)
+            res.sendStatus(400)
+        } else {
+            res.send(rows)
+        }
+    });
+});
+
+app.get('/followUsers/', function(req, res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {message: "You don't seem to be logged in!",
+            m2: "Log in or register a new account via your chrome extension."})
+    }
+    sqlstring = "INSERT into Friends VALUES "
+    var toFollow = []
+    for (var i in req.query) {
+        sqlstring += "(?, ?), "
+        toFollow.push(userId)
+        toFollow.push(req.query[i])
+    }
+    sqlstring = sqlstring.slice(0, sqlstring.length-2);
+    sqlstring += ";"
+    sql = msq.format(sqlstring, toFollow);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log ("error " + err)
+            res.sendStatus(400);
+        } else {
+            res.sendStatus(200)
+        }
+
+    });
+
+});
+
+app.get('/register/', function(req, res) {
+    sql = msq.format("select * from Users where userId = ?;", [req.query.userId]);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log ("error" + err)
+            res.sendStatus(400)
+        } else {
+            if (rows.length > 0) {
+                var message = "That userId is already taken"
+                console.log(message)
+                res.status(400).send(message)
+                return;
+            } else {    // Insert the new user
+                /** TODO: Change this at some point to getting an actual birthday **/
+                var sqlDate = sqlFormatDateTime(new Date());
+                sql = msq.format("INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, 0);",
+                    [req.query.userId, req.query.email, req.query.first_name,
+                      req.query.last_name, req.query.password, sqlDate]);
+                con.query(sql, function(err,rows) {
+                    if (err) {
+                        console.log("error" + err)
+                        res.sendStatus(400)
+                    } else {
+                        res.sendStatus(200)
+                    }
+                });
+            }
+        }
+    });
 });
 
 
