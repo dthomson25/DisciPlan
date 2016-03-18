@@ -36,6 +36,8 @@ block content
 						span.input-group-addon  hours
 						input.form-control.time(type="number",disabled="", min="0", max="59",value=(Math.floor(parseInt(rows[n]["timeRemaining"])/60)%60).toString(), aria-describedby="sizing-addon2")
 						span.input-group-addon  minutes
+						input.form-control.time.allowed.seconds(type="number",placeholder=(Math.floor(parseInt(rows[n]["timeRemaining"]))%60).toString(), disabled="", value=(Math.floor(parseInt(rows[n]["timeRemaining"]))%60).toString(), min="0",max="59", aria-describedby="sizing-addon2")
+						span.input-group-addon  seconds
 				div.form-group
 					label(for="sel1") Reset Interval:
 						if rows[n]['type'] != "Nuclear"

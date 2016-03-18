@@ -7,6 +7,17 @@ body {
 h1 {
     text-align: center;
 }
+
+.search { 
+    padding: 4px 10px 4px 20px;
+    margin: 2px; 
+}
+
+.rounded { 
+    border-radius:10px; 
+    -moz-border-radius:10px; 
+}
+
 .chart-legend li span{
     display: inline-block;
     width: 12px;

@@ -15,10 +15,12 @@ var timeAllowedHTML = "<label for=\"alllowedTime\" class=\"control-label\">Allow
   <span class=\"input-group-addon\"> minutes</span></div>"  
 var timeRemainingHTML = "<label for=\"remainingTime\" class=\"control-label\">Remaining Time:</label>\
   <div class=\"input-group timeRemaining\">\
-  <input type=\"number\" disabled=\"\" placeholder=\"0\" value=\"0\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time hours\">\
+  <input type=\"number\" disabled=\"\" placeholder=\"0\" value=\"0\" min=\"0\" max=\"23\" aria-describedby=\"sizing-addon2\" class=\"form-control time hours\">\
   <span class=\"input-group-addon\"> hours</span>\
-  <input type=\"number\" disabled=\"\" placeholder=\"15\" value=\"15\" min=\"0\" aria-describedby=\"sizing-addon2\" class=\"form-control time minutes\">\
-  <span class=\"input-group-addon\"> minutes</span></div>"  
+  <input type=\"number\" disabled=\"\" placeholder=\"15\" value=\"15\" min=\"0\" max=\"59\" aria-describedby=\"sizing-addon2\" class=\"form-control time minutes\">\
+  <span class=\"input-group-addon\"> minutes</span>\
+  <input type=\"number\" disabled=\"\" placeholder=\"0\" value=\"0\" min=\"0\" max=\"59\" aria-describedby=\"sizing-addon2\" class=\"form-control time seconds\">\
+  <span class=\"input-group-addon\"> seconds</span></div>"  
 var typeHTML = "<div class=\"form-group\">\
   <label for=\"sel1\">Type:\
   <select id=\"sel1\" class=\"form-control type\">\
