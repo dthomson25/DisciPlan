@@ -17,10 +17,10 @@ function set_time(){
   var currTime = new Date().getTime();
   var seconds_remaining = (endTime - currTime)/1000;
   hours = parseInt(seconds_remaining / 3600);
-  seconds_remaining = seconds_remaining % 3600;
+  seconds_remaining2 = seconds_remaining % 3600;
  
-  minutes = parseInt(seconds_remaining / 60);
-  seconds = parseInt(seconds_remaining % 60);
+  minutes = parseInt(seconds_remaining2 / 60);
+  seconds = parseInt(seconds_remaining2 % 60);
 
   if(hours <= 0 && minutes <= 0 && seconds <= 0){
     if(type == "Redirect")
@@ -57,6 +57,7 @@ function set_time(){
   //   tRemaining = Math.round(tRemaining/60);
   //   aLabel = "<%=v3+' " + "minute(s)"  + " ('+v6+'%)'%>";
   // }
+
   var dataUsed = [tUsed];
   var dataRemaining = [tRemaining];
 
@@ -144,10 +145,18 @@ function start_timer(){
       timeAllowed = response.timeAllowed;
       type = response.type;
       // Create chart here
+
+      secToMin = function(secs){
+         mins =  Math.round(secs/60);
+         if(secs < 60)
+            return secs + " seconds";
+         return mins + " minutes";
+      }
+
       ChartOpts = { "annotateDisplay" : true, 
                     "scaleStartValue": 0,
                     "annotateBorderRadius": '5px',
-                    "annotateLabel": "<%=v3+' seconds ('+v6+'%)'%>",
+                    "annotateLabel": "<%=secToMin(v3)+' ('+v6+'%)'%>",
                     "scaleShowGridLines": false,
                     "xAxisBottom": false,
                     "yAxisLeft": false,

@@ -85,14 +85,23 @@
                datasets: datasets
             };
 
+            secToMin = function(secs){
+               mins =  Math.round(secs/60);
+               if(secs < 60)
+                  return secs + " seconds";
+               return mins + " minutes";
+            }
+
             options = { "annotateDisplay" : true, 
                         "annotateBorderRadius": '5px',
-                        "showYLabels": 2, 
-                        annotateLabel: "<%=v3+' seconds ('+v6+'%)'%>",
+                        "showYLabels": 0, 
+                        annotateLabel: "<%=secToMin(v3)+' ('+v6+'%)'%>",
                         legend: true,
                         legendPosY: 0,
                         scaleFontSize: 20,
-                        scaleFontColor: "white"
+                        scaleFontColor: "white",
+                        "annotateRelocate": true,
+                        // scaleLabel: "<%=Math.round(value/60)%>"
             };
             new Chart(document.getElementById("timeRemainingCanvas").getContext("2d")).HorizontalStackedBar(barData, options);
             // TODO on right of chart add countdown until new interval -> No
