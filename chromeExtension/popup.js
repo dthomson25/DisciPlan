@@ -66,6 +66,7 @@ function set_time(){
   var dataUsed = [tUsed];
   var dataRemaining = [tRemaining];
 
+  console.log(timeAllowed);
 
   var datasets = [ 
      {
@@ -213,7 +214,7 @@ function start_timer(){
             title : "Time Remaining"
          },
          {
-            fillColor : "rgba(255,51,51,0.2)",
+            fillColor : "rgba(51,153,255,0.2)",
             strokeColor : "rgba(51,153,255,1)",
             data : [0],
             title : "Time Spent"
@@ -246,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
       $(this).css('cursor','auto');
   });
 
-  var disciplanHome = document.getElementById('disciplanHome');
+  var disciplanHome = document.getElementById('greeting');
   disciplanHome.addEventListener('click', function(){
     chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
       console.log(tabs[0]);
