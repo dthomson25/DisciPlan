@@ -331,6 +331,11 @@ io.on('connection', function(socket) {
 
 app.get('/', function (req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {message: "You don't seem to be logged in!",
+            m2: "Log in or register a new account via your chrome extension."})
+        return
+    }
     console.log(userId);
     var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
     var inserts = ['\'' + userId + '\''];
@@ -484,7 +489,7 @@ app.get('/register/', function(req, res) {
                 return;
             } else {    // Insert the new user
                 /** TODO: Change this at some point to getting an actual birthday **/
-                var sqlDate = sqlFormatDateTime(new Date());
+                var sqlDate = sqlFormatDateTime(new Date(req.query.birthday));
                 sql = msq.format("INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, 0);",
                     [req.query.userId, req.query.email, req.query.first_name,
                       req.query.last_name, req.query.password, sqlDate]);

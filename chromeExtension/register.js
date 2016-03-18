@@ -5,6 +5,11 @@ function register() {
 	var email = document.getElementById("email").value
 	var first_name = document.getElementById("first_name").value
 	var last_name = document.getElementById("last_name").value
+	var day = document.getElementById("day").value
+	var month = document.getElementById("month").value
+	var year = document.getElementById("year").value
+	var dateString = month + "-" + day + "-" + year
+	
 
 	var xhr = new XMLHttpRequest();
 	xhr.onreadystatechange = function () {
@@ -29,7 +34,7 @@ function register() {
 	}
 
 	var form = "?" + "userId=" + username + "&password=" + password + "&email=" + email + "&first_name=" + first_name
-	 + "&last_name=" + last_name
+	 + "&last_name=" + last_name + "&birthday=" + dateString
 	xhr.open("GET", "http://localhost:3000/register" + form)
 	xhr.send();
 
