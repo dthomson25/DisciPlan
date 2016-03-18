@@ -24,8 +24,12 @@
    function getRemainingTimes() {
       // Send message to get remaining times for each category
       chrome.runtime.sendMessage({req: "newtab"}, function(response){
+
          console.log(response.username);
          if(response.username){
+            var nLI = document.getElementById('notLoggedIn');
+            nLI.setAttribute("style", "display:none");
+
             // Create chart
             console.log(response.categories);
             var categories = response.categories;
@@ -168,6 +172,10 @@
 
             })
 
+         }
+         else{
+            var nLI = document.getElementById("notLoggedIn");
+            nLI.setAttribute("style", "display:initial");
          }
          
       });
