@@ -26,7 +26,11 @@ function login() {
 					login_content.style.display = "none"
 					var verified_content = document.getElementById("verified_content")
 					verified_content.style.display = "block"
+					var settingsBtn = document.getElementById("settings_btn");
+					settingsBtn.style.display = "initial";
 					chrome.cookies.set({url: "http://localhost", name: "disciplan", value: username, domain: null});
+					var greeting = document.getElementById("greeting");
+					greeting.innerHTML = "Hello, " + username;
 					// Send username to background script
 					chrome.runtime.sendMessage({req: "username", username: username}, function(response) {
 						// Start timer or display add page dropdown. Function in popup.js
@@ -54,7 +58,31 @@ function login() {
 }
 
 function logout() {
+	console.log("logout");
 	chrome.cookies.remove({url: "http://localhost", name: "disciplan"})
+	// Clean up
+	document.getElementById("username").value = "";
+	document.getElementById("password").value = "";
+	var greeting = document.getElementById("greeting");
+	greeting.innerHTML = "DisciPlan";
+	var login_content = document.getElementById("login_content")
+	login_content.style.display = "block"
+	var verified_content = document.getElementById("verified_content")
+	verified_content.style.display = "none"
+
+	var settingsBtn = document.getElementById("settings_btn");
+	settingsBtn.style.display = "none";
+
+	var pageButtons = document.getElementById("addPageButtons");
+	pageButtons.innerHTML = "";
+
+	chrome.runtime.sendMessage({req: "logout"}, function(response) {
+		// Start timer or display add page dropdown. Function in popup.js
+		if(response.res == ""){
+		}
+	});
+
+
 }
 
 window.onload = function() {
@@ -66,6 +94,8 @@ window.onload = function() {
 			// Display login screen and stuff...
 			var verified_content = document.getElementById("verified_content")
 			verified_content.style.display = "none"
+			var settingsBtn = document.getElementById("settings_btn");
+			settingsBtn.style.display = "none";
 			// chrome.cookies.set({url: "http://localhost", name: "disciplan", value: "testing 123", domain: null})
 		} else {
 			var login_content = document.getElementById("login_content")

@@ -20,7 +20,7 @@ html(lang='en')
             span.icon-bar
             span.icon-bar
             span.icon-bar
-          a.navbar-brand(href='/usage/view') Disciplan
+          a.navbar-brand(href='/usage/view') DisciPlan
         // Collect the nav links, forms, and other content for toggling
         #bs-example-navbar-collapse-1.collapse.navbar-collapse
           ul.nav.navbar-nav
@@ -48,7 +48,13 @@ html(lang='en')
             
           if current == '/user_settings'
             form.navbar-form.navbar-right
-              button.btn.btn-default.addCategory(type='button') New Category
+                button.btn.btn-default.addCategory(type='button') New Category
+
+            form.navbar-form.navbar-right
+                button.btn.btn-default.nuclear(type='button') Nuke All
+            
+            form.navbar-form.navbar-right
+                button.btn.btn-default.unnuclear(type='button') Unnuke All
             
     block content
 
