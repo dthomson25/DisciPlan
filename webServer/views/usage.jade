@@ -55,13 +55,19 @@ body
 				h2 View Usage since:
 			div(class="col-md-3")
 				h2
-					input(type="text", id="datepicker1",class="small")
+					select(id="numDays0")
+						option(value=7) 1 week
+						option(value=14) 2 weeks
+						option(value=30) 1 month
 					input(id="submitBtn1",type="submit", value="View Chart!", onclick="createChart1()")
 			div(class="col-md-3")
-				h2 View Usage since:
+				h2 For the past:
 			div(class="col-md-3")
 				h2
-					input(type="text", id="datepicker2",class="small")
+					select(id="numDays")
+						option(value=7) 1 week
+						option(value=14) 2 weeks
+						option(value=30) 1 month
 					input(id="submitBtn2",type="submit", value="View Chart!", onclick="createChart2()")
 
 		script(src="/js/Chart.js")
@@ -72,15 +78,6 @@ body
 			var createChart2 = null;
 			$(document).ready(function() {
 				var $j = jQuery.noConflict();
-				$("#datepicker1").datepicker({
-					changeMonth: true,
-					changeYear: true});
-				$("#datepicker1").datepicker({dateFormat: 'yyyy-mm-dd'});
-
-				$("#datepicker2").datepicker({
-					changeMonth: true,
-					changeYear: true});
-				$("#datepicker2").datepicker({dateFormat: 'yyyy-mm-dd'});
 
 				var cats = !{categories};
 				cats.push("all");
@@ -115,17 +112,22 @@ body
 					sortType = sortType.options[sortType.selectedIndex].value;
 					var chartType = document.getElementById("chartType");
 					chartType = chartType.options[chartType.selectedIndex].value;
-					var date = new Date($("#datepicker1").val());
-					if(date.toString() == 'Invalid Date'){
-						date = new Date("1971-01-01");
-					}
+					var numDays = document.getElementById("numDays0");
+					numDays = numDays.options[numDays.selectedIndex].value;
+					console.log(numDays);
+
+					var date = new Date((new Date()).getTime() - parseInt(numDays)*24*60*60*1000);
+					console.log(date);
 					var xhr = new XMLHttpRequest();
 
 					xhr.addEventListener('readystatechange', function(evt) {
 				        if (xhr.readyState === 4) {
 				            if (xhr.status === 200) {
 								$("#myChart").remove();
+								$("#blurb1").remove();
 								$("#graphContainer").append('<canvas id="myChart"></canvas>');
+								var shortDateStr = (date.getMonth() + 1).toString() + "/" + date.getDate().toString() + "/" + date.getFullYear().toString();
+								$("#graphContainer").append('<div id=\"blurb1\">your usage since ' + shortDateStr + ' by ' + sortType + '</div>');
 								canvas = document.getElementById("myChart");
 								ctx = canvas.getContext("2d");
 								ctx.canvas.width = 300;
@@ -155,10 +157,8 @@ body
 					category = category.options[category.selectedIndex].value;
 					var numToView = document.getElementById("numToView");
 					numToView = numToView.options[numToView.selectedIndex].value;
-					var date = new Date($("#datepicker2").val());
-					if(date.toString() == 'Invalid Date'){
-						date = new Date((new Date()).getTime() - 10*24*60*60*1000);
-					}
+					var numDays = document.getElementById("numDays");
+					numDays = numDays.options[numDays.selectedIndex].value;
 
 					var xhr = new XMLHttpRequest();
 
@@ -166,7 +166,16 @@ body
 						if (xhr.readyState === 4) {
 							if (xhr.status === 200) {
 								$("#myChart2").remove();
+								$("#blurb2").remove();
 								$("#graphContainer2").append('<canvas id="myChart2"></canvas>');
+								var numDays = document.getElementById("numDays");
+								numDays = numDays.options[numDays.selectedIndex].innerHTML;
+								var cat = "";
+								if(category != "all") {
+									cat = category;
+								}
+								$("#graphContainer2").append('<div id=\"blurb2\">your top ' + numToView.toString() + ' ' + cat + ' sites in the past ' + numDays);
+
 								canvas2 = document.getElementById("myChart2");
 								ctx2 = canvas2.getContext("2d");
 								ctx2.canvas.width = 400;
@@ -178,7 +187,7 @@ body
 							}
 						}
 					});
-					var form = "category=" + category + "&numToView=" + numToView + "&startTime=" + date.toString();
+					var form = "category=" + category + "&numToView=" + numToView + "&numDays=" + numDays.toString();
 					xhr.open('POST','http://localhost:3000/usage/update/right',true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					xhr.send(form);
