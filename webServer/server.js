@@ -49,7 +49,8 @@ http.listen(3000, function () {
 function getDisciplanCookie(cookies) {
     var re = new RegExp("disciplan=([a-zA-z0-9]*)");
     var matches = re.exec(cookies);
-    if(matches.length > 1) {
+    if (matches == null) return null;
+    if (matches.length > 1) {
         return re.exec(cookies)[1];
     }
     else {
@@ -309,6 +310,10 @@ app.get('/', function (req, res) {
 
 app.get('/user_settings', function(req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {message: "You don't seem to be logged in!",
+            m2: "Log in or register a new account via your chrome extension."})
+    }
     console.log('Get to /user_settings for user: ' + userId)
     rowsToShow = []
     async.series([
@@ -364,6 +369,31 @@ app.get('/user_settings', function(req, res) {
                     });
             }
         })
+});
+
+app.get('/user_login', function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId != null)
+        res.render('settings', {title: "Login Page",
+            message: "You're already logged in!"});
+    else
+        res.render('login_page', {title: "Login Page",
+            message: "You don't seem to be logged in!\nLog in or register a new account via your chrome extension.",
+            user_id: "null"});
+});
+
+
+app.get('/friends', function(req, res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {title: "Login Page", message: "You don't seem to be logged in!", 
+        m2: "Log in or register a new account via your chrome extension."});
+    } else {
+
+    res.render('friends', {title: "Friend Page",
+        message: "Search for new friends here!", 
+        });
+    }
 });
 
 
@@ -694,11 +724,49 @@ app.get('/get_settings', function(req, res) {
     });
 });
 
+app.get('/findUsers/', function(req, res) {
+    var userid = getDisciplanCookie(req.headers.cookie)
+    sql = msq.format("select * from Users WHERE LOWER(userID) LIKE ? AND userID != ? AND userID NOT IN (select user2 from Friends where user1 = ?);", ["%" + req.query.userId.toLowerCase() + "%", userid, userid]);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log("error" + err)
+            res.sendStatus(400)
+        } else {
+            res.send(rows)
+        }
+    });
+});
+
+
+app.get('/followUsers/', function(req, res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    sqlstring = "INSERT into Friends VALUES "
+    var toFollow = []
+    for (var i in req.query) {
+        sqlstring += "(?, ?), "
+        toFollow.push(userId)
+        toFollow.push(req.query[i])
+    }
+    sqlstring = sqlstring.slice(0, sqlstring.length-2);
+    sqlstring += ";"
+    sql = msq.format(sqlstring, toFollow);
+    con.query(sql, function(err, rows) {
+        if (err) {
+            console.log ("error " + err)
+            res.sendStatus(400);
+        } else {
+            res.sendStatus(200)
+        }
+
+    });
+
+});
+
+
 app.get('/login/', function(req, res) {
     sql = msq.format("select * from Users where userId = ? and password = ?;",[req.query.userId, req.query.password]);
     con.query(sql, function(err, rows) {
         if (err) {
-<<<<<<< HEAD
             console.log ("error " + err)
             res.sendStatus(400)
         } else {
@@ -712,17 +780,33 @@ app.get('/register/', function(req, res) {
     sql = msq.format("select * from Users where userId = ?;", [req.query.userId]);
     con.query(sql, function(err, rows) {
         if (err) {
-=======
->>>>>>> master
             console.log ("error" + err)
             res.sendStatus(400)
         } else {
-            res.send(rows)
+            if (rows.length > 0) {
+                var message = "That userId is already taken"
+                console.log(message)
+                res.status(400).send(message)
+                return;
+            } else {    // Insert the new user
+                /** TODO: Change this at some point to getting an actual birthday **/
+                var sqlDate = sqlFormatDateTime(new Date());
+                sql = msq.format("INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, 0);",
+                    [req.query.userId, req.query.email, req.query.first_name,
+                      req.query.last_name, req.query.password, sqlDate]);
+                con.query(sql, function(err,rows) {
+                    if (err) {
+                        console.log("error" + err)
+                        res.sendStatus(400)
+                    } else {
+                        res.sendStatus(200)
+                    }
+                });
+            }
         }
     });
 });
 
-<<<<<<< HEAD
 function deleteUrls(urlsToDeletes) {
     for(var i = 0; i < urlsToDeletes.length; i++) {
         var command = "DELETE from Categories where category = ? and domainName = ? and userId = ?";
@@ -739,64 +823,6 @@ function deleteUrls(urlsToDeletes) {
             }
         });
     }
-=======
-function createDefaultSettings(userId) {
-    async.series([
-        function(callback) {
-            var command = "INSERT INTO Settings (userID,category,type,timeAllowed,timeRemaining,resetInterval) VALUES(?,?,?,?,?,?)"
-            var inserts = [userId, "Social Media", "Redirect","1800","1800","86400"]
-            sql = msq.format(command,inserts);
-            console.log(sql)
-            con.query(sql, function(err) {
-                if (err){
-                     callback(err);
-                     return
-                }
-                console.log("New Setting!")
-                callback()
-            })
-        },
-        function(callback) {
-            var command = "INSERT INTO Categories (userID,domainName,category) VALUES(?,?,?)"
-            var inserts = [userId,"www.facebook.com","Social Media"]
-            sql = msq.format(command,inserts);
-            console.log(sql)
-            con.query(sql,function(err) {
-                if (err){
-                    console.log(err)
-                    callback(err)
-                    return
-                } 
-                console.log("New Category")
-                callback()
-
-            })
-        },
-        function(callback) {
-            var command = "INSERT INTO Categories (userID,domainName,category) VALUES(?,?,?)"
-            var inserts = [userId,"www.linkedin.com","Social Media"]
-            sql = msq.format(command,inserts);
-            console.log(sql)
-            con.query(sql,function(err) {
-                if (err){
-                    console.log(err)
-                    callback(err)
-                    return
-                } 
-                console.log("New Category")
-                callback()
-
-            })
-        },
-    ], function(err) {
-        console.log(err)
-        if (err)  {
-            return err
-        }
-        return
-    })
-
->>>>>>> master
 }
 
 app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), function(req, res) {
@@ -1124,6 +1150,7 @@ app.get('/newtab_page', function(req, res){
 
     sql = msq.format("select * from Settings as S where S.userId = ? ORDER BY S.Category;"
         ,[userId]);
+
     con.query(sql, function(err,rows) {
         if(err) {
             console.log("error: " + err);
