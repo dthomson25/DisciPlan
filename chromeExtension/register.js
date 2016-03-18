@@ -9,7 +9,12 @@ function register() {
 	var month = document.getElementById("month").value
 	var year = document.getElementById("year").value
 	var dateString = month + "-" + day + "-" + year
-	
+
+	if (username == "" || password == "") {
+		document.getElementById("error_text").innerHTML = "Please enter a username and password"
+		document.getElementById("error_text").style = "block";
+		return;
+	}
 
 	var xhr = new XMLHttpRequest();
 	xhr.onreadystatechange = function () {
@@ -44,4 +49,11 @@ function register() {
 window.onload = function () {
 	var register_button = document.getElementById("register_button")
 	register_button.onclick = function() { register() };
+
+	var years = document.getElementById("year");
+	htmlString = "";
+	for (var i = 1920; i <= 2016; i++) {
+		htmlString += "<option value=\"" + i + "\">" + i + "</option>"
+	}
+	years.innerHTML = htmlString;
 }

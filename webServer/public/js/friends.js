@@ -16,7 +16,8 @@ function follow() {
 
 	xhr.onreadystatechange = function() {
 		if (this.readyState == 4 && this.status == 200) {
-			console.log("Successfully following")
+			var success = document.getElementById("success");
+			success.style.display = "block";
 			
 		} else {
 			return;
@@ -47,7 +48,8 @@ window.onload = function () {
 		event = event || window.event;
 		var searchString = searchBar.value;
 		var xhr = new XMLHttpRequest();
-
+		var success = document.getElementById("success")
+		success.style.display = "none";
 		xhr.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
 				var state_json = JSON.parse(this.responseText);
