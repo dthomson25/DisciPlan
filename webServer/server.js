@@ -331,6 +331,11 @@ io.on('connection', function(socket) {
 
 app.get('/', function (req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {message: "You don't seem to be logged in!",
+            m2: "Log in or register a new account via your chrome extension."})
+        return
+    }
     console.log(userId);
     var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
     var inserts = ['\'' + userId + '\''];
@@ -484,7 +489,7 @@ app.get('/register/', function(req, res) {
                 return;
             } else {    // Insert the new user
                 /** TODO: Change this at some point to getting an actual birthday **/
-                var sqlDate = sqlFormatDateTime(new Date());
+                var sqlDate = sqlFormatDateTime(new Date(req.query.birthday));
                 sql = msq.format("INSERT INTO Users VALUES (?, ?, ?, ?, ?, ?, 0);",
                     [req.query.userId, req.query.email, req.query.first_name,
                       req.query.last_name, req.query.password, sqlDate]);
@@ -611,14 +616,14 @@ app.get('/usage_premium/view', function(req, res) {
                         totalCommand += ") as Result order by domainName, date;";
                         var sql2 = msq.format(totalCommand,inserts2);
                         sql2 = sql2.replace(/`/g,"");
-                        console.log(sql2);
+                        //console.log(sql2);
                         con.query(sql2,function(err2,rows2){
                             if(err2) {
                                 console.log("error: " + err2);
                                 res.sendStatus(400)
                             }
                             else {
-                                var data2 = formatMultiDomainLine(rows,dates);
+                                var data2 = formatMultiDomainLine(rows2,dates);
                                 res.render('usage_premium', {
                                     title: "Domain Visitors",
                                     message: "hello, " + userId + "!",
@@ -663,9 +668,10 @@ function formatMultiDomainLine(rows,dates) {
     var domainNames = [];
     var dSets = [];
     for(var i = 0; i < rows.length; i++) {
+        console.log(rows[i].date);
         if(domainNames.indexOf(rows[i].domainName) == -1) {
             domainNames.push(rows[i].domainName);
-            dSets.push({label : rows[i].domainName, data : [], strokeColor : colorConstants[(domainNames.length-1)%colorConstants.length], pointColor : "rgba(0,0,0,0)", pointStrokeColor : "rgba(0,0,0,0)"});
+            dSets.push({label : rows[i].domainName, data : [], strokeColor : colorConstants[(domainNames.length-1)%colorConstants.length], pointColor : "rgba(0,0,0,0)", pointStrokeColor : "rgba(0,0,0,0)", fillColor : "rgba(0,0,0,0)"});
         }
     }
     for(var i = 0; i < domainNames.length; i++) {
@@ -674,7 +680,12 @@ function formatMultiDomainLine(rows,dates) {
         }
     }
     for(var i = 0; i < rows.length; i++) {
-        dSets[domainNames.indexOf(rows[i].domainName)]['data'][dates.indexOf(rows[i].date)] = rows[i].duration;
+        for (var j = 0; j < dSets.length; j++) {
+            if (dSets[j].label == rows[i].domainName) {
+                dSets[j].data[dates.indexOf(rows[i].date)] = rows[i].duration;
+            }
+        }
+        console.log(dSets[domainNames.indexOf(rows[i].domainName)]['data']);
     }
     console.log({labels : dates, datasets : dSets});
     return {labels : dates, datasets : dSets};
@@ -728,7 +739,7 @@ app.post('/usage_premium/compare',bodyParser.urlencoded({extended : false}), fun
                     res.sendStatus(400)
                 }
                 else {
-                    var d2 = formatMultiDomainLine(rows,dates);
+                    var d2 = formatMultiDomainLine(rows2,dates);
                     res.send(JSON.stringify({data1: d1, data2 : d2}));
                 }
             });
@@ -767,7 +778,7 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
         prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
         dates.unshift(shortDateStr(prevDate));
     }
-    var inDomainNameSet = "(select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration limit ??)";
+    var inDomainNameSet = "(select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration desc limit ??)";
     var inserts2 = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(currDate) + '\'', "5"];
     inDomainNameSet = msq.format(inDomainNameSet,inserts2);
 
@@ -797,6 +808,7 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
             domainsArr.push(rows[i].domainName);
         }
     }
+    console.log("domainNames len: " + domainsArr.length.toString());
     for (var i = 0; i < domainsArr.length; i++) {
         domainNames[domainsArr[i]] = {};
     }
@@ -1008,17 +1020,17 @@ function getNumberOfDays(then) {
 function versusTimeOneCategoryQuery(category,userId,numDays,numToView,date,res) {
     var inDomainNameSet = "";
     if (category == "all") {
-        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration limit ??";
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration desc limit ??";
         var inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\'', numToView.toString()];
         inDomainNameSet = msq.format(inDomainNameSet,inserts);
     }
     else if (category == "other") {
-        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and not exists (select * from Categories as C2 where T.domainName = C2.domainName and T.userID = C2.userID) group by T.domainName order by duration limit ??";
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and not exists (select * from Categories as C2 where T.domainName = C2.domainName and T.userID = C2.userID) group by T.domainName order by duration desc limit ??";
         var inserts = ['\'' + userId + '\'', '\''+ sqlFormatDateTime(date) + '\'', numToView.toString()];
         inDomainNameSet = msq.format(inDomainNameSet,inserts);
     }
     else {
-        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and C.domainName = T.domainName and C.category = ?? group by T.domainName order by duration limit ??";
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and C.domainName = T.domainName and C.category = ?? group by T.domainName order by duration desc limit ??";
         var inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\'', '\'' + category + '\'', numToView.toString()];
         inDomainNameSet = msq.format(inDomainNameSet, inserts);
     }
@@ -1057,7 +1069,6 @@ function versusTimeOneCategoryQuery(category,userId,numDays,numToView,date,res) 
             res.sendStatus(400);
         }
         else {
-            console.log(rows);
             formatLineChartData(rows,dates,userId,null,res);
         }
     });
@@ -1086,8 +1097,7 @@ app.get('/get_settings', function(req, res) {
             console.log("error: " + err);
             res.sendStatus(400);
         }
-        else {
-            console.log(rows); 
+        else { 
             res.send(rows);
         }
     });
@@ -1186,7 +1196,6 @@ app.post('/user_settings/nuke_all', function(req,res) {
                 }
                 else {
                     console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
-                    console.log(rows);
                     if (io.sockets.connected[socketId]){
                         io.to(socketId).emit("settings saved", rows);
                     }
@@ -1422,7 +1431,6 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
                 }
                 else {
                     console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
-                    console.log(rows);
                     if (io.sockets.connected[socketId]){
                         io.to(socketId).emit("settings saved", rows);
                     }
@@ -1449,25 +1457,6 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
         return
     })
     
-    // TODO Jeff when settings saved send info back
-    // var socketId = users[userId];
-    // sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-    //     ,[userId]);
-    // con.query(sql, function(err,rows) {
-    //     if(err) {
-    //         console.log("error: " + err);
-    //         if (io.sockets.connected[socketId]){
-    //             io.to(socketId).emit("error", err);
-    //         }
-    //     }
-    //     else {
-    //         console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
-    //         console.log(rows);
-    //         if (io.sockets.connected[socketId]){
-    //             io.to(socketId).emit("settings object", rows);
-    //         }
-    //     }
-    // });
 });
 
 app.post('/user_settings/create_category', bodyParser.urlencoded({extended : false}), function(req, res) {
@@ -1491,7 +1480,6 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
                 sql = msq.format(command,inserts);
                 console.log(sql)
                 con.query(sql, function(err,rows) {
-                    console.log(rows)
                     if (err){
                         callback(err)
                         return
@@ -1573,7 +1561,6 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
                 }
                 else {
                     console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
-                    console.log(rows);
                     if (io.sockets.connected[socketId]){
                         io.to(socketId).emit("settings saved", rows);
                     }
@@ -1655,7 +1642,6 @@ app.post('/user_settings/delete_category', bodyParser.urlencoded({extended : fal
                 }
                 else {
                     console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
-                    console.log(rows);
                     if (io.sockets.connected[socketId]){
                         io.to(socketId).emit("settings saved", rows);
                     }
@@ -1919,10 +1905,11 @@ app.post('/usage/compare/graphs_update/right',bodyParser.urlencoded({extended : 
     }
     var sql = msq.format(totalCommand,inserts);
     sql = sql.replace(/`/g,"");
-    console.log(sql);
+    //console.log(sql);
     con.query(sql,function(err,rows) {
         if(err) {
             console.log("error: " + err);
+            res.sendStatus(400);
         }
         else {
             var d = formatMultiUserLineChart([user1,user2],category,dates,rows);
@@ -1973,7 +1960,6 @@ app.post('/usage/compare/friends_update', bodyParser.urlencoded({extended : fals
             res.sendStatus(400);
         }
         else {
-            console.log(rows);
             res.send(JSON.stringify(rows));
         }
 
