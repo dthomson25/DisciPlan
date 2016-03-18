@@ -27,6 +27,8 @@ function login() {
 					var verified_content = document.getElementById("verified_content")
 					verified_content.style.display = "block"
 					chrome.cookies.set({url: "http://localhost", name: "disciplan", value: username, domain: null});
+					var greeting = document.getElementById("greeting");
+					greeting.innerHTML = "Hello, " + username;
 					// Send username to background script
 					chrome.runtime.sendMessage({req: "username", username: username}, function(response) {
 						// Start timer or display add page dropdown. Function in popup.js
@@ -53,6 +55,21 @@ function login() {
 	return false;
 }
 
+function logout() {
+	chrome.cookies.remove({url: "http://localhost", name: "disciplan"})
+	// Clean up
+	document.getElementById("username").value = "";
+	document.getElementById("password").value = "";
+	var greeting = document.getElementById("greeting");
+	greeting.innerHTML = "DisciPlan";
+	var login_content = document.getElementById("login_content")
+	login_content.style.display = "block"
+	var verified_content = document.getElementById("verified_content")
+	verified_content.style.display = "none"
+	chrome.cookies.set({url: "http://localhost", name: "disciplan", value: username, domain: null});
+	
+}
+
 window.onload = function() {
 	
 	// chrome.cookies.remove({url: "http://localhost", name: "disciplan"})
@@ -71,5 +88,8 @@ window.onload = function() {
 
 	var login_button = document.getElementById("login_button")
 	login_button.onclick = function() { login() };
+
+	var logout_button = document.getElementById("logout_button")
+	logout_button.onclick = function() { logout() };
 }
 

@@ -36,10 +36,11 @@
     </style>
   </head>
   <body>
+
     <button id="settings_btn" class="btn btn-default">
       <span class="glyphicon glyphicon-wrench"></span>
     </button>
-    <h1 id="disciplanHome">DisciPlan</h1>
+    <h1 id="greeting disciplanHome">DisciPlan</h1>
     <div id="verified_content">  
       <p id="hide"> Current Page: <span id="currentPage"></span></p>
 
@@ -71,8 +72,12 @@
         </div>
         <div id="timeUp" style="display:none">
           Time is up!
+
         </div>
       </div>
+      
+      <button type="button" id="logout_button">logout</button>
+
     </div><!-- verified content (logged in) div -->
 
     <div id="login_content">
@@ -81,14 +86,13 @@
         Username:
         <br><input type="text" id="username" name="username"><br>
         Password:
-        <br><input type="text" id="password" name="password"><br>
+        <br><input type="password" id="password" name="password"><br>
         <button type="button" id="login_button">login</button>
         <a href="register.html">Register a new account</a>
       </form>
     </div>
 
-
-    <script src="public/js/ChartNew.js"></script>
+    
     <script src="popup.js"></script>
     <script src="login.js"></script>
     <script src='/public/js/jquery-1.12.0.min.js'></script>

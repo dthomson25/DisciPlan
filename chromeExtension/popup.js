@@ -6,12 +6,7 @@ redirectCurrentTab = function(Url){
 
 var endTime;
 var category;
-var timeAllowed;
 var hours, minutes, seconds;
-var TRChart;
-var ChartOpts;
-var type;
-var setTimeInt;
 
 function set_time(){
   var currTime = new Date().getTime();
@@ -19,6 +14,7 @@ function set_time(){
   hours = parseInt(seconds_remaining / 3600);
   seconds_remaining2 = seconds_remaining % 3600;
  
+
   minutes = parseInt(seconds_remaining2 / 60);
   seconds = parseInt(seconds_remaining2 % 60);
 
