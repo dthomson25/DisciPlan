@@ -42,7 +42,7 @@
             var strokeRem = [];
             for(i = categories.length-1; i >= 0; i--){
                labels.push(categories[i].category);
-               if(categories[i].timeRemaining < 0){
+               if(categories[i].timeRemaining <= 0){
                   dataRemaining.push(0);
                   dataUsed.push(categories[i].timeAllowed);
                   fillSpent.push("rgba(255,51,51,0.2)");
