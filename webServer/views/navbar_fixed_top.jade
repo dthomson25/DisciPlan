@@ -45,6 +45,20 @@ html(lang='en')
             else
                 li
                     a(href='/user_settings') Settings
+            if current == '/user_settings/'
+                li.active
+                    a(href='/') Compare
+                        span.sr-only (current)
+            else
+                li
+                    a(href='/usage/compare') Compare
+            if current == '/usage_premium/view'
+                li.active
+                    a(href'/') Premium
+                        span.sr-only (current)
+            else
+                li
+                    a(href='/usage_premium/view') Premium
             
           if current == '/user_settings'
             form.navbar-form.navbar-right
