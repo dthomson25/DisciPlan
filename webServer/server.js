@@ -500,7 +500,16 @@ app.get('/register/', function(req, res) {
                         console.log("error" + err)
                         res.sendStatus(400)
                     } else {
-                        res.sendStatus(200)
+                        sql = msq.format("INSERT INTO PremiumUserDomains VALUES (?, ?);", [req.query.userId, req.query.domain]);
+                        con.query(sql, function (err, rows) {
+                            if (err) {
+                                console.log("error" + err)
+                                res.sendStatus(400)
+                            } else  {
+                                res.sendStatus(200)
+                            }
+                        });
+                        
                     }
                 });
             }

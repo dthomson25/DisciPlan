@@ -9,6 +9,7 @@ function register() {
 	var month = document.getElementById("month").value
 	var year = document.getElementById("year").value
 	var dateString = month + "-" + day + "-" + year
+	var domainName = document.getElementById("domain_name").value
 
 	if (username == "" || password == "") {
 		document.getElementById("error_text").innerHTML = "Please enter a username and password"
@@ -39,7 +40,7 @@ function register() {
 	}
 
 	var form = "?" + "userId=" + username + "&password=" + password + "&email=" + email + "&first_name=" + first_name
-	 + "&last_name=" + last_name + "&birthday=" + dateString
+	 + "&last_name=" + last_name + "&birthday=" + dateString + "&domain=" + domainName
 	xhr.open("GET", "http://localhost:3000/register" + form)
 	xhr.send();
 
