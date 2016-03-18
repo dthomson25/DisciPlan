@@ -26,24 +26,12 @@ socket.on('settings object', function(settings) {
   }
 });
 
-socket.on('settings saved', function(settings) {
-  if(settings){
-    console.log(settings);
-    settings_JSON = settings;
-    startResetTimeout();
-    socket.emit('get time remaining');
-  }
-})
-
 socket.on('all RT reset', function(settings) {
   settings_JSON = settings;
-  socket.emit('get time remaining');
 });
 
 function set_socket_username_get_settings(){
   socket.emit('set username', username);
-  
-  // For new tab page
   socket.emit('get time remaining');
   socket.emit('get top unres sites');
 }
@@ -123,7 +111,6 @@ function resetAllTR() {
   socket.emit('Reset_allTR');
 
 
-
   // var http_reset_allTR = new XMLHttpRequest();
   // http_reset_allTR.onreadystatechange = function() {
   //   if (http_reset_allTR.readyState == 4 && http_reset_allTR.status == 200) {
@@ -172,7 +159,6 @@ function startResetTimeout() {
 
 var startTime
 var endTime
-var currTimeAllowed
 var currSiteRestricted = false
 var currCategory
 var currType
@@ -272,7 +258,6 @@ function checkIfRestricted(url, alreadyHostName) {
       endTime.setSeconds(endTime.getSeconds() + remainTime);
       currCategory = row.category;
       currType = row.type;
-      currTimeAllowed = row.timeAllowed;
       return;
     }
   }
@@ -382,9 +367,7 @@ function popupRequest(request, sender, sendResponse) {
         sendResponse({ loggedIn: true,
                        restricted: true,
                        endTime: endTime.toString(),
-                       category: currCategory,
-                       timeAllowed: currTimeAllowed,
-                       type: currType});
+                       category: currCategory});
       }
       else{
         categories = get_categories();

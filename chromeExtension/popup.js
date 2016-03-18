@@ -6,12 +6,7 @@ redirectCurrentTab = function(Url){
 
 var endTime;
 var category;
-var timeAllowed;
 var hours, minutes, seconds;
-var TRChart;
-var ChartOpts;
-var type;
-var setTimeInt;
 
 function set_time(){
   var currTime = new Date().getTime();
@@ -21,23 +16,7 @@ function set_time(){
  
   minutes = parseInt(seconds_remaining / 60);
   seconds = parseInt(seconds_remaining % 60);
-
-  if(hours <= 0 && minutes <= 0 && seconds <= 0){
-    if(type == "Redirect")
-      window.close();
-    else{
-      var countdownDiv = document.getElementById("countdown");
-      countdownDiv.setAttribute('style', 'display:none');
-      var timeUpDiv = document.getElementById("timeUp");
-      timeUpDiv.setAttribute('style', 'display: initial');
-      clearInterval(setTimeInt);
-    }
-  }
-
-
-
-
-
+  console.log(hours, minutes, seconds);
   var clock = document.getElementById('restrictedPageDiv');
   clock.setAttribute('style', 'display: initial');
   var hoursSpan = clock.querySelector('.hours');
@@ -46,64 +25,8 @@ function set_time(){
   hoursSpan.innerHTML = hours;
   minutesSpan.innerHTML = minutes;
   secondsSpan.innerHTML = seconds;
-
-  // Chart
-  var tUsed = Math.floor(timeAllowed - seconds_remaining);
-  var tRemaining = Math.floor(seconds_remaining);
-  // var aLabel = "<%=v3+' " + "second(s)"  + " ('+v6+'%)'%>";
-  // console.log(tRemaining);
-  // if(tRemaining >= 60){
-  //   tUsed = Math.round(tUsed/60);
-  //   tRemaining = Math.round(tRemaining/60);
-  //   aLabel = "<%=v3+' " + "minute(s)"  + " ('+v6+'%)'%>";
-  // }
-  var dataUsed = [tUsed];
-  var dataRemaining = [tRemaining];
-
-
-  var datasets = [ 
-     {
-        fillColor : "rgba(51,153,255,.9)",
-        strokeColor : "rgba(51,153,255,1)",
-        data : dataRemaining,
-        title : "Time Remaining"
-     },
-     {
-        fillColor : "rgba(51,153,255,0.2)",
-        strokeColor : "rgba(51,153,255,1)",
-        data : dataUsed,
-        title : "Time Spent"
-     }
-  ];
-  var barData = {
-     labels: [''],
-     datasets: datasets
-  };
-
-  //ChartOpts.annotateLabel = aLabel;
-  // ChartOpts = { "annotateDisplay" : true, 
-  //             "scaleStartValue": 0,
-  //             "annotateBorderRadius": '5px',
-  //             "annotateLabel": aLabel,
-  //             "scaleShowGridLines": false,
-  //             "xAxisBottom": true,
-  //             "yAxisLeft": false,
-  //             "showYLabels": 2,
-  //             "showYAxisMin": true,
-  //             "graphMin": 0,
-
-  // };
-  updateChart(document.getElementById("timeRemainingGraph").getContext("2d"), barData, ChartOpts);
-  //new Chart(document.getElementById("timeRemainingGraph").getContext("2d")).HorizontalStackedBar(barData, options);
-
-  // End chart
-
-
-
-
-
-
-    
+  if(hours == 0 && minutes == 0 && seconds <= 0)
+    window.close();
 }
 
 
@@ -147,41 +70,7 @@ function start_timer(){
       addPageDiv.setAttribute('style', 'display: none');
       // Start the interval to update the countdown div
       endTime = Date.parse(response.endTime);
-      timeAllowed = response.timeAllowed;
-      type = response.type;
-      // Create chart here
-      ChartOpts = { "annotateDisplay" : true, 
-                    "scaleStartValue": 0,
-                    "annotateBorderRadius": '5px',
-                    "annotateLabel": "<%=v3+' seconds ('+v6+'%)'%>",
-                    "scaleShowGridLines": false,
-                    "xAxisBottom": false,
-                    "yAxisLeft": false,
-                    "showYAxisMin": true,
-                    "graphMin": 0,
-                    "annotateRelocate": true
-
-      };
-      var barData = {
-        labels: [],
-        datasets: [
-          {
-            fillColor : "rgba(51,153,255,.9)",
-            strokeColor : "rgba(51,153,255,1)",
-            data : [0],
-            title : "Time Remaining"
-         },
-         {
-            fillColor : "rgba(255,51,51,0.2)",
-            strokeColor : "rgba(51,153,255,1)",
-            data : [0],
-            title : "Time Spent"
-         } ]
-      };
-      TRChart = new Chart(document.getElementById("timeRemainingGraph").getContext("2d")).HorizontalStackedBar(barData, ChartOpts);
-
-
-      setTimeInt = setInterval(set_time, 1000);
+      setInterval(set_time, 1000);
       category = response.category;
       var categoryDiv = document.getElementById('currentCategory');
       categoryDiv.innerHTML = category;
