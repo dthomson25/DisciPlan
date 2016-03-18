@@ -304,8 +304,27 @@ io.on('connection', function(socket) {
 
 
 app.get('/', function (req, res) {
-    res.render('navbar_fixed_top', {current: '/'});
+    var userId = getDisciplanCookie(req.headers.cookie);
+    console.log(userId);
+    var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
+    var inserts = ['\'' + userId + '\''];
+    var sql = msq.format(command,inserts);
+    sql = sql.replace(/`/g,"");
+    con.query(sql, function(err,rows) {    
+            if(err) {
+                console.log("error 1: " + err);
+                res.sendStatus(400);
+            }
+            else {
+                console.log(rows);
+                var d1 = [];
+                for(var i = 0; i < rows.length; i++) {
+                    d1.push({value : rows[i].duration, label: rows[i].domainName});
+                }
 
+                versusTimeQuery(userId,10,d1,res);
+            }
+    });    
 });
 
 app.get('/user_settings', function(req, res) {
@@ -391,7 +410,7 @@ app.get('/friends', function(req, res) {
     } else {
 
     res.render('friends', {title: "Friend Page",
-        message: "Search for new friends here!", 
+        message: "Add people to follow", 
         });
     }
 });
