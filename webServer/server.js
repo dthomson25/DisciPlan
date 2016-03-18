@@ -456,9 +456,11 @@ app.get('/followUsers/', function(req, res) {
     sqlstring = "INSERT into Friends VALUES "
     var toFollow = []
     for (var i in req.query) {
-        sqlstring += "(?, ?), "
+        sqlstring += "(?, ?), (?, ?), "
         toFollow.push(userId)
         toFollow.push(req.query[i])
+        toFollow.push(req.query[i])
+        toFollow.push(userId)
     }
     sqlstring = sqlstring.slice(0, sqlstring.length-2);
     sqlstring += ";"
