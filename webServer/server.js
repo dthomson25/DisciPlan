@@ -512,6 +512,7 @@ app.get('/friends', function(req, res) {
     if (userId == null) {
         res.render('login_page', {title: "Login Page", message: "You don't seem to be logged in!", 
         m2: "Log in or register a new account via your chrome extension."});
+        return;
     } else {
 
     res.render('friends', {title: "Friend Page",
@@ -562,6 +563,11 @@ app.post('/usage/record', bodyParser.urlencoded({extended : false}), function(re
 
 app.get('/usage_premium/view', function(req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {title: "Login Page", message: "You don't seem to be logged in!", 
+        m2: "Log in or register a new account via your chrome extension."});
+        return;
+    }
     var command = "select domainName from PremiumUserDomains where userID = ??;";
     var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
@@ -694,6 +700,11 @@ function formatMultiDomainLine(rows,dates) {
 app.post('/usage_premium/compare',bodyParser.urlencoded({extended : false}), function(req,res) {
     var dName = req.body.domainName;
     var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {title: "Login Page", message: "You don't seem to be logged in!", 
+        m2: "Log in or register a new account via your chrome extension."});
+        return;
+    }
     command = "select * from AgeGroupView as A where A.domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) or A.domainName = ?? order by domainName;";
     inserts = ['\'' + userId + '\'','\'' + dName + '\''];
     var sql = msq.format(command,inserts);
@@ -1686,6 +1697,11 @@ app.get('/newtab_page', function(req, res){
 
 app.get('/usage/compare', function(req,res){
     var userId = getDisciplanCookie(req.headers.cookie);
+    if (userId == null) {
+        res.render('login_page', {title: "Login Page", message: "You don't seem to be logged in!", 
+        m2: "Log in or register a new account via your chrome extension."});
+        return;
+    }
     res.render('usage_compare',{title : 'Comparing with Friends',
         message : "Compare your usage with friends!"
     });
