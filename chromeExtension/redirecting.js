@@ -40,8 +40,6 @@
       console.log(prev_nuclear_types);
       console.log("AFTER");
       settings_JSON = settings;
-      startResetTimeout();
-      socket.emit('get time remaining');
     }
   })
 
