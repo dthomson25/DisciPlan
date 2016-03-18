@@ -95,7 +95,7 @@ body
 				ctx.canvas.width = 400;
 				ctx.canvas.height = 300;
 				var d = !{data1};
-				var chart = new Chart(ctx).Doughnut(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
+				var chart = new Chart(ctx).Doughnut(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> minutes"});
 
 				var canvas2 = document.getElementById("myChart2");
 				var ctx2 = canvas2.getContext("2d");
@@ -103,7 +103,7 @@ body
 				ctx2.canvas.height = 300;
 				var d2 = !{data2};
 
-				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds", legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips: false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' seconds';}});
+				var chart2 = new Chart(ctx2).Line(d2, {datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> minutes", legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips: false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' minutes';}});
 				document.getElementById("legend2").innerHTML = chart2.generateLegend();
 
 				createChart1 = function() {
@@ -134,10 +134,10 @@ body
 								ctx.canvas.height = 300;
 								d = JSON.parse(xhr.responseText);
 								if(chartType == "doughnut") {
-									chart = new Chart(ctx).Doughnut(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
+									chart = new Chart(ctx).Doughnut(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> minutes"});
 								}
 								else {
-									chart = new Chart(ctx).Bar(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
+									chart = new Chart(ctx).Bar(d,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> minutes"});
 								}
 				            }
 				            else {
@@ -182,7 +182,7 @@ body
 								ctx2.canvas.height = 300;
 								d2 = JSON.parse(xhr.responseText);
 								console.log(d2);
-								chart2 = new Chart(ctx2).Line(d2,{datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> seconds",legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>",showTooltips: false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' seconds';}});
+								chart2 = new Chart(ctx2).Line(d2,{datasetFill : false, multiTooltipTemplate: "<%= datasetLabel %> - <%= value %> minutes",legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>",showTooltips: false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' minutes';}});
 								document.getElementById("legend2").innerHTML = chart2.generateLegend();
 							}
 						}
