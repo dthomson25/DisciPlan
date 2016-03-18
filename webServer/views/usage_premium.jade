@@ -38,13 +38,13 @@ body
 				ctx1.canvas.width = 400;
 				ctx1.canvas.height = 400;
 				var d = !{data};
-				var chart1 = new Chart(ctx1).Bar(d.d1,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> seconds"});
+				var chart1 = new Chart(ctx1).Bar(d.d1,{tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %> minutes", scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' minutes';}});
 
 				var canvas2 = document.getElementById("myChart2");
 				var ctx2 = canvas2.getContext("2d");
 				ctx2.canvas.width = 400;
 				ctx2.canvas.height = 400;
-				var chart2 = new Chart(ctx2).Line(d.d2,{showTooltips : false});
+				var chart2 = new Chart(ctx2).Line(d.d2,{showTooltips : false,scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' minutes';}});
 
 				function updateChart1(data) {
 					$("#myChart1").remove();
@@ -53,7 +53,7 @@ body
 					ctx = canvas.getContext("2d");
 					ctx.canvas.width = 400;
 					ctx.canvas.height = 400;
-					var chart = new Chart(ctx).Bar(data,{legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].fillColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips : false});
+					var chart = new Chart(ctx).Bar(data,{legendTemplate : "<ul class=\"  <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].fillColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>", showTooltips : false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' minutes';}});
 					document.getElementById("legend1").innerHTML = chart.generateLegend();
 					var blurb = document.getElementById("blurb1");
 					blurb.innerHTML = "comparing visitor ages"
@@ -65,7 +65,7 @@ body
 					ctx = canvas.getContext("2d");
 					ctx.canvas.width = 400;
 					ctx.canvas.height = 400;
-					var chart = new Chart(ctx).Line(data,{showTooltips : false});
+					var chart = new Chart(ctx).Line(data,{showTooltips : false, scaleLabel : function(valuePayload) {return valuePayload.value.toString() + ' minutes';}});
 					var blurb = document.getElementById("blurb2");
 					blurb.innerHTML = "comparing recent traffic"
 				}

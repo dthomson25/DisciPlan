@@ -337,7 +337,7 @@ app.get('/', function (req, res) {
         return
     }
     console.log(userId);
-    var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName;";
+    var command = "select domainName, sum(timeSpent)/60 as duration from TimeSpent where userID = ?? group by domainName;";
     var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
@@ -350,7 +350,7 @@ app.get('/', function (req, res) {
                 console.log(rows);
                 var d1 = [];
                 for(var i = 0; i < rows.length; i++) {
-                    d1.push({value : rows[i].duration, label: rows[i].domainName});
+                    d1.push({value : Math.round(rows[i].duration), label: rows[i].domainName});
                 }
 
                 versusTimeQuery(userId,10,d1,res);
@@ -604,7 +604,7 @@ app.get('/usage_premium/view', function(req, res) {
                             if(i > 0) {
                                 totalCommand += " union ";
                             }
-                            totalCommand += "select ?? as date, domainName, sum(timeSpent) as duration from TimeSpent where domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) and startTime < ?? and startTime >= ?? group by domainName";
+                            totalCommand += "select ?? as date, domainName, sum(timeSpent)/60 as duration from TimeSpent where domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) and startTime < ?? and startTime >= ?? group by domainName";
                             inserts2.push('\'' + shortDateStr(prevDate) + '\'');
                             inserts2.push('\'' + userId + '\'');
                             inserts2.push('\'' + sqlFormatDateTime(currDate) + '\'');
@@ -616,7 +616,7 @@ app.get('/usage_premium/view', function(req, res) {
                         totalCommand += ") as Result order by domainName, date;";
                         var sql2 = msq.format(totalCommand,inserts2);
                         sql2 = sql2.replace(/`/g,"");
-                        //console.log(sql2);
+
                         con.query(sql2,function(err2,rows2){
                             if(err2) {
                                 console.log("error: " + err2);
@@ -658,7 +658,7 @@ function formatMultiDomainBar(rows) {
     }
 
     for(var i = 0; i < rows.length; i++) {
-        dSets[domainNames.indexOf(rows[i].domainName)]['data'][lbls.indexOf(rows[i].AgeGroup)] = rows[i].duration;
+        dSets[domainNames.indexOf(rows[i].domainName)]['data'][lbls.indexOf(rows[i].AgeGroup)] = Math.round(rows[i].duration);
     }
     console.log({labels : lbls, datasets : dSets});
     return {labels : lbls, datasets : dSets};
@@ -682,7 +682,7 @@ function formatMultiDomainLine(rows,dates) {
     for(var i = 0; i < rows.length; i++) {
         for (var j = 0; j < dSets.length; j++) {
             if (dSets[j].label == rows[i].domainName) {
-                dSets[j].data[dates.indexOf(rows[i].date)] = rows[i].duration;
+                dSets[j].data[dates.indexOf(rows[i].date)] = Math.round(rows[i].duration);
             }
         }
         console.log(dSets[domainNames.indexOf(rows[i].domainName)]['data']);
@@ -719,7 +719,7 @@ app.post('/usage_premium/compare',bodyParser.urlencoded({extended : false}), fun
                 if(i > 0) {
                     totalCommand += " union ";
                 }
-                totalCommand += "select ?? as date, domainName, sum(timeSpent) as duration from TimeSpent where (domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) or domainName = ??) and startTime < ?? and startTime >= ?? group by domainName";
+                totalCommand += "select ?? as date, domainName, sum(timeSpent)/60 as duration from TimeSpent where (domainName in (select domainName from PremiumUserDomains as P where P.userID = ??) or domainName = ??) and startTime < ?? and startTime >= ?? group by domainName";
                 inserts2.push('\'' + shortDateStr(prevDate) + '\'');
                 inserts2.push('\'' + userId + '\'');
                 inserts2.push('\'' + dName + '\'');
@@ -770,7 +770,7 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
         if(i > 0) {
             totalCommand += " union ";
         }
-        totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime >= ?? group by domainName";
+        totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent)/60 as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime >= ?? group by domainName";
         inserts.push('\'' + userId + '\'');
         inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
         inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
@@ -778,7 +778,7 @@ function versusTimeQuery(userId, numDays,dataSet1,res) {
         prevDate = new Date(prevDate.getTime() - 24*60*60*1000);
         dates.unshift(shortDateStr(prevDate));
     }
-    var inDomainNameSet = "(select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration desc limit ??)";
+    var inDomainNameSet = "(select T.domainName, sum(T.timeSpent)/60 as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration desc limit ??)";
     var inserts2 = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(currDate) + '\'', "5"];
     inDomainNameSet = msq.format(inDomainNameSet,inserts2);
 
@@ -814,7 +814,7 @@ function formatLineChartData(rows,dates,userId,dataSet1,res) {
     }
 
     for (var i = 0; i < rows.length; i++) {
-        domainNames[rows[i].domainName][rows[i].date] = rows[i].duration;
+        domainNames[rows[i].domainName][rows[i].date] = Math.round(rows[i].duration);
     }
 
     var d = {};
@@ -878,7 +878,7 @@ app.get('/usage/view', function(req,res) {
         return;
     }
     console.log(userId);
-    var command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? group by domainName order by duration desc;";
+    var command = "select domainName, sum(timeSpent)/60 as duration from TimeSpent where userID = ?? group by domainName order by duration desc;";
     var inserts = ['\'' + userId + '\''];
     var sql = msq.format(command,inserts);
     sql = sql.replace(/`/g,"");
@@ -898,21 +898,21 @@ function formatDoughnutChartData(rows,sortType) {
     var d = [];
     if(sortType == "category") {
         for(var i = 0; i < rows.length; i++) {
-            d.push({value : rows[i].duration, label: rows[i].category});
+            d.push({value : Math.round(rows[i].duration), label: rows[i].category});
         }
     }
     else {
         var otherSum = 0;
         for(var i = 0; i < rows.length; i++) {
             if(i < 8) {
-                d.push({value : rows[i].duration, label: rows[i].domainName});                
+                d.push({value : Math.round(rows[i].duration), label: rows[i].domainName});                
             }
             else {
                 otherSum += rows[i].duration;
             }
         }
         if(otherSum > 0) {
-            d.push({value : otherSum, label : "other sites"});
+            d.push({value : Math.round(otherSum), label : "other sites"});
         }
     }
     return d;
@@ -926,7 +926,7 @@ function formatBarChartData(rows,sortType) {
         for(var i = 0; i < rows.length; i++) {
             if(i < 8) {
                 lbls.push(rows[i].category);
-                values.push(rows[i].duration);
+                values.push(Math.round(rows[i].duration));
             }
             else {
                 otherSum += rows[i].duration;
@@ -937,7 +937,7 @@ function formatBarChartData(rows,sortType) {
         for(var i = 0; i < rows.length; i++) {
             if(i < 8) {
                 lbls.push(rows[i].domainName);
-                values.push(rows[i].duration);
+                values.push(Math.round(rows[i].duration));
             }
             else {
                 otherSum += rows[i].duration;
@@ -948,7 +948,7 @@ function formatBarChartData(rows,sortType) {
         for (var i = 0; i < rows.length; i++) {
             if(i < 8) {
                 lbls.push(rows[i].AgeGroup);
-                values.push(rows[i].duration);
+                values.push(Math.round(rows[i].duration));
             }
             else {
                 otherSum += rows[i].duration;
@@ -959,7 +959,7 @@ function formatBarChartData(rows,sortType) {
         for(var i = 0; i < rows.length; i++) {
             if(i < 8) {
                 lbls.push(rows[i].userID);
-                values.push(rows[i].duration);
+                values.push(Math.round(rows[i].duration));
             }
             else {
                 otherSum += rows[i].duration;
@@ -968,7 +968,7 @@ function formatBarChartData(rows,sortType) {
     }
     if (otherSum > 0) {
         lbls.push('other');
-        values.push(otherSum);
+        values.push(Math.round(otherSum));
     }
     var d = {labels : lbls, datasets : [{data: values, fillColor: colorConstants[0]}]};
     return d;
@@ -982,11 +982,11 @@ app.post('/usage/update/left',bodyParser.urlencoded({extended : false}), functio
     var inserts = [];
     var userId = getDisciplanCookie(req.headers.cookie);
     if(sortType == "category") {
-        command = "select * from (select category, sum(TimeSpent) as duration from Categories as C, TimeSpent as T where C.userId = T.userId and C.userId = ?? and C.domainName = T.domainName and T.startTime > ?? group by category union select \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T1 where T1.userId = ?? and not exists(select * from Categories as C1 where T1.userId = C1.userId and T1.domainName = C1.domainName) group by category) as A order by duration desc;";
+        command = "select * from (select category, sum(timeSpent)/60 as duration from Categories as C, TimeSpent as T where C.userId = T.userId and C.userId = ?? and C.domainName = T.domainName and T.startTime > ?? group by category union select \'other\' as category, sum(timeSpent)/60 as duration from TimeSpent as T1 where T1.userId = ?? and not exists(select * from Categories as C1 where T1.userId = C1.userId and T1.domainName = C1.domainName) group by category) as A order by duration desc;";
         inserts = ['\'' + userId + '\'','\'' + sqlFormatDateTime(date) + '\'', '\'' + userId + '\''];
     }
     else {
-        command = "select domainName, sum(timeSpent) as duration from TimeSpent where userID = ?? and startTime > ?? group by domainName order by duration desc;";
+        command = "select domainName, sum(timeSpent)/60 as duration from TimeSpent where userID = ?? and startTime > ?? group by domainName order by duration desc;";
         inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\''];
     }
     var sql = msq.format(command, inserts);
@@ -1020,17 +1020,17 @@ function getNumberOfDays(then) {
 function versusTimeOneCategoryQuery(category,userId,numDays,numToView,date,res) {
     var inDomainNameSet = "";
     if (category == "all") {
-        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration desc limit ??";
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent)/60 as duration from TimeSpent as T where T.userID = ?? and T.startTime >= ?? group by T.domainName order by duration desc limit ??";
         var inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\'', numToView.toString()];
         inDomainNameSet = msq.format(inDomainNameSet,inserts);
     }
     else if (category == "other") {
-        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and not exists (select * from Categories as C2 where T.domainName = C2.domainName and T.userID = C2.userID) group by T.domainName order by duration desc limit ??";
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent)/60 as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and not exists (select * from Categories as C2 where T.domainName = C2.domainName and T.userID = C2.userID) group by T.domainName order by duration desc limit ??";
         var inserts = ['\'' + userId + '\'', '\''+ sqlFormatDateTime(date) + '\'', numToView.toString()];
         inDomainNameSet = msq.format(inDomainNameSet,inserts);
     }
     else {
-        inDomainNameSet = "select T.domainName, sum(T.timeSpent) as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and C.domainName = T.domainName and C.category = ?? group by T.domainName order by duration desc limit ??";
+        inDomainNameSet = "select T.domainName, sum(T.timeSpent)/60 as duration from TimeSpent as T, Categories as C where T.userID = ?? and C.userID = T.userID and T.startTime >= ?? and C.domainName = T.domainName and C.category = ?? group by T.domainName order by duration desc limit ??";
         var inserts = ['\'' + userId + '\'', '\'' + sqlFormatDateTime(date) + '\'', '\'' + category + '\'', numToView.toString()];
         inDomainNameSet = msq.format(inDomainNameSet, inserts);
     }
@@ -1051,7 +1051,7 @@ function versusTimeOneCategoryQuery(category,userId,numDays,numToView,date,res) 
         if(i > 0) {
             totalCommand += " union ";
         }
-        totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime > ?? group by domainName";
+        totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent)/60 as duration, domainName from TimeSpent as T" + i.toString() + " where userID = ?? and startTime < ?? and startTime > ?? group by domainName";
         inserts.push('\'' + userId + '\'');
         inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
         inserts.push('\'' + sqlFormatDateTime(prevDate) + '\'');
@@ -1709,7 +1709,7 @@ function formatMultiUserBarChartData(usersArray,rows) {
         }
     }
     for (var i = 0; i < rows.length; i++) {
-        tmpD[rows[i].userID][rows[i].category] = rows[i].duration;
+        tmpD[rows[i].userID][rows[i].category] = Math.round(rows[i].duration);
     }
     var allCats = Array.from(allCatsSet);
     var dSets = [];
@@ -1760,7 +1760,7 @@ function formatMultiUserLineChart(usersArray,category,dates,rows) {
 function queryTwoFriends(user1,user2,numDays,res) {
     var date = new Date();
     var startDate = new Date(date.getTime() - 14*24*60*60*1000); //default graph will show last two weeks.
-    var command1 = "select * from ((select T0.userID, \'other\' as category, sum(TimeSpent) as duration from TimeSpent as T0 where (T0.userId = ?? or T0.userID = ??) and not exists(select * from Categories as C0 where T0.userId = C0.userId and T0.domainName = C0.domainName) group by userID, category) union (select T1.userID, C1.category, sum(T1.timeSpent) as duration from TimeSpent as T1, Categories as C1 where T1.userID = ?? or T1.userID = ?? and T1.userID = C1.userID and T1.domainName = C1.domainName and T1.startTime >= ?? group by T1.userID,C1.category)) as Result order by Result.userID;";
+    var command1 = "select * from ((select T0.userID, \'other\' as category, sum(timeSpent)/60 as duration from TimeSpent as T0 where (T0.userId = ?? or T0.userID = ??) and not exists(select * from Categories as C0 where T0.userId = C0.userId and T0.domainName = C0.domainName) group by userID, category) union (select T1.userID, C1.category, sum(T1.timeSpent)/60 as duration from TimeSpent as T1, Categories as C1 where T1.userID = ?? or T1.userID = ?? and T1.userID = C1.userID and T1.domainName = C1.domainName and T1.startTime >= ?? group by T1.userID,C1.category)) as Result order by Result.userID;";
     var inserts1 = ['\'' + user1 + '\'', '\'' + user2 + '\'','\'' + user1 + '\'', '\'' + user2 + '\'', '\'' + sqlFormatDateTime(startDate) + '\''];
     var sql1 = msq.format(command1,inserts1);
     sql1 = sql1.replace(/`/g,"");
@@ -1785,7 +1785,7 @@ function queryTwoFriends(user1,user2,numDays,res) {
                 if(i > 0) {
                     totalCommand += "union ";
                 }
-                totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? group by userID ";
+                totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent)/60 as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? group by userID ";
                 inserts2.push('\'' + user1 + '\'');
                 inserts2.push('\'' + user2 + '\'');
                 inserts2.push('\'' + sqlFormatDateTime(currDate) + '\'');
@@ -1859,7 +1859,7 @@ app.post('/usage/compare/graphs_update/right',bodyParser.urlencoded({extended : 
             if(i > 0) {
                 totalCommand += " union ";
             }
-            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? and not exists(select * from Categories as C where C.userID = T" + i.toString() + ".userID and C.domainName = T" + i.toString() + ".domainName) group by userID";
+            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent)/60 as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? and not exists(select * from Categories as C where C.userID = T" + i.toString() + ".userID and C.domainName = T" + i.toString() + ".domainName) group by userID";
             inserts.push('\'' + user1 + '\'');
             inserts.push('\'' + user2 + '\'');
             inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
@@ -1875,7 +1875,7 @@ app.post('/usage/compare/graphs_update/right',bodyParser.urlencoded({extended : 
             if(i > 0) {
                 totalCommand += " union ";
             }
-            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? group by userID";
+            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent)/60 as duration, userID from TimeSpent as T" + i.toString() + " where (userID = ?? or userID = ??) and startTime < ?? and startTime > ?? group by userID";
             inserts.push('\'' + user1 + '\'');
             inserts.push('\'' + user2 + '\'');
             inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
@@ -1891,7 +1891,7 @@ app.post('/usage/compare/graphs_update/right',bodyParser.urlencoded({extended : 
             if(i > 0) {
                 totalCommand += " union ";
             }
-            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent) as duration, userID from TimeSpent as T" + i.toString() + ", Categories as C" + i.toString() + " where (T" + i.toString() + ".userID = ?? or T " + i.toString() + ".userID = ??) and startTime < ?? and startTime > ?? and C" + i.toString() + ".userID = T" + i.toString() + ".userID and C" + i.toString() + ".category = ?? and C" + i.toString() + ".domainName = T" + i.toString() + ".domainName group by userID";
+            totalCommand += "select \'" + shortDateStr(prevDate) + "\' as date, sum(timeSpent)/60 as duration, userID from TimeSpent as T" + i.toString() + ", Categories as C" + i.toString() + " where (T" + i.toString() + ".userID = ?? or T " + i.toString() + ".userID = ??) and startTime < ?? and startTime > ?? and C" + i.toString() + ".userID = T" + i.toString() + ".userID and C" + i.toString() + ".category = ?? and C" + i.toString() + ".domainName = T" + i.toString() + ".domainName group by userID";
             inserts.push('\'' + user1 + '\'');
             inserts.push('\'' + user2 + '\'');
             inserts.push('\'' + sqlFormatDateTime(currDate) + '\'');
