@@ -1,5 +1,7 @@
 
 var settings_JSON = null;
+var prev_nuclear_types = [];
+var reset_interval
 
 
 // Set up persistent connection to server for updates
@@ -23,10 +25,24 @@ socket.on('settings object', function(settings) {
     console.log(settings);
     settings_JSON = settings;
     startResetTimeout();
+    //reset_time = settings_JSON[0].resetInterval
   }
 });
 
+socket.on('settings saved', function(settings) {
+  if(settings){
+    console.log(settings);
+    savePrevNuclearTypes(settings);
+    console.log(prev_nuclear_types);
+    console.log("AFTER");
+    settings_JSON = settings;
+    startResetTimeout();
+    socket.emit('get time remaining');
+  }
+})
+
 socket.on('all RT reset', function(settings) {
+  prev_nuclear_types = [];
   settings_JSON = settings;
 });
 
@@ -36,12 +52,27 @@ function set_socket_username_get_settings(){
   socket.emit('get top unres sites');
 }
 
+function savePrevNuclearTypes(new_settings){
+  for(i = 0; i < new_settings.length; i++){
+    var row = new_settings[i];
+    if(row.type == "Nuclear"){
+      for(index = 0; index < settings_JSON.length; index++){
+        var old_row = settings_JSON[index];
+        if(old_row.domainName == row.domainName && old_row.type != "Nuclear"){
+          var old_cat = old_row.category;
+          var old_type = old_row.type;
+          prev_nuclear_types.push([old_cat, old_type]);
+        }
+      }
+    }
+  }
+}
+
 
 var RTCategories = null;
 var unresSites = null;
 
-// TODO when do we socket.emit('get time remaining') so we have 
-// recent data but not right before newtab because that is slowish?
+
 socket.on('all time remaining', function(categories){
   console.log("categories remaining time");
   console.log(categories);
@@ -60,41 +91,10 @@ socket.on('RT updated', function(categories) {
 });
 
 
-
-
-
-
-
-// Http request to get settings of user
-
-
-
-
-// function get_settings() {
-//   var xhttp_settings = new XMLHttpRequest();
-//   xhttp_settings.onreadystatechange = function() {
-//     if (xhttp_settings.readyState == 4 && xhttp_settings.status == 200) {
-//       settings_JSON = JSON.parse(xhttp_settings.responseText);
-//       // Every time we get new settings we want to check if the reset time is the same
-//       startResetTimeout();
-//     }
-//   };
-//   xhttp_settings.open("GET", "http://localhost:3000/get_settings", true);
-//   xhttp_settings.send();
-// }
-
-
-
-// End of http request code
-
-
-
-
 chrome.cookies.get({"url": "http://localhost", "name": "disciplan"}, function(cookie) {
   if (cookie) {
     username = cookie.value;
     set_socket_username_get_settings();
-    //get_settings();
   } 
 });
 
@@ -104,28 +104,19 @@ chrome.cookies.get({"url": "http://localhost", "name": "disciplan"}, function(co
 
 var resetIntervalId
 var resetTimeoutId
-var resetTime = 0
+var resetTime = null
 
 function resetAllTR() {
   console.log("Resetting all time remaining request");
-  socket.emit('Reset_allTR');
-
-
-  // var http_reset_allTR = new XMLHttpRequest();
-  // http_reset_allTR.onreadystatechange = function() {
-  //   if (http_reset_allTR.readyState == 4 && http_reset_allTR.status == 200) {
-  //     get_settings();
-  //   }
-  // };
-  // http_reset_allTR.open("POST", 'http://localhost:3000/reset_allTR');
-  // http_reset_allTR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-  // http_reset_allTR.send();
+  socket.emit('Reset_allTR', prev_nuclear_types);
 }
 
 function startInterval() {
   if(resetIntervalId)
     window.clearInterval(resetIntervalId);
-  var interval = 24*60*60*1000; // TODO get this from settings
+  //var interval = 24*60*60*1000; // TODO get this from settings
+  //var interval = reset_interval*1000;
+  var interval = 3000 * 1000;
   resetIntervalId = setInterval(resetAllTR, interval);
   resetAllTR();
 
@@ -135,8 +126,7 @@ function startResetTimeout() {
   if(resetTimeoutId)
     window.clearTimeout(resetTimeoutId);
   var oldResetTime = resetTime;
-  resetTime = 5; // TODO get from settings when it is there
-  // TODO if new reset time is different redo intervals
+  resetTime = 0; // TODO get from settings when it is there
   if(resetTime == oldResetTime)
     return;
 
@@ -156,7 +146,6 @@ function startResetTimeout() {
 
 // End of interval code
 
-
 var startTime
 var endTime
 var currSiteRestricted = false
@@ -164,8 +153,6 @@ var currCategory
 var currType
 var timeoutId
 
-
-var badRedirect = false
 
 redirectCurrentTab = function(Url){
   console.log(Url);
@@ -177,20 +164,8 @@ redirectCurrentTab = function(Url){
 // When the remaining time for a category goes to 0, send a POST request
 // to update the database with that information. 
 function updateDatabaseCategoryRT(time){
-  // TODO make this so that the TR is not hardcoded to 0 and we can update for any value
   var update = JSON.stringify({category: currCategory, TR: time});
   socket.emit('update_cat_TR', update);
-
-
-
-  // var http_update_TR = new XMLHttpRequest();
-  // // Do we get a response?
-  // // http_update_TR.onreadystatechange = function() {
-
-  // // };
-  // http_update_TR.open("POST", 'http://localhost:3000/update_TR');
-  // http_update_TR.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-  // http_update_TR.send(update);
 }
 
 
@@ -201,17 +176,8 @@ function redirectToHome() {
   console.log("Redirect to home")
 
   chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
-    // if(lastPage){
-    //   if(lastPage == tabs[0].url) {
-    //     badRedirect = true;
-    //     lastPage = null;
-    //     return;
-    //   }
-    // }
-    // lastPage = tabs[0].url
     if(tabs[0]){
       chrome.tabs.update(tabs[0].id, {url: "localhost:3000"}, function() {
-        badRedirect = false;
       });
     }
   });
@@ -233,10 +199,10 @@ function handleTimeUp() {
     redirectToHome();
   if(currType == "Notifications")
     notifyTimeUp();
-  // TODO add nuclear option...
-  //if(currType == "Nuclear")
-  //nuclearOption()
+  if(currType == "Nuclear")
+    redirectToHome();
 }
+
 
 function checkIfRestricted(url, alreadyHostName) {
   var urlHostName = url;
@@ -271,6 +237,8 @@ function startTimeout() {
     var diff_ms = (Date.parse(endTime) - Date.parse(startTime));   
     if(diff_ms < 0)
       diff_ms = 0; 
+    if(currType == "Nuclear")
+      diff_ms = 0;
     timeoutId = window.setTimeout(handleTimeUp, diff_ms);
   }
 }
@@ -292,9 +260,7 @@ function checkSettingChangeTab() {
   if(username == null)
     return;
 
-  // TODO fix this for twitter
-  if(badRedirect)
-    return;
+  socket.emit('get top unres sites');
 
   chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
     if(tabs.length <= 0) return;
@@ -339,26 +305,6 @@ function popupRequest(request, sender, sendResponse) {
       startTimeout();
       sendResponse(); // Send the response once the settings have been updated
     });
-
-
-
-
-    // var http_add_page = new XMLHttpRequest();
-    
-    // http_add_page.onreadystatechange = function() {
-    //   // The response has the new updated settings
-    //   if (http_add_page.readyState == 4 && http_add_page.status == 200) {
-    //     settings_JSON = JSON.parse(http_add_page.responseText);
-    //     startTime = new Date();
-    //     page = JSON.parse(update).page;
-    //     checkIfRestricted(page, true);
-    //     startTimeout();
-    //     sendRes(); // Send the response once the settings have been updated
-    //   }
-    // };
-    // http_add_page.open("POST", 'http://localhost:3000/add_page');
-    // http_add_page.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    // http_add_page.send(update);
   }
   // If message from popup asking for endtime
   if(request.req == "endTime"){
@@ -389,7 +335,6 @@ function popupRequest(request, sender, sendResponse) {
   if(request.req == "username"){
     username = request.username;
     set_socket_username_get_settings();
-    //get_settings();
     intervalId = setInterval(sendStartTimer, 500);
     function sendStartTimer(){
       if(settings_JSON){
@@ -411,6 +356,3 @@ chrome.runtime.onMessage.addListener(
     popupRequest(request, sender, sendResponse);
     return true;
 });
-
-
-

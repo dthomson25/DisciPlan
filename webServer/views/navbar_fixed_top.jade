@@ -48,7 +48,13 @@ html(lang='en')
             
           if current == '/user_settings'
             form.navbar-form.navbar-right
-              button.btn.btn-default.addCategory(type='button') New Category
+                button.btn.btn-default.addCategory(type='button') New Category
+
+            form.navbar-form.navbar-right
+                button.btn.btn-default.nuclear(type='button') Nuke All
+            
+            form.navbar-form.navbar-right
+                button.btn.btn-default.unnuclear(type='button') Unnuke All
             
     block content
 

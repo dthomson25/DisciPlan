@@ -4,48 +4,78 @@
   <link rel="stylesheet" type="text/css" href="/public/css/bootstrap.min.css">
   <style>
 
+  body{
+    /*background-image: url("lion3_crop.jpg");*/
+    background-image: url("lion.jpg");
+    background-size: cover;
+  }
+
   canvas{
     float: left;
   }
   #main {
-    width:1000px;
+    width:1400px;
     margin-left: auto;
     margin-right: auto;
+    margin-top: 10px;
   }
-  #funFact{
+  #quotePanel{
     float: left;
-    background-color: #F0F0F0;
     min-height: 400px;
-    min-width: 500px;
+    width: 700px;
     font-size: 40pt;
+
     color: white;
+    text-align: center;
+    /*-webkit-text-stroke-width: 1px;
+    -webkit-text-stroke-color: white;*/
+
   }
   #mostVisited{
-    width: 970px;
+    width: 800px;
     margin-left: auto;
     margin-right: auto;
     margin-top: 20px;
   }
   #top{
     margin-bottom: 20px;
-    width: 1000px;
+    width: 1400px;
     height: 400px;
   }
-  .col-md-3{
+/*  .col-md-3{
     background-color: F0F0F0;
     outline-color: 707070;
     outline-style: solid;
     outline-width: 1px;
     min-height: 40px;
+    margin: 0px;
+  }*/
+  .col-md-3{
+    text-align: center;
+    opacity: .8;
+
+  }
+  .colorBlock{
+    background-color: C1E1A6; 
+    font-size: 50;
+    color: white;
+    min-height: 80px;
+  }
+  .quote{
+    font-style: italic;
+  }
+  .author{
   }
   </style>
  </head>
  <body>
   <div id="main">
     <div id="top">
-      <canvas id="timeRemainingCanvas" height="400" width="500">
+      <div id="quotePanel" height="400" width="700"></div>
+      <canvas id="timeRemainingCanvas" height="400" width="700">
       </canvas>
-      <div id="funFact" height="400" width="500">THIS IS FUN FACT</div>
+
+      
     </div>
     <div id="mostVisited">
       <div class="row">
@@ -62,6 +92,8 @@
         <div class="col-md-3" id="site8"></div>
       </div>
     </div>
+
+    <div> 
   </div>
 
   <script src='/public/js/jquery-1.12.0.min.js'></script>

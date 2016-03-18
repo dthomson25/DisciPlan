@@ -123,7 +123,7 @@ io.on('connection', function(socket) {
     socket.on('get top unres sites', function() {
         var userId = socket.username;
         var socketId = users[userId];
-         sql = msq.format("select domainName, SUM(timeSpent) as TotalTime from Timespent T where domainName not in (Select C.domainName from Categories C where userID = ?) group by domainName order by totalTime desc limit 8;"
+         sql = msq.format("select domainName, SUM(timeSpent) as TotalTime from Timespent T where domainName not in (Select C.domainName from Categories C where userID = ?) and domainName != \'newtab\' group by domainName order by totalTime desc limit 8;"
             ,[userId]);
         con.query(sql, function(err,rows) {
             if(err) {
@@ -145,11 +145,11 @@ io.on('connection', function(socket) {
 
 
 
-    socket.on('Reset_allTR', function() {
+    socket.on('Reset_allTR', function(prev_nuclear_types) {
         var userId = socket.username;
         var socketId = users[userId];
         console.log("Reset all time remaining from : " + userId);
-
+        console.log(prev_nuclear_types)
 
 //
         // Update time remaining for all categories then send new setting back
@@ -165,42 +165,69 @@ io.on('connection', function(socket) {
             else {
                 recursiveQuery = function(rows, currRow, user) {
                     if(currRow >= rows.length){
-                        // If all of the time remainings are updated send settings back.
-                        sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
-                            ,[userId]);
-                        con.query(sql, function(err,rows) {
-                            if(err) {
+                        resetTypeQuery = function(index){
+                            if(index < prev_nuclear_types.length){
+                                category = prev_nuclear_types[index][0];
+                                prevType = prev_nuclear_types[index][1];
+                                var command = "update Settings SET type = ? WHERE userId = ? AND category = ?;";
+                                var inserts = [prevType, userId, category];
+                                sql = msq.format(command,inserts);
+                                con.query(sql, function(err) {
+                                    if(err){
+                                        console.log("error: " + err);
+                                        if (io.sockets.connected[socketId]){
+                                            io.to(socketId).emit("error", err);
+                                        }
+                                        return;
+                                    }
+                                    else {
+                                        console.log("command:\n" + sql + "\nsucceeded!");
+                                        resetTypeQuery(index + 1);
+                                    }
+                                });
+                            }
+                            else{
+                                // If all of the time remainings are updated send settings back.
+                            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                                ,[userId]);
+                            con.query(sql, function(err,rows) {
+                                if(err) {
+                                    console.log("error: " + err);
+                                    if (io.sockets.connected[socketId]){
+                                        io.to(socketId).emit("error", err);
+                                    }
+                                }
+                                else {
+                                    if (io.sockets.connected[socketId]){
+                                        io.to(socketId).emit("all RT reset", rows);
+                                    }
+                                }
+                            });
+                            return;
+                            }
+                        }
+                        resetTypeQuery(0);
+                    }
+                    else{
+                        category = rows[currRow].category;
+                        timeAllowed = rows[currRow].timeAllowed;
+                        var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
+                        var inserts = [timeAllowed, userId, category];
+                        sql = msq.format(command,inserts);
+                        con.query(sql, function(err) {
+                            if(err){
                                 console.log("error: " + err);
                                 if (io.sockets.connected[socketId]){
                                     io.to(socketId).emit("error", err);
                                 }
+                                return;
                             }
                             else {
-                                if (io.sockets.connected[socketId]){
-                                    io.to(socketId).emit("all RT reset", rows);
-                                }
+                                console.log("command:\n" + sql + "\nsucceeded!");
+                                recursiveQuery(rows, currRow + 1, userId);
                             }
                         });
-                        return;
-                    }
-                    category = rows[currRow].category;
-                    timeAllowed = rows[currRow].timeAllowed;
-                    var command = "update Settings SET timeRemaining = ? WHERE userId = ? AND category = ?;";
-                    var inserts = [timeAllowed, userId, category];
-                    sql = msq.format(command,inserts);
-                    con.query(sql, function(err) {
-                        if(err){
-                            console.log("error: " + err);
-                            if (io.sockets.connected[socketId]){
-                                io.to(socketId).emit("error", err);
-                            }
-                            return;
-                        }
-                        else {
-                            console.log("command:\n" + sql + "\nsucceeded!");
-                            recursiveQuery(rows, currRow + 1, userId);
-                        }
-                    });
+                    } 
                 };
                 recursiveQuery(rows, 0, userId);
             }
@@ -336,7 +363,7 @@ app.get('/user_settings', function(req, res) {
         function(callback) {
             var sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
                 ,[userId]);
-            console.log(sql)
+            // console.log(sql)
             con.query(sql, function(err,rows) {
                 if (err){
                      callback(err);
@@ -354,7 +381,7 @@ app.get('/user_settings', function(req, res) {
         function(callback) {
             var sql = msq.format("select userID, category, type, resetInterval,timeAllowed from settings S where S.category not in (select C.category from categories C);"
                 ,[userId]);
-            console.log(sql)
+            // console.log(sql)
             con.query(sql, function(err,rows) {
                 console.log(rows)
                 if (err){
@@ -1127,10 +1154,78 @@ function createDefaultSettings(userId) {
 
 }
 
+app.post('/user_settings/nuke_all', function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    var command = "UPDATE Settings Set type = 'Nuclear' where userId = ? and type != 'Nuclear'"
+    var inserts = [userId]
+    sql = msq.format(command,inserts);
+    con.query(sql, function(err) {
+        if (err){
+            res.status(400).send(err)
+        }
+        else{
+            var socketId = users[userId];
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("error", err);
+                    }
+                    return err;
+                }
+                else {
+                    console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
+                    console.log(rows);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("settings saved", rows);
+                    }
+                }
+            });
+        }
+        res.sendStatus(204)
+    })
+});
+
+
+app.post('/user_settings/un_nuke_all', function(req,res) {
+    var userId = getDisciplanCookie(req.headers.cookie);
+    var command = "UPDATE Settings Set type = 'Redirect' where userId = ?"
+    var inserts = [userId]
+    sql = msq.format(command,inserts);
+    console.log(sql)
+    con.query(sql, function(err) {
+        if (err){
+            res.status(400).send(err)
+        }
+        else{
+            var socketId = users[userId];
+            sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
+                ,[userId]);
+            con.query(sql, function(err,rows) {
+                if(err) {
+                    console.log("error: " + err);
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("error", err);
+                    }
+                    return err;
+                }
+                else {
+                    console.log("Sending settings back in SAVE!!!! should be last hopefully"); 
+                    if (io.sockets.connected[socketId]){
+                        io.to(socketId).emit("settings saved", rows);
+                    }
+                }
+            });
+        }
+        res.sendStatus(204)
+    })
+});
+
+
 app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), function(req, res) {
     var userId = getDisciplanCookie(req.headers.cookie);
-    defaultSettings(userId)
-
     console.log("In save: socket.id = " + users[userId]);
     // saveSettings(req)
     console.log(req.body)
@@ -1168,7 +1263,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
                 callback()
                 return
             }
-            category = type[1]
+            category = type[0]
             var command = "UPDATE Settings SET type = ? WHERE userId = ? and category = ?"
             var inserts = [type[1],userId,type[0]]
             sql = msq.format(command,inserts);
@@ -1186,7 +1281,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
                 callback()
                 return
             }
-            category = resetInterval[1]
+            category = resetInterval[0]
             var command = "UPDATE Settings SET resetInterval = ? WHERE userId = ? and category = ?"
             var inserts = [resetInterval[1],req.params.userId,resetInterval[0]]
             sql = msq.format(command,inserts);
@@ -1201,14 +1296,14 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
             })
         },
         function(callback) {
-            async.forEach(urlsToDeletes, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+            async.forEach(urlsToDeletes, function(url, callback) { 
                 category = url[0]
                 var command = "DELETE FROM Categories WHERE domainName = ? and userId = ? and category = ?"
                 var inserts = [url[1],userId,url[0]]
                 sql = msq.format(command,inserts);
                 con.query(sql, function(err) {
                     console.log("error possible")
-                    if (err){
+                    if (err){                        
                         callback(err)
                         return
                     } 
@@ -1246,7 +1341,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
             })
         },
         function(callback) {
-            async.forEach(urlToChanges, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
+            async.forEach(urlToChanges, function(url, callback) { 
                 category = url[0]
                 var command = "UPDATE Categories SET domainName = ? WHERE domainName = ? and userId = ? and category = ?"
                 var inserts = [url[2],url[1],userId,url[0]]
@@ -1260,7 +1355,8 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
                 })
                 }, function(err) {
                     if (err){
-                        return err;
+                        callback(err)
+                        return
                     } 
                     callback()
 
@@ -1276,6 +1372,24 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
             var inserts = [timeAllowed[1],userId,timeAllowed[0]]
             sql = msq.format(command,inserts);
             console.log("query 5: ");
+            console.log(sql);
+            con.query(sql, function(err) {
+                    if (err){
+                        return err;
+                    } 
+                    callback()
+            })
+        },
+        function(callback) {
+            if (timeAllowed.length == 0) {
+                callback()
+                return
+            }
+            category = timeAllowed[0]
+            var command = "UPDATE Settings SET timeRemaining = ? WHERE userId = ? and category = ? and timeAllowed < timeRemaining"
+            var inserts = [timeAllowed[1],userId,timeAllowed[0]]
+            sql = msq.format(command,inserts);
+            console.log("query 6: ");
             console.log(sql);
             con.query(sql, function(err) {
                     if (err){
@@ -1313,7 +1427,7 @@ app.post('/user_settings/save', bodyParser.urlencoded({extended : false}), funct
         if (err)  {
             var message = "Unknown Error"
             if (err.code == "ER_DUP_ENTRY")
-                message = "Duplicate entry"
+                message = "Url: " + err.message.split("\'")[1].split('-')[1] + " is a duplicate url. Urls can only be restricted once.~"+categoryName
             res.status(400).send(message);
             return
         }
@@ -1358,6 +1472,39 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
     var domainName = JSON.parse(req.body["domain_names"])
     async.series([
         function(callback) {
+            if (domainName.length == 0) {
+                callback()
+                return
+            }
+            async.forEach(domainName, function(url, callback) { 
+                var command = "SELECT * FROM Categories where userId = ? and domainName = ?"
+                var inserts = [userId,url]
+                sql = msq.format(command,inserts);
+                console.log(sql)
+                con.query(sql, function(err,rows) {
+                    console.log(rows)
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    if (rows.length == 0) {
+                        callback()
+                        return
+                    }
+                    var newErr = {}
+                    newErr.code = "ER_DUP_ENTRY"
+                    newErr.message = "Url: " + url + " is a duplicate url. Urls can't be in multiple categories.~"+categoryName
+                    callback(newErr)
+                })
+                }, function(err) {
+                    if (err){
+                        callback(err)
+                        return
+                    } 
+                    callback()
+            })
+        },
+        function(callback) {
             var command = "INSERT INTO Settings (userID,category,type,timeAllowed,timeRemaining,resetInterval) VALUES(?,?,?,?,?,?)"
             var inserts = [userId, categoryName, type,
             timeAllowed.toString(),timeAllowed.toString(),resetInterval.toString()]
@@ -1374,7 +1521,10 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
             })
         },
         function(callback) {
-            console.log("second callback")
+            if (domainName.length == 0) {
+                callback()
+                return
+            }
             async.forEach(domainName, function(url, callback) { //The second argument (callback) is the "task callback" for a specific messageId
                 var command = "INSERT INTO Categories (userID,domainName,category) VALUES(?,?,?)"
                 var inserts = [userId,url,categoryName]
@@ -1402,6 +1552,8 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
             var socketId = users[userId];
             sql = msq.format("select * from Settings as S,Categories as C where S.userId = ? and S.category = C.category ORDER BY S.Category;"
                 ,[userId]);
+            console.log("sql query")
+            console.log(sql)
             con.query(sql, function(err,rows) {
                 if(err) {
                     console.log("error: " + err);
@@ -1426,7 +1578,9 @@ app.post('/user_settings/create_category', bodyParser.urlencoded({extended : fal
         if (err)  {
             var message = "Unknown Error"
             if (err.code == "ER_DUP_ENTRY")
-                message = "Duplicate entry"
+                message = err.message
+            console.log(message)
+            console.log("sending it")
             res.status(400).send(message);
             return
         }
