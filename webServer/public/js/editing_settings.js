@@ -49,8 +49,8 @@ var categoryHTML = "<div class=\"input-group\">\
   </div><!-- /input-group -->"
 var plusButtonHTML = "<button class=\'btn btn-default add-url\', type='button'>+</button>"
 
-var containerHTML = "<div class=\"jumbotron categories new-category\">" + deleteCategoryBtnHTML + titleHTML + 
-  "<br>" + timeAllowedHTML + "<br>"+ timeRemainingHTML+ "<br>" + resetIntervalHTML + typeHTML + plusButtonHTML + "</div>"
+var containerHTML = "<div class=\"col-md-6\"><div class=\"jumbotron categories new-category\">" + deleteCategoryBtnHTML + titleHTML + 
+  "<br>" + timeAllowedHTML + "<br>"+ timeRemainingHTML+ "<br>" + resetIntervalHTML + typeHTML + plusButtonHTML + "</div></div>"
 
 
 $('.main').on("click", ".editH2",function() {
@@ -201,7 +201,6 @@ function calculateRemainingTime(category) {
   }
   return time
 }
-
 
 function findChangedTime(category) {
   var categoryName = category.find("h2").text()
@@ -367,6 +366,10 @@ $(".main").on("click",".save",function() {
       category.notify("A url cannot be left blank.","error")
       return
     }
+    if (urls.length == 0) {
+      category.notify("A category must have at least one url.","error")
+      return
+    }
     newCategory.push(urls)
     console.log(newCategory)
     sendCreateCategoryRequest(newCategory)
@@ -442,7 +445,7 @@ $(".main").on("click", ".add-url",function (argument) {
 });
 
 $(".addCategory").click( function(argument) {
-  $(".main").append(containerHTML)
+  $(".row").append(containerHTML)
   if(first) {
     $('.new-category').on("change",".allowed",function() {
       var changedInput
@@ -459,7 +462,6 @@ $(".addCategory").click( function(argument) {
     })
     first = false
   }
-
 });
 
 
