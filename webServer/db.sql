@@ -3,8 +3,6 @@ CREATE DATABASE disciplan;
 USE disciplan;
 DROP TABLE IF EXISTS Users;
 DROP TABLE IF EXISTS TimeSpent;
-DROP TABLE IF EXISTS Categories;
-DROP TABLE IF EXISTS Settings;
 DROP TABLE IF EXISTS Friends;
 DROP TABLE IF EXISTS PremiumUserDomains;
 
@@ -27,24 +25,7 @@ CREATE TABLE TimeSpent (
 	FOREIGN KEY (userID) REFERENCES Users (userID)
 );
 
-CREATE TABLE Categories (
-	userID CHAR(64),
-	domainName CHAR(64),
-	category CHAR(64),
-	PRIMARY KEY (userId, domainName),
-	FOREIGN KEY (userID) REFERENCES Users(userID)
-);
 
-CREATE TABLE Settings (
-	userID CHAR(64),
-	category CHAR(64) NOT NULL,
-	type CHAR(64) NOT NULL,
-	timeAllowed INT(64) NOT NULL,
-	timeRemaining INT(64) NOT NULL,
-	resetInterval INT(64) NOT NULL,
-	PRIMARY KEY (userID,category),
-	FOREIGN KEY (userID) REFERENCES Users(userID)
-);
 
 CREATE TABLE PremiumUserDomains (
 	userID CHAR(64) NOT NULL,
@@ -60,6 +41,12 @@ CREATE TABLE Friends (
 	FOREIGN KEY (user1) REFERENCES Users(userID),
 	FOREIGN KEY (user2) REFERENCES Users(userID)
 );
+
+INSERT INTO Users VALUES ("danthom","danthom@stanford.edu","Danny", "Thomson","password","1993-05-20 00:00:00",1);
+INSERT INTO Users VALUES ("jross3","jross3@stanford.edu","James", "Ross","password","1965-09-07 00:00:00",1);
+INSERT INTO Users VALUES ("adamii","adamii@stanford.edu","Adam", "Brostowicz","password","1985-09-07 00:00:00",1);
+INSERT INTO Users VALUES ("jeff1731","jeff1731@stanford.edu","Jeff", "Garnier","password","2002-09-07 00:00:00",1);
+INSERT INTO PremiumUserDomains VALUES ('danthom','www.google.com');
 
 CREATE VIEW AgeGroupView AS
 SELECT T1.domainName, sum(T1.timeSpent) AS duration, "Under 18" AS AgeGroup
