@@ -29,6 +29,7 @@ body {
 	width: 600px;
 	border-style: solid;
 	transform: translate(-50%, 80%);
+	overflow: scroll;
 }
 
 .row {

@@ -73,11 +73,15 @@ function logout() {
 	var settingsBtn = document.getElementById("settings_btn");
 	settingsBtn.style.display = "none";
 
+	var pageButtons = document.getElementById("addPageButtons");
+	pageButtons.innerHTML = "";
+
 	chrome.runtime.sendMessage({req: "logout"}, function(response) {
 		// Start timer or display add page dropdown. Function in popup.js
 		if(response.res == ""){
 		}
 	});
+
 
 }
 
